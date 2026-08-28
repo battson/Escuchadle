@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escuchadle Argento — adiviná la canción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header>
+  <h1>ESCUCHADLE<br><span>ARGENTO</span></h1>
+  <div class="modo" role="group" aria-label="Modo de juego">
+    <button id="modoDiario" class="activo">Del día</button>
+    <button id="modoLibre">Libre</button>
+  </div>
+</header>
+
+<main>
+  <section class="escenario">
+    <div class="tocadiscos">
+      <div id="ytplayer"></div>
+      <div class="vinilo" id="vinilo" aria-hidden="true"></div>
+    </div>
+    <div class="controles">
+      <div class="barra" id="barra" aria-hidden="true">
+        <div class="desbloq" id="desbloq"></div>
+        <div class="progreso" id="progreso"></div>
+      </div>
+      <div class="tiempos"><span id="tActual">0:00</span><span>0:16</span></div>
+      <div class="play">
+        <button class="btn btn-play" id="btnPlay">▶ Escuchar</button>
+        <span class="estado" id="estado">Cargando canción…</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="intentos" id="intentos" aria-live="polite"></section>
+
+  <section id="zonaJuego" style="display:flex;flex-direction:column;gap:10px">
+    <div class="buscador">
+      <div class="lista" id="lista" role="listbox"></div>
+      <input id="busqueda" type="text" placeholder="Buscá artista o canción…" autocomplete="off" aria-label="Tu intento">
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" id="btnSaltar">Saltar (+1s)</button>
+      <button class="btn btn-ok" id="btnEnviar" disabled>Enviar</button>
+    </div>
+  </section>
+
+  <section class="resultado" id="resultado">
+    <div class="titulo" id="resTitulo"></div>
+    <div class="cancion" id="resCancion"></div>
+    <div class="emojis" id="resEmojis"></div>
+    <div class="stats">
+      <div><b id="stJugadas">0</b>jugadas</div>
+      <div><b id="stGanadas">0</b>ganadas</div>
+      <div><b id="stRacha">0</b>racha</div>
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" id="btnCopiar">Copiar resultado</button>
+      <button class="btn btn-ok" id="btnOtra">Otra canción</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Cada intento fallido o salto desbloquea más segundos: 1 · 2 · 4 · 7 · 11 · 16.
+  <span style="color:var(--sol)">Amarillo</span> = acertaste el artista, no la canción.<br>
+  El audio se reproduce con el reproductor oficial de YouTube.<br>
+  <a href="#" id="abrirVerif">Verificar catálogo</a>
+</footer>
+
+<section class="verif" id="verif">
+  <div class="verif-cab">
+    <strong>Verificación del catálogo</strong>
+    <span id="verifEstado"></span>
+    <button class="btn btn-sec" id="btnCatalogo">Copiar catálogo con IDs</button>
+    <button class="btn btn-sec" id="cerrarVerif">Cerrar</button>
+  </div>
+  <p class="verif-ayuda">Cada fila muestra qué video eligió la búsqueda. Tocá ▶ para abrirlo en YouTube y confirmar. Si alguno está mal, copiá el ID correcto de la URL (watch?v=<b>ID</b>) y ponelo en el catálogo como <code>yt:"ID"</code>. "Copiar catálogo con IDs" te da el array entero ya fijado, listo para reemplazar; después de eso la clave de API deja de ser necesaria.<br><br>
+  <b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
+  <div id="verifLista"></div>
+</section>
+
+<script src="js/config.js"></script>
+<script src="js/catalogo.js"></script>
+<script src="js/juego.js"></script>
+</body>
+</html>
