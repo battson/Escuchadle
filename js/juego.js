@@ -48,17 +48,44 @@ function puntuar(c,x){
   return p;
 }
 /* Devuelve {yt, titulo, canal} */
+/* Errores que no tiene sentido reintentar: la cuota diaria se agotó. */
+class SinCuota extends Error{}
+
+const dormir=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* Caché local: lo ya resuelto no se vuelve a pedir a la API. */
+const cache=store.get("ea_cache",{});
+const guardarCache=()=>store.set("ea_cache",cache);
+
 async function resolver(c){
   if(c.yt) return {yt:c.yt,titulo:c.label,canal:"ID fijado"};
+  if(cache[c.label]) return cache[c.label];
   if(!YT_API_KEY) throw new Error("Falta ID de YouTube (yt) o clave de API");
   const q=encodeURIComponent(`${c.a} ${c.t}`);
-  const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=8&q=${q}&key=${YT_API_KEY}`);
-  if(!r.ok) throw new Error("API "+r.status);
-  const d=await r.json(); const items=d.items||[];
-  if(!items.length) throw new Error("sin resultados");
-  items.sort((x,y)=>puntuar(c,y)-puntuar(c,x));
-  const m=items[0];
-  return {yt:m.id.videoId,titulo:m.snippet.title,canal:m.snippet.channelTitle};
+  const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=8&q=${q}&key=${YT_API_KEY}`;
+
+  let espera=1200;
+  for(let intento=1;intento<=4;intento++){
+    const r=await fetch(url);
+    if(r.status===429||r.status===503){          /* demasiado rápido: esperar y reintentar */
+      if(intento===4) throw new Error("API saturada (429)");
+      await dormir(espera); espera*=2; continue;
+    }
+    if(r.status===403){
+      const d=await r.json().catch(()=>({}));
+      const razon=d.error?.errors?.[0]?.reason||"";
+      if(/quota/i.test(razon)) throw new SinCuota("Cuota diaria agotada");
+      throw new Error("Clave rechazada (403)");
+    }
+    if(!r.ok) throw new Error("API "+r.status);
+    const d=await r.json(); const items=d.items||[];
+    if(!items.length) throw new Error("sin resultados");
+    items.sort((x,y)=>puntuar(c,y)-puntuar(c,x));
+    const m=items[0];
+    const res={yt:m.id.videoId,titulo:m.snippet.title,canal:m.snippet.channelTitle};
+    cache[c.label]=res; guardarCache();
+    return res;
+  }
 }
 
 async function nuevaPartida(){
@@ -194,28 +221,48 @@ document.addEventListener("keydown",e=>{if(e.code==="Space"&&document.activeElem
 /* ---------- verificación del catálogo ---------- */
 const verif=$("#verif"), vLista=$("#verifLista"), vEstado=$("#verifEstado");
 let resueltos={}, verificado=false;
-$("#abrirVerif").onclick=e=>{e.preventDefault();verif.classList.add("visible");verif.scrollIntoView({behavior:"smooth"});if(!verificado)verificar()};
+$("#abrirVerif").onclick=e=>{e.preventDefault();verif.classList.add("visible");verif.scrollIntoView({behavior:"smooth"})};
 $("#cerrarVerif").onclick=()=>verif.classList.remove("visible");
+const PAUSA=600;   /* ms entre búsquedas: evita el 429 */
+let corriendo=false;
+
 async function verificar(){
-  verificado=true; vLista.innerHTML=""; let n=0;
+  if(corriendo) return;
   if(!YT_API_KEY&&!CANCIONES.some(c=>c.yt)){vEstado.textContent="Sin clave de API ni IDs cargados.";return}
+  corriendo=true; verificado=true; vLista.innerHTML="";
+  $("#btnVerificar").textContent="Parar";
+  let n=0, pendientes=0, cortado=null;
+
   for(const c of CANCIONES){
+    if(!corriendo){cortado="Parado. Volvé a tocar Verificar para seguir donde quedó.";break}
     const fila=document.createElement("div"); fila.className="vf";
     fila.innerHTML=`<a href="#" data-p="${c.id}" title="Abrir en YouTube" style="color:var(--crema);text-decoration:none">▶</a><div><div class="pedido">${c.label}</div><div class="hallado">buscando…</div></div><span class="id"></span>`;
     vLista.appendChild(fila);
+    const nuevo=!c.yt&&!cache[c.label];
     try{
       const r=await resolver(c); resueltos[c.id]=r;
-      fila.classList.add(c.yt?"ok":MALAS.test(r.titulo)?"dudoso":"ok");
+      fila.classList.add(MALAS.test(r.titulo)?"dudoso":"ok");
       fila.querySelector(".hallado").textContent=`${r.canal} — ${r.titulo}`;
       fila.querySelector(".id").textContent=r.yt;
-      fila.querySelector("[data-p]").href="https://www.youtube.com/watch?v="+r.yt;
-      fila.querySelector("[data-p]").target="_blank";
+      const a=fila.querySelector("[data-p]");
+      a.href="https://www.youtube.com/watch?v="+r.yt; a.target="_blank";
     }catch(e){
       fila.classList.add("error"); fila.querySelector(".hallado").textContent=e.message;
+      if(e instanceof SinCuota){cortado="Cuota diaria agotada. Lo hecho quedó guardado; seguí mañana desde donde quedó.";break}
+      pendientes++;
     }
     vEstado.textContent=`${++n}/${CANCIONES.length} revisadas`;
+    if(nuevo) await dormir(PAUSA);   /* solo espera si consultó la API */
   }
+  corriendo=false; $("#btnVerificar").textContent="Verificar";
+  vEstado.textContent=cortado||`Listo: ${n}/${CANCIONES.length}${pendientes?` · ${pendientes} con problemas`:""}`;
 }
+$("#btnVerificar").onclick=()=>{corriendo?corriendo=false:verificar()};
+$("#btnLimpiar").onclick=()=>{
+  if(!confirm("¿Borrar los resultados guardados y volver a buscar todo?")) return;
+  for(const k in cache) delete cache[k];
+  guardarCache(); resueltos={}; vLista.innerHTML=""; vEstado.textContent="Caché borrada.";
+};
 $("#btnCatalogo").onclick=()=>{
   const txt="const CANCIONES = [\n"+CANCIONES.map(c=>{
     const id=c.yt||resueltos[c.id]?.yt;
