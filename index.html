@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/estilos.css?v=2">
 </head>
 <body>
 <header>
@@ -84,12 +84,17 @@
   </div>
   <p class="verif-ayuda">Tocá <b>Verificar</b> para revisar el catálogo. Va de a una canción por vez para no saturar la API de YouTube, así que unas 85 canciones tardan cerca de un minuto y medio. Lo encontrado queda guardado en este navegador: si lo parás, o si se corta, al volver a tocar Verificar sigue desde donde quedó sin repetir búsquedas.<br><br>
   Cada fila muestra qué video eligió la búsqueda. Tocá ▶ para abrirlo en YouTube y confirmar. Si alguno está mal, copiá el ID correcto de la URL (watch?v=<b>ID</b>) y ponelo en el catálogo como <code>yt:"ID"</code>. "Copiar catálogo con IDs" te da el array entero ya fijado, listo para reemplazar; después de eso la clave de API deja de ser necesaria.<br><br>
-  <b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
+  </p>
+  <p class="verif-ayuda" id="ayudaClave" hidden><b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
   <div id="verifLista"></div>
 </section>
 
-<script src="js/config.js2"></script>
-<script src="js/catalogo.js"></script>
-<script src="js/juego.js"></script>
+<script src="js/config.js?v=2"></script>
+<script src="js/catalogo.js?v=2"></script>
+<script src="js/juego.js?v=2"></script>
+<script>
+  /* Las instrucciones de la clave solo aparecen si falta. */
+  if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
+</script>
 </body>
 </html>
