@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Escuchadle Argento — adiviná la canción</title>
-<link rel="icon" href="favicon.ico" type="imgs/vinilo.png"/>
+<link rel="icon" href="imgs/vinilo.png" type="image/png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=2">
+  <link rel="stylesheet" href="css/estilos.css?v=4">
 </head>
 <body>
 <header>
-  <h1>ESCUCHADLE<br><span>ARGENTO</span></h1>
-  <div class="modo" role="group" aria-label="Modo de juego">
-    <button id="modoDiario" class="activo">Del día</button>
-    <button id="modoLibre">Libre</button>
+  <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
+  <div class="cabecera-der">
+    <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
+    <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
   </div>
 </header>
 
@@ -38,6 +38,8 @@
     </div>
   </section>
 
+  <section class="pistas" id="pistas" aria-live="polite" hidden></section>
+
   <section class="intentos" id="intentos" aria-live="polite"></section>
 
   <section id="zonaJuego" style="display:flex;flex-direction:column;gap:10px">
@@ -51,7 +53,32 @@
     </div>
   </section>
 
-  <section class="resultado" id="resultado">
+  <section class="zona-cerrada" id="zonaCerrada" hidden>
+    <button class="btn btn-ok" id="btnVerResultado">Ver resultado</button>
+  </section>
+</main>
+
+<!-- ---------- ventana de ayuda ---------- -->
+<div class="modal" id="modalAyuda" role="dialog" aria-modal="true" aria-labelledby="tituloAyuda" hidden>
+  <div class="modal-caja">
+    <div class="modal-cab">
+      <strong id="tituloAyuda">Cómo se juega</strong>
+      <button class="modal-x" data-cerrar="modalAyuda" aria-label="Cerrar">×</button>
+    </div>
+    <p>Cada intento fallido o salto desbloquea más segundos: 1 · 2 · 4 · 7 · 11 · 16.</p>
+    <p><span style="color:var(--sol)">Amarillo</span> = acertaste el artista, no la canción.</p>
+    <p>El audio se reproduce con el reproductor oficial de YouTube.</p>
+    <p class="modal-nota">Cada fallo destapa además una pista nueva sobre la canción.</p>
+  </div>
+</div>
+
+<!-- ---------- ventana de resultado ---------- -->
+<div class="modal" id="modalResultado" role="dialog" aria-modal="true" aria-labelledby="resTitulo" hidden>
+  <div class="modal-caja resultado">
+    <div class="modal-cab">
+      <span></span>
+      <button class="modal-x" data-cerrar="modalResultado" aria-label="Cerrar">×</button>
+    </div>
     <div class="titulo" id="resTitulo"></div>
     <div class="cancion" id="resCancion"></div>
     <div class="emojis" id="resEmojis"></div>
@@ -60,39 +87,94 @@
       <div><b id="stGanadas">0</b>ganadas</div>
       <div><b id="stRacha">0</b>racha</div>
     </div>
+    <div class="firma">
+      <label for="nombre">Tu nombre para el ranking</label>
+      <input id="nombre" type="text" maxlength="24" placeholder="Cómo querés figurar" autocomplete="nickname">
+      <span class="firma-aviso" id="firmaAviso">Por ahora queda guardado en este navegador.</span>
+    </div>
     <div class="acciones">
       <button class="btn btn-sec" id="btnCopiar">Copiar resultado</button>
-      <button class="btn btn-ok" id="btnOtra">Otra canción</button>
+      <button class="btn btn-ok" id="btnCompartir">Compartir</button>
     </div>
-  </section>
-</main>
-
-<footer>
-  Cada intento fallido o salto desbloquea más segundos: 1 · 2 · 4 · 7 · 11 · 16.
-  <span style="color:var(--sol)">Amarillo</span> = acertaste el artista, no la canción.<br>
-  El audio se reproduce con el reproductor oficial de YouTube.<br>
-  <a href="#" id="abrirVerif">Verificar catálogo</a>
-</footer>
-
-<section class="verif" id="verif">
-  <div class="verif-cab">
-    <strong>Verificación del catálogo</strong>
-    <span id="verifEstado"></span>
-    <button class="btn btn-sec" id="btnVerificar">Verificar</button>
-    <button class="btn btn-sec" id="btnCatalogo">Copiar catálogo con IDs</button>
-    <button class="btn btn-sec" id="btnLimpiar">Borrar caché</button>
-    <button class="btn btn-sec" id="cerrarVerif">Cerrar</button>
+    <button class="btn btn-sec" id="btnOtra" hidden>Otra canción</button>
+    <div class="nota-manana" id="notaManana" hidden>La del día ya está jugada. Volvé mañana por otra.</div>
   </div>
-  <p class="verif-ayuda">Tocá <b>Verificar</b> para revisar el catálogo. Va de a una canción por vez para no saturar la API de YouTube, así que unas 85 canciones tardan cerca de un minuto y medio. Lo encontrado queda guardado en este navegador: si lo parás, o si se corta, al volver a tocar Verificar sigue desde donde quedó sin repetir búsquedas.<br><br>
-  Cada fila muestra qué video eligió la búsqueda. Tocá ▶ para abrirlo en YouTube y confirmar. Si alguno está mal, copiá el ID correcto de la URL (watch?v=<b>ID</b>) y ponelo en el catálogo como <code>yt:"ID"</code>. "Copiar catálogo con IDs" te da el array entero ya fijado, listo para reemplazar; después de eso la clave de API deja de ser necesaria.<br><br>
-  </p>
-  <p class="verif-ayuda" id="ayudaClave" hidden><b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
-  <div id="verifLista"></div>
+</div>
+
+<!-- ---------- panel reservado ---------- -->
+<section class="panel" id="panel">
+  <div class="panel-cab">
+    <strong>Panel reservado</strong>
+    <button class="btn btn-sec" id="cerrarPanel">Cerrar</button>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Canción del día</div>
+    <div class="opciones">
+      <label><input type="radio" name="modoDia" id="diaAuto" value="auto"> Automática, por fecha</label>
+      <label><input type="radio" name="modoDia" id="diaManual" value="manual"> A elección</label>
+    </div>
+    <select id="selCancion" aria-label="Canción del día"></select>
+    <div class="verif-cab">
+      <span id="estadoDia"></span>
+      <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
+      <button class="btn btn-sec" id="btnPublicado">Volver a lo publicado</button>
+    </div>
+    <div class="publicar">
+      <div class="panel-titulo">Para que lo vea todo el mundo: reemplazá el bloque <code>const DIA</code> de <code>js/dia.js</code> por esto y subilo</div>
+      <pre class="codigo" id="vistaDia"></pre>
+      <button class="btn btn-sec" id="btnCopiarDia">Copiar js/dia.js</button>
+    </div>
+    <p class="panel-ayuda">El sitio es estático: no hay servidor donde guardar la elección. Lo que tocás acá cambia el juego <b>en esta computadora</b> al instante, para que puedas probarlo. Para que le llegue a los demás hay que subir <code>js/dia.js</code> al repositorio.<br><br>
+    <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Modo de juego</div>
+    <div class="modo" role="group" aria-label="Modo de juego">
+      <button id="modoDiario" class="activo">Del día</button>
+      <button id="modoLibre">Libre</button>
+    </div>
+    <p class="panel-ayuda">El modo libre saca una canción al azar, no guarda la partida y no cuenta para las estadísticas. Solo se puede entrar desde acá.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Verificación del catálogo</div>
+    <div class="verif-cab">
+      <span id="verifEstado"></span>
+      <button class="btn btn-sec" id="btnVerificar">Verificar</button>
+      <button class="btn btn-sec" id="btnCatalogo">Copiar catálogo con IDs</button>
+      <button class="btn btn-sec" id="btnLimpiar">Borrar caché</button>
+    </div>
+    <p class="panel-ayuda">Tocá <b>Verificar</b> para revisar el catálogo. Va de a una canción por vez para no saturar la API de YouTube, así que unas 64 canciones tardan cerca de un minuto. Lo encontrado queda guardado en este navegador: si lo parás, o si se corta, al volver a tocar Verificar sigue desde donde quedó sin repetir búsquedas.<br><br>
+    Cada fila muestra qué video eligió la búsqueda. Tocá ▶ para abrirlo en YouTube y confirmar. Si alguno está mal, copiá el ID correcto de la URL (watch?v=<b>ID</b>) y ponelo en el catálogo como <code>yt:"ID"</code>. "Copiar catálogo con IDs" te da el array entero ya fijado, listo para reemplazar; después de eso la clave de API deja de ser necesaria.</p>
+    <p class="panel-ayuda" id="ayudaClave" hidden><b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
+    <div id="verifLista"></div>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Partida guardada</div>
+    <div class="verif-cab">
+      <span id="estadoPartida"></span>
+      <button class="btn btn-sec" id="btnBorrarPartida">Borrar partida de hoy</button>
+    </div>
+    <p class="panel-ayuda">Borra la partida solo en esta computadora, sin tocar las estadísticas ni a los demás jugadores.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Resultados guardados</div>
+    <div class="verif-cab">
+      <span id="estadoResultados"></span>
+      <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
+    </div>
+    <p class="panel-ayuda">Cada partida terminada queda anotada acá con nombre, canción e intentos, esperando la base de datos del ranking semanal.</p>
+  </div>
 </section>
 
-<script src="js/config.js?v=2"></script>
-<script src="js/catalogo.js?v=2"></script>
-<script src="js/juego.js?v=2"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/dia.js?v=4"></script>
+<script src="js/catalogo.js?v=4"></script>
+<script src="js/juego.js?v=4"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
