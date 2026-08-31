@@ -20,8 +20,20 @@
     padding:24px 16px 48px;
   }
   header{width:100%;max-width:560px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--borde);padding-bottom:12px}
-  h1{font-family:"Bebas Neue",Impact,sans-serif;font-size:44px;letter-spacing:.04em;line-height:.9;color:var(--crema)}
+  h1{font-family:"Bebas Neue",Impact,sans-serif;font-size:44px;letter-spacing:.04em;line-height:.9;color:var(--crema);
+     cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
   h1 span{color:var(--celeste)}
+  .cabecera-der{display:flex;align-items:center;gap:10px}
+  .badge-libre{border:1px solid var(--sol);color:var(--sol);border-radius:999px;padding:6px 12px;
+    font:500 11px/1 "Space Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  .ayuda-btn{
+    width:34px;height:34px;flex:none;border-radius:50%;cursor:pointer;
+    background:transparent;border:1px solid var(--borde);color:var(--gris);
+    font:700 16px/1 "Space Grotesk",sans-serif;
+    display:grid;place-items:center;transition:color .15s,border-color .15s
+  }
+  .ayuda-btn:hover{color:var(--celeste);border-color:var(--celeste)}
+  .ayuda-btn:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .modo{display:flex;gap:6px}
   .modo button{background:transparent;border:1px solid var(--borde);color:var(--gris);font:500 12px/1 "Space Grotesk",sans-serif;padding:8px 10px;border-radius:999px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
   .modo button.activo{border-color:var(--celeste);color:var(--celeste)}
@@ -61,6 +73,20 @@
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .estado{font-size:13px;color:var(--gris);min-height:18px}
 
+  /* ---------- pistas ---------- */
+  .pistas{display:flex;flex-wrap:wrap;gap:8px}
+  .pistas[hidden]{display:none}   /* si no, el display:flex le gana al atributo */
+  .pista{
+    display:flex;align-items:baseline;gap:8px;padding:8px 12px;border-radius:999px;
+    border:1px solid var(--borde);background:var(--pista);font-size:13px;color:var(--crema);
+    animation:aparecer .35s ease both
+  }
+  .pista .et{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sol)}
+  .pista .vl{font-variant-numeric:tabular-nums}
+  .pista .vl.velado{font-family:monospace;letter-spacing:.12em}
+  @keyframes aparecer{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.pista{animation:none}}
+
   /* ---------- intentos ---------- */
   .intentos{display:flex;flex-direction:column;gap:8px}
   .intento{
@@ -95,22 +121,82 @@
   .btn-ok{background:var(--sol);color:var(--noche)}
 
   /* ---------- resultado ---------- */
-  .resultado{display:none;flex-direction:column;gap:12px;background:var(--pista);border:1px solid var(--borde);border-radius:18px;padding:20px;text-align:center}
-  .resultado.visible{display:flex}
+  .zona-cerrada{display:flex}
+  .zona-cerrada[hidden]{display:none}
+  .zona-cerrada .btn{flex:1}
+
+  /* ---------- ventanas ---------- */
+  .modal{
+    position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    padding:16px;background:rgba(6,9,16,.72);backdrop-filter:blur(3px);
+    animation:fundido .18s ease both;overflow:auto
+  }
+  .modal[hidden]{display:none}
+  @keyframes fundido{from{opacity:0}to{opacity:1}}
+  .modal-caja{
+    width:100%;max-width:440px;background:var(--pista);border:1px solid var(--borde);
+    border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55);animation:subir .22s ease both
+  }
+  @keyframes subir{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.modal,.modal-caja{animation:none}}
+  .modal-caja p{font-size:14px;color:var(--crema);line-height:1.55}
+  .modal-nota{color:var(--gris)!important;font-size:13px!important;border-top:1px solid var(--borde);padding-top:12px}
+  .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
+  .modal-x{
+    background:transparent;border:0;color:var(--gris);font-size:24px;line-height:1;
+    cursor:pointer;padding:0 4px;border-radius:8px
+  }
+  .modal-x:hover{color:var(--crema)}
+  .modal-x:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+
+  .resultado{text-align:center}
+  .resultado .modal-cab{margin-bottom:-8px}
   .resultado .titulo{font-family:"Bebas Neue",Impact,sans-serif;font-size:34px;letter-spacing:.03em;line-height:1}
   .resultado .cancion{font-size:16px;color:var(--celeste)}
   .resultado .emojis{font-size:22px;letter-spacing:4px}
   .resultado .stats{display:flex;justify-content:center;gap:24px;font-size:13px;color:var(--gris)}
+  .resultado .firma{display:flex;flex-direction:column;gap:6px;text-align:left;
+    border-top:1px solid var(--borde);padding-top:14px}
+  .resultado .firma label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
+  .resultado .firma input{
+    width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--borde);
+    background:#0b0f19;color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
+  }
+  .resultado .firma input:focus{border-color:var(--celeste)}
+  .resultado .firma input::placeholder{color:var(--gris)}
+  .firma-aviso{font-size:11px;color:var(--gris)}
+  .resultado .nota-manana{font-size:12px;color:var(--gris)}
   .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
-  footer{margin-top:28px;font-size:12px;color:var(--gris);text-align:center;max-width:560px;line-height:1.5}
-  footer a{color:var(--celeste);text-decoration:none}
-  .verif{display:none;width:100%;max-width:560px;margin-top:20px;background:var(--pista);border:1px solid var(--borde);border-radius:18px;padding:16px;gap:10px;flex-direction:column}
-  .verif.visible{display:flex}
+  /* ---------- panel reservado ---------- */
+  .panel{display:none;width:100%;max-width:560px;margin-top:24px;background:var(--pista);
+    border:1px solid var(--sol);border-radius:18px;padding:16px;gap:18px;flex-direction:column}
+  .panel.visible{display:flex}
+  .panel-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border-bottom:1px solid var(--borde);padding-bottom:10px}
+  .panel-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:22px;letter-spacing:.06em;color:var(--sol)}
+  .panel-cab .btn{padding:8px 12px;font-size:12px}
+  .panel-bloque{display:flex;flex-direction:column;gap:10px}
+  .panel-titulo{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
+  .panel-ayuda{font-size:12px;color:var(--gris);line-height:1.5}
+  .panel-ayuda code{color:var(--sol)}
+  .opciones{display:flex;gap:16px;flex-wrap:wrap}
+  .opciones label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--crema);cursor:pointer}
+  .opciones input{accent-color:var(--celeste);cursor:pointer}
+  .panel select{
+    width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--borde);
+    background:#0b0f19;color:var(--crema);font:500 14px "Space Grotesk",sans-serif;cursor:pointer
+  }
+  .panel select:disabled{opacity:.45;cursor:not-allowed}
+  .publicar{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--borde);padding-top:12px}
+  .codigo{
+    background:#0b0f19;border:1px solid var(--borde);border-radius:12px;padding:12px;
+    font:400 11px/1.5 monospace;color:var(--crema);white-space:pre;overflow-x:auto
+  }
   .verif-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .verif-cab span{color:var(--gris);font-size:12px;flex:1}
+  .verif-cab span{color:var(--gris);font-size:12px;flex:1;min-width:120px}
   .verif-cab .btn{padding:8px 12px;font-size:12px}
-  .verif-ayuda{font-size:12px;color:var(--gris);line-height:1.5}
-  .verif-ayuda code{color:var(--sol)}
   .vf{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--borde);font-size:12px}
   .vf .pedido{color:var(--crema)}
   .vf .hallado{color:var(--gris)}
