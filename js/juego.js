@@ -24,14 +24,17 @@ let stats=store.get("ea_stats",{jugadas:0,ganadas:0,racha:0});
 let nombre=store.get("ea_nombre","");
 
 /* ---------- ventanas ---------- */
+let capa=20;
 function abrirModal(id){
   const m=$("#"+id); if(!m) return;
+  m.style.zIndex=++capa;   /* la última que se abre queda arriba */
   m.hidden=false;
   document.documentElement.style.overflow="hidden";
 }
 function cerrarModal(id){
   const m=$("#"+id); if(!m) return;
   m.hidden=true;
+  if(id==="modalPanel"){try{sessionStorage.removeItem("ea_panel")}catch{}}
   if(!document.querySelector(".modal:not([hidden])")) document.documentElement.style.overflow="";
 }
 function modalAbierto(){return document.querySelector(".modal:not([hidden])")}
@@ -188,7 +191,7 @@ async function nuevaPartida(){
   }
 
   pintar();
-  if(terminado) mostrarResultado(intentos.some(i=>i.tipo==="bien"),true);
+  if(terminado) mostrarResultado(intentos.some(i=>i.tipo==="bien"),$("#modalPanel").hidden);
 
   try{
     const r=await resolver(actual);
@@ -387,23 +390,17 @@ document.addEventListener("keydown",e=>{
 
 /* ---------- panel reservado ----------
    Cinco toques sobre el título, con no más de 2 segundos entre uno y otro. */
-const panel=$("#panel");
 let clics=0, relojClics=null;
 $("#titulo").addEventListener("click",()=>{
   clearTimeout(relojClics);
   relojClics=setTimeout(()=>{clics=0},2000);
-  if(++clics>=5){clics=0;clearTimeout(relojClics);abrirPanel(true)}
+  if(++clics>=5){clics=0;clearTimeout(relojClics);abrirPanel()}
 });
-function abrirPanel(desplazar){
-  panel.classList.add("visible");
-  try{sessionStorage.setItem("ea_panel","1")}catch{}
+function abrirPanel(){
   refrescarPanel();
-  if(desplazar) panel.scrollIntoView({behavior:"smooth",block:"start"});
+  abrirModal("modalPanel");
+  try{sessionStorage.setItem("ea_panel","1")}catch{}
 }
-$("#cerrarPanel").onclick=()=>{
-  panel.classList.remove("visible");
-  try{sessionStorage.removeItem("ea_panel")}catch{}
-};
 
 /* ---------- panel: canción del día ---------- */
 const selCancion=$("#selCancion");
@@ -485,7 +482,7 @@ function refrescarPanel(){
 
 /* Mientras dure la pestaña el panel sigue abierto: no hay que golpear
    el título cinco veces después de cada recarga. */
-try{if(sessionStorage.getItem("ea_panel")) abrirPanel(false)}catch{}
+try{if(sessionStorage.getItem("ea_panel")) abrirPanel()}catch{}
 
 /* ---------- verificación del catálogo ---------- */
 const vLista=$("#verifLista"), vEstado=$("#verifEstado");
