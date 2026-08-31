@@ -10,12 +10,15 @@ tal cual a GitHub Pages.
 ## Estructura
 
 ```
-index.html          marcado
-css/estilos.css     estilos
-js/config.js        clave de la API (no se versiona)
+index.html            marcado
+css/estilos.css       estilos
+js/config.js          clave de la API de YouTube (no se versiona)
 js/config.example.js  plantilla de config.js
-js/catalogo.js      lista de canciones
-js/juego.js         lógica del juego
+js/nube-config.js     datos del proyecto de Firebase (públicos, sí se versionan)
+js/nube.js            conexión con Firestore (módulo)
+js/dia.js             respaldo de la configuración del día
+js/catalogo.js        lista de canciones
+js/juego.js           lógica del juego
 ```
 
 ## Cómo correrlo
@@ -36,6 +39,46 @@ canciones tienen su ID cargado, la clave deja de hacer falta.
 
 La cuota gratuita alcanza para unas 100 búsquedas por día: suficiente para
 verificar el catálogo entero de una sentada.
+
+## La configuración del día
+
+La canción del día vive en Firestore, en el documento `escuchadle/dia`. El
+panel reservado (cinco toques en el título) la publica y el cambio le llega en
+el acto a cualquiera que tenga el juego abierto: no hay que subir nada al
+repositorio ni esperar a que caduque un caché.
+
+```
+modo       "auto" (sale de la fecha) o "manual" (una elegida a mano)
+cancion    el label exacto del catálogo, solo en modo manual
+salto      corrimiento del sorteo automático
+reinicio   contador; al subir, todos pierden la partida guardada de hoy
+```
+
+`js/dia.js` quedó como red de seguridad: se usa solo si Firebase no llegó a
+cargar. El botón *Copiar respaldo* del panel arma ese bloque con lo que esté
+publicado; conviene pegarlo cada tanto para que no envejezca.
+
+### Reglas de Firestore
+
+La configuración de Firebase es pública por diseño: viaja en el navegador de
+cualquiera que abra el juego. Lo que protege la base son las reglas, que
+limitan qué documento se puede tocar y con qué campos. Están en la consola,
+en Firestore → Reglas.
+
+Si algún día conviene cerrar la escritura del todo, el camino es Firebase Auth
+con un usuario administrador y una regla `request.auth.uid == "..."`, no
+esconder la clave.
+
+## Los resultados
+
+Cada partida terminada se archiva en el navegador (`ea_resultados`) y se copia
+a la colección `resultados`. Si en el momento no hay señal queda pendiente, y
+el botón *Subir pendientes* del panel reintenta. Las reglas no permiten
+modificar un resultado ya subido, solo crear y borrar: por eso, renombrarse
+después de jugar sube una fila nueva y borra la anterior.
+
+La tabla todavía no se muestra en el juego. Se mira y se corrige desde el
+panel, en el bloque *Ranking en la nube*.
 
 ## Cargar el catálogo
 
