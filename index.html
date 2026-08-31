@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=6">
+  <link rel="stylesheet" href="css/estilos.css?v=7">
 </head>
 <body>
 <header>
@@ -116,19 +116,19 @@
       <label><input type="radio" name="modoDia" id="diaManual" value="manual"> A elección</label>
     </div>
     <select id="selCancion" aria-label="Canción del día"></select>
+    <div id="estadoNube" class="nube-estado">Conectando con la nube…</div>
     <div class="verif-cab">
       <span id="estadoDia"></span>
       <button class="btn btn-sec" id="btnSortear">Sortear otra</button>
       <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
-      <button class="btn btn-sec" id="btnPublicado">Volver a lo publicado</button>
     </div>
     <div class="publicar">
-      <div class="panel-titulo">Para que lo vea todo el mundo: reemplazá el bloque <code>const DIA</code> de <code>js/dia.js</code> por esto y subilo</div>
+      <div class="panel-titulo">Respaldo para <code>js/dia.js</code> — solo por si algún día la nube no carga</div>
       <pre class="codigo" id="vistaDia"></pre>
-      <button class="btn btn-sec" id="btnCopiarDia">Copiar js/dia.js</button>
+      <button class="btn btn-sec" id="btnCopiarDia">Copiar respaldo</button>
     </div>
     <p class="panel-ayuda"><b>Sortear otra</b> deja el modo automático como está pero corre el sorteo: hoy cae otra canción al azar y la secuencia sigue desde ahí. <b>A elección</b> es para fijar una canción puntual a mano.<br><br>
-    El sitio es estático: no hay servidor donde guardar la elección. Lo que tocás acá cambia el juego <b>en esta computadora</b> al instante, para que puedas probarlo. Para que le llegue a los demás hay que subir <code>js/dia.js</code> al repositorio.<br><br>
+    Lo que tocás acá se publica solo: le llega a cualquiera que tenga el juego abierto en el momento, sin que recargue nada. Ya no hay que subir <code>js/dia.js</code> al repositorio.<br><br>
     <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
   </div>
 
@@ -165,20 +165,36 @@
   </div>
 
   <div class="panel-bloque">
-    <div class="panel-titulo">Resultados guardados</div>
+    <div class="panel-titulo">Resultados guardados en este navegador</div>
     <div class="verif-cab">
       <span id="estadoResultados"></span>
+      <button class="btn btn-sec" id="btnSubirPendientes">Subir pendientes</button>
       <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
     </div>
-    <p class="panel-ayuda">Cada partida terminada queda anotada acá con nombre, canción e intentos, esperando la base de datos del ranking semanal.</p>
+    <p class="panel-ayuda">Cada partida terminada se anota acá y se copia a la nube. Si en el momento no hay señal, queda pendiente: <b>Subir pendientes</b> reintenta, y sirve también para las partidas viejas, de antes de que existiera la base.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Ranking en la nube</div>
+    <div class="verif-cab">
+      <span id="estadoRanking"></span>
+      <button class="btn btn-sec" id="btnRanking">Actualizar</button>
+      <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
+    </div>
+    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Todavía no se muestran en el juego: por ahora la tabla se mira y se corrige solo desde acá. La ✕ borra una fila suelta.</p>
+    <div id="rankLista"></div>
   </div>
   </div>
 </div>
 
-<script src="js/config.js?v=6"></script>
-<script src="js/dia.js?v=6"></script>
-<script src="js/catalogo.js?v=6"></script>
-<script src="js/juego.js?v=6"></script>
+<script src="js/nube-config.js?v=7"></script>
+<script src="js/config.js?v=7"></script>
+<script src="js/dia.js?v=7"></script>
+<script src="js/catalogo.js?v=7"></script>
+<script src="js/juego.js?v=7"></script>
+<!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
+     esperarlo y se corrige solo cuando llega la configuración de la nube. -->
+<script type="module" src="js/nube.js?v=7"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
