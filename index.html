@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escuchadle Argento — adiviná la canción</title>
+<link rel="icon" href="imgs/vinilo.png" type="image/png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css?v=7">
+</head>
+<body>
+<header>
+  <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
+  <div class="cabecera-der">
+    <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
+    <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
+  </div>
+</header>
+
+<main>
+  <section class="escenario">
+    <div class="tocadiscos">
+      <div id="ytplayer"></div>
+      <div class="vinilo" id="vinilo" aria-hidden="true"></div>
+    </div>
+    <div class="controles">
+      <div class="barra" id="barra" aria-hidden="true">
+        <div class="desbloq" id="desbloq"></div>
+        <div class="progreso" id="progreso"></div>
+      </div>
+      <div class="tiempos"><span id="tActual">0:00</span><span>0:16</span></div>
+      <div class="play">
+        <button class="btn btn-play" id="btnPlay">▶ Escuchar</button>
+        <span class="estado" id="estado">Cargando canción…</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="pistas" id="pistas" aria-live="polite" hidden></section>
+
+  <section class="intentos" id="intentos" aria-live="polite"></section>
+
+  <section id="zonaJuego" style="display:flex;flex-direction:column;gap:10px">
+    <div class="buscador">
+      <div class="lista" id="lista" role="listbox"></div>
+      <input id="busqueda" type="text" placeholder="Buscá artista o canción…" autocomplete="off" aria-label="Tu intento">
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" id="btnSaltar">Saltar (+1s)</button>
+      <button class="btn btn-ok" id="btnEnviar" disabled>Enviar</button>
+    </div>
+  </section>
+
+  <section class="zona-cerrada" id="zonaCerrada" hidden>
+    <button class="btn btn-ok" id="btnVerResultado">Ver resultado</button>
+  </section>
+</main>
+
+<!-- ---------- ventana de ayuda ---------- -->
+<div class="modal" id="modalAyuda" role="dialog" aria-modal="true" aria-labelledby="tituloAyuda" hidden>
+  <div class="modal-caja">
+    <div class="modal-cab">
+      <strong id="tituloAyuda">Cómo se juega</strong>
+      <button class="modal-x" data-cerrar="modalAyuda" aria-label="Cerrar">×</button>
+    </div>
+    <p>Cada intento fallido o salto desbloquea más segundos: 1 · 2 · 4 · 7 · 11 · 16.</p>
+    <p><span style="color:var(--sol)">Amarillo</span> = acertaste el artista, no la canción.</p>
+    <p>El audio se reproduce con el reproductor oficial de YouTube.</p>
+    <p class="modal-nota">Cada fallo destapa además una pista nueva sobre la canción.</p>
+  </div>
+</div>
+
+<!-- ---------- ventana de resultado ---------- -->
+<div class="modal" id="modalResultado" role="dialog" aria-modal="true" aria-labelledby="resTitulo" hidden>
+  <div class="modal-caja resultado">
+    <div class="modal-cab">
+      <span></span>
+      <button class="modal-x" data-cerrar="modalResultado" aria-label="Cerrar">×</button>
+    </div>
+    <div class="titulo" id="resTitulo"></div>
+    <div class="cancion" id="resCancion"></div>
+    <div class="emojis" id="resEmojis"></div>
+    <div class="stats">
+      <div><b id="stJugadas">0</b>jugadas</div>
+      <div><b id="stGanadas">0</b>ganadas</div>
+      <div><b id="stRacha">0</b>racha</div>
+    </div>
+    <div class="firma">
+      <label for="nombre">Tu nombre para el ranking</label>
+      <input id="nombre" type="text" maxlength="24" placeholder="Cómo querés figurar" autocomplete="nickname">
+      <span class="firma-aviso" id="firmaAviso">Por ahora queda guardado en este navegador.</span>
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" id="btnCopiar">Copiar resultado</button>
+      <button class="btn btn-ok" id="btnCompartir">Compartir</button>
+    </div>
+    <button class="btn btn-sec" id="btnOtra" hidden>Otra canción</button>
+    <div class="nota-manana" id="notaManana" hidden>La del día ya está jugada. Volvé mañana por otra.</div>
+  </div>
+</div>
+
+<!-- ---------- panel reservado ---------- -->
+<div class="modal" id="modalPanel" role="dialog" aria-modal="true" aria-labelledby="tituloPanel" hidden>
+  <div class="modal-caja panel" id="panel">
+  <div class="modal-cab">
+    <strong id="tituloPanel">Panel reservado</strong>
+    <button class="modal-x" data-cerrar="modalPanel" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Canción del día</div>
+    <div class="opciones">
+      <label><input type="radio" name="modoDia" id="diaAuto" value="auto"> Automática, por fecha</label>
+      <label><input type="radio" name="modoDia" id="diaManual" value="manual"> A elección</label>
+    </div>
+    <select id="selCancion" aria-label="Canción del día"></select>
+    <div id="estadoNube" class="nube-estado">Conectando con la nube…</div>
+    <div class="verif-cab">
+      <span id="estadoDia"></span>
+      <button class="btn btn-sec" id="btnSortear">Sortear otra</button>
+      <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
+    </div>
+    <div class="publicar">
+      <div class="panel-titulo">Respaldo para <code>js/dia.js</code> — solo por si algún día la nube no carga</div>
+      <pre class="codigo" id="vistaDia"></pre>
+      <button class="btn btn-sec" id="btnCopiarDia">Copiar respaldo</button>
+    </div>
+    <p class="panel-ayuda"><b>Sortear otra</b> deja el modo automático como está pero corre el sorteo: hoy cae otra canción al azar y la secuencia sigue desde ahí. <b>A elección</b> es para fijar una canción puntual a mano.<br><br>
+    Lo que tocás acá se publica solo: le llega a cualquiera que tenga el juego abierto en el momento, sin que recargue nada. Ya no hay que subir <code>js/dia.js</code> al repositorio.<br><br>
+    <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Modo de juego</div>
+    <div class="modo" role="group" aria-label="Modo de juego">
+      <button id="modoDiario" class="activo">Del día</button>
+      <button id="modoLibre">Libre</button>
+    </div>
+    <p class="panel-ayuda">El modo libre saca una canción al azar, no guarda la partida y no cuenta para las estadísticas. Solo se puede entrar desde acá.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Verificación del catálogo</div>
+    <div class="verif-cab">
+      <span id="verifEstado"></span>
+      <button class="btn btn-sec" id="btnVerificar">Verificar</button>
+      <button class="btn btn-sec" id="btnCatalogo">Copiar catálogo con IDs</button>
+      <button class="btn btn-sec" id="btnLimpiar">Borrar caché</button>
+    </div>
+    <p class="panel-ayuda">Tocá <b>Verificar</b> para revisar el catálogo. Va de a una canción por vez para no saturar la API de YouTube, así que unas 64 canciones tardan cerca de un minuto. Lo encontrado queda guardado en este navegador: si lo parás, o si se corta, al volver a tocar Verificar sigue desde donde quedó sin repetir búsquedas.<br><br>
+    Cada fila muestra qué video eligió la búsqueda. Tocá ▶ para abrirlo en YouTube y confirmar. Si alguno está mal, copiá el ID correcto de la URL (watch?v=<b>ID</b>) y ponelo en el catálogo como <code>yt:"ID"</code>. "Copiar catálogo con IDs" te da el array entero ya fijado, listo para reemplazar; después de eso la clave de API deja de ser necesaria.</p>
+    <p class="panel-ayuda" id="ayudaClave" hidden><b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
+    <div id="verifLista"></div>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Partida guardada</div>
+    <div class="verif-cab">
+      <span id="estadoPartida"></span>
+      <button class="btn btn-sec" id="btnBorrarPartida">Borrar partida de hoy</button>
+    </div>
+    <p class="panel-ayuda">Borra la partida solo en esta computadora, sin tocar las estadísticas ni a los demás jugadores.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Resultados guardados en este navegador</div>
+    <div class="verif-cab">
+      <span id="estadoResultados"></span>
+      <button class="btn btn-sec" id="btnSubirPendientes">Subir pendientes</button>
+      <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
+    </div>
+    <p class="panel-ayuda">Cada partida terminada se anota acá y se copia a la nube. Si en el momento no hay señal, queda pendiente: <b>Subir pendientes</b> reintenta, y sirve también para las partidas viejas, de antes de que existiera la base.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Ranking en la nube</div>
+    <div class="verif-cab">
+      <span id="estadoRanking"></span>
+      <button class="btn btn-sec" id="btnRanking">Actualizar</button>
+      <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
+    </div>
+    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Todavía no se muestran en el juego: por ahora la tabla se mira y se corrige solo desde acá. La ✕ borra una fila suelta.</p>
+    <div id="rankLista"></div>
+  </div>
+  </div>
+</div>
+
+<script src="js/nube-config.js?v=7"></script>
+<script src="js/config.js?v=7"></script>
+<script src="js/dia.js?v=7"></script>
+<script src="js/catalogo.js?v=7"></script>
+<script src="js/juego.js?v=7"></script>
+<!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
+     esperarlo y se corrige solo cuando llega la configuración de la nube. -->
+<script type="module" src="js/nube.js?v=7"></script>
+<script>
+  /* Las instrucciones de la clave solo aparecen si falta. */
+  if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
+</script>
+</body>
+</html>
