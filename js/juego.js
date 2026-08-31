@@ -45,10 +45,12 @@ $("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
    DIA viene de js/dia.js (lo ven todos). ea_dia es un ajuste local que
    solo pisa esa configuración en esta computadora, para poder probar
    antes de publicar. */
-const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:{modo:"auto",cancion:"",reinicio:0};
+const PREDETERMINADO={modo:"auto",cancion:"",salto:0,reinicio:0};
+const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:PREDETERMINADO;
 const ajusteLocal=()=>store.get("ea_dia",null);
 function dia(){
-  const d=Object.assign({modo:"auto",cancion:"",reinicio:0},DIA_BASE,ajusteLocal()||{});
+  const d=Object.assign({},PREDETERMINADO,DIA_BASE,ajusteLocal()||{});
+  d.salto=Number(d.salto)||0;
   d.reinicio=Number(d.reinicio)||0;
   return d;
 }
@@ -63,8 +65,8 @@ function cancionDelDia(){
     const c=CANCIONES.find(x=>x.label===d.cancion);
     if(c) return c;      /* si el label ya no existe, se cae al automático */
   }
-  const o=ordenDiario();
-  return CANCIONES[o[diaHoy()%o.length]];
+  const o=ordenDiario(), n=o.length;
+  return CANCIONES[o[(((diaHoy()+d.salto)%n)+n)%n]];   /* módulo siempre positivo */
 }
 function elegir(){
   return modo==="diario"?cancionDelDia():CANCIONES[Math.floor(Math.random()*CANCIONES.length)];
@@ -410,10 +412,25 @@ selCancion.innerHTML=CANCIONES.map(c=>`<option value="${c.label.replace(/"/g,"&q
 /* Guarda el ajuste local y vuelve a armar la partida con la nueva configuración. */
 function ajustarDia(cambios){
   const d=Object.assign({},dia(),cambios);
-  store.set("ea_dia",{modo:d.modo,cancion:d.cancion,reinicio:d.reinicio});
+  store.set("ea_dia",{modo:d.modo,cancion:d.cancion,salto:d.salto,reinicio:d.reinicio});
   if(modo==="diario") nuevaPartida(); else refrescarPanel();
 }
 $("#diaAuto").onclick=()=>ajustarDia({modo:"auto"});
+/* Sortea un corrimiento nuevo hasta que hoy caiga otra canción. */
+$("#btnSortear").onclick=()=>{
+  const n=CANCIONES.length;
+  if(n<2) return;
+  const actualLabel=cancionDelDia().label;
+  const base=dia().salto;
+  let salto=base;
+  for(let i=0;i<40&&(salto===base||nombreConSalto(salto)===actualLabel);i++)
+    salto=Math.floor(Math.random()*n);
+  ajustarDia({modo:"auto",salto});
+};
+function nombreConSalto(salto){
+  const o=ordenDiario(), n=o.length;
+  return CANCIONES[o[(((diaHoy()+salto)%n)+n)%n]].label;
+}
 $("#diaManual").onclick=()=>ajustarDia({modo:"manual",cancion:selCancion.value||CANCIONES[0].label});
 selCancion.onchange=()=>ajustarDia({modo:"manual",cancion:selCancion.value});
 $("#btnReiniciar").onclick=()=>{
@@ -429,6 +446,7 @@ function textoDia(){
   return "const DIA = {\n"+
     `  modo: ${JSON.stringify(d.modo)},\n`+
     `  cancion: ${JSON.stringify(d.modo==="manual"?d.cancion:"")},\n`+
+    `  salto: ${d.modo==="manual"?0:d.salto},\n`+
     `  reinicio: ${d.reinicio}\n};`;
 }
 $("#btnCopiarDia").onclick=()=>alPortapapeles(textoDia(),$("#btnCopiarDia"),"Copiar js/dia.js");
@@ -447,10 +465,11 @@ function refrescarPanel(){
   $("#diaAuto").checked=d.modo==="auto";
   $("#diaManual").checked=d.modo==="manual";
   selCancion.disabled=d.modo!=="manual";
+  $("#btnSortear").disabled=d.modo!=="auto";
   if(d.modo==="manual"&&d.cancion) selCancion.value=d.cancion;
   else if(actual&&modo==="diario") selCancion.value=actual.label;
   $("#estadoDia").textContent=(local?"Ajuste local sin publicar":"Igual a lo publicado")+
-    ` · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`;
+    ` · salto ${d.salto} · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`;
   $("#vistaDia").textContent=textoDia();
 
   const g=partidaGuardada();
