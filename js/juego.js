@@ -1,5 +1,5 @@
 /* Escuchadle Argento - logica del juego.
-   Depende de: config.js (YT_API_KEY) y catalogo.js (CANCIONES). */
+   Depende de: config.js (YT_API_KEY), dia.js (DIA) y catalogo.js (CANCIONES). */
 
 /* ---------- estado ---------- */
 const SEG=[1,2,4,7,11,16], MAX=6;
@@ -9,7 +9,7 @@ const $=s=>document.querySelector(s);
 const vinilo=$("#vinilo"), barra=$("#barra"), desbloq=$("#desbloq"), progreso=$("#progreso"),
       tActual=$("#tActual"), btnPlay=$("#btnPlay"), estado=$("#estado"), cont=$("#intentos"),
       input=$("#busqueda"), lista=$("#lista"), btnSaltar=$("#btnSaltar"), btnEnviar=$("#btnEnviar"),
-      zonaJuego=$("#zonaJuego"), res=$("#resultado");
+      zonaJuego=$("#zonaJuego"), zonaCerrada=$("#zonaCerrada"), contPistas=$("#pistas");
 
 /* ticks de la barra */
 SEG.slice(0,-1).forEach(s=>{const t=document.createElement("div");t.className="tick";t.style.left=(s/16*100)+"%";barra.appendChild(t);});
@@ -17,17 +17,99 @@ SEG.slice(0,-1).forEach(s=>{const t=document.createElement("div");t.className="t
 /* ---------- persistencia suave (si el navegador la permite) ---------- */
 const store={
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
+  del(k){try{localStorage.removeItem(k)}catch{}}
 };
 let stats=store.get("ea_stats",{jugadas:0,ganadas:0,racha:0});
+let nombre=store.get("ea_nombre","");
+
+/* ---------- ventanas ---------- */
+function abrirModal(id){
+  const m=$("#"+id); if(!m) return;
+  m.hidden=false;
+  document.documentElement.style.overflow="hidden";
+}
+function cerrarModal(id){
+  const m=$("#"+id); if(!m) return;
+  m.hidden=true;
+  if(!document.querySelector(".modal:not([hidden])")) document.documentElement.style.overflow="";
+}
+function modalAbierto(){return document.querySelector(".modal:not([hidden])")}
+document.querySelectorAll("[data-cerrar]").forEach(b=>b.onclick=()=>cerrarModal(b.dataset.cerrar));
+document.querySelectorAll(".modal").forEach(m=>{
+  m.addEventListener("mousedown",e=>{if(e.target===m) cerrarModal(m.id)});   /* clic en el fondo */
+});
+$("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
+
+/* ---------- configuración del día ----------
+   DIA viene de js/dia.js (lo ven todos). ea_dia es un ajuste local que
+   solo pisa esa configuración en esta computadora, para poder probar
+   antes de publicar. */
+const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:{modo:"auto",cancion:"",reinicio:0};
+const ajusteLocal=()=>store.get("ea_dia",null);
+function dia(){
+  const d=Object.assign({modo:"auto",cancion:"",reinicio:0},DIA_BASE,ajusteLocal()||{});
+  d.reinicio=Number(d.reinicio)||0;
+  return d;
+}
 
 /* ---------- elección de canción ---------- */
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
 function ordenDiario(){const r=rng(20260101),a=CANCIONES.map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function diaHoy(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)}
+function cancionDelDia(){
+  const d=dia();
+  if(d.modo==="manual"&&d.cancion){
+    const c=CANCIONES.find(x=>x.label===d.cancion);
+    if(c) return c;      /* si el label ya no existe, se cae al automático */
+  }
+  const o=ordenDiario();
+  return CANCIONES[o[diaHoy()%o.length]];
+}
 function elegir(){
-  if(modo==="diario"){const o=ordenDiario();return CANCIONES[o[diaHoy()%o.length]]}
-  return CANCIONES[Math.floor(Math.random()*CANCIONES.length)];
+  return modo==="diario"?cancionDelDia():CANCIONES[Math.floor(Math.random()*CANCIONES.length)];
+}
+
+/* ---------- partida guardada ----------
+   Solo se guarda el modo diario: si refrescás la página, la partida vuelve
+   donde estaba, ganada o a medio jugar. Se archivan el label de la canción
+   y el contador de reinicio; si cualquiera de los dos cambió, el guardado
+   se descarta y se arranca de nuevo. */
+const CLAVE_PARTIDA="ea_partida";
+function guardarPartida(){
+  if(modo!=="diario"||!actual) return;
+  store.set(CLAVE_PARTIDA,{dia:diaHoy(),cancion:actual.label,reinicio:dia().reinicio,intentos,paso,terminado});
+}
+function partidaGuardada(){
+  const g=store.get(CLAVE_PARTIDA,null);
+  return g&&g.dia===diaHoy()&&Array.isArray(g.intentos)?g:null;
+}
+function sirve(g){return g&&g.cancion===actual.label&&(g.reinicio||0)===dia().reinicio}
+function borrarPartida(){store.del(CLAVE_PARTIDA)}
+
+/* ---------- pistas ----------
+   Cada intento fallido o salteado destapa una pista más. */
+const PALABRAS=t=>t.split(/\s+/).filter(Boolean);
+const LETRAS=t=>[...t].filter(ch=>/\p{L}/u.test(ch)).length;
+const velar=t=>PALABRAS(t).map(p=>[...p].map((ch,i)=>i===0?ch:(/\p{L}/u.test(ch)?"\u2022":ch)).join("")).join(" ");
+
+function pistasDe(c){
+  const p=[];
+  if(c.g) p.push({et:"Género",v:c.g});
+  p.push({et:"Artista",v:velar(c.a),velado:true});
+  p.push({et:"Título",v:`${PALABRAS(c.t).length} palabras · ${LETRAS(c.t)} letras`});
+  p.push({et:"Artista",v:c.a});
+  p.push({et:"Título",v:velar(c.t),velado:true});
+  return p;
+}
+function pintarPistas(){
+  if(!actual||paso===0){contPistas.hidden=true;contPistas.innerHTML="";return}
+  const p=pistasDe(actual).slice(0,paso);
+  if(!p.length){contPistas.hidden=true;return}
+  contPistas.hidden=false;
+  contPistas.innerHTML=p.map(x=>
+    `<div class="pista"><span class="et">${x.et}</span><span class="vl${x.velado?" velado":""}">${x.v}</span></div>`
+  ).join("");
 }
 
 /* ---------- YouTube: reproductor oficial + búsqueda opcional ---------- */
@@ -89,21 +171,34 @@ async function resolver(c){
 }
 
 async function nuevaPartida(){
-  detener();
+  detener(); cerrarModal("modalResultado");
   actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null;
-  res.classList.remove("visible"); zonaJuego.style.display="flex";
+  zonaJuego.style.display="flex"; zonaCerrada.hidden=true;
   input.value=""; btnEnviar.disabled=true; btnPlay.disabled=true; btnSaltar.disabled=false;
   estado.textContent="Cargando canción…";
+
+  /* ¿Hay algo guardado de hoy que siga valiendo? */
+  const g=modo==="diario"?partidaGuardada():null;
+  if(sirve(g)){
+    intentos=g.intentos; paso=g.paso||0; terminado=!!g.terminado;
+  }else if(g){
+    borrarPartida();   /* cambió la canción o hubo un reinicio: no aplica más */
+  }
+
   pintar();
+  if(terminado) mostrarResultado(intentos.some(i=>i.tipo==="bien"),true);
+
   try{
     const r=await resolver(actual);
     await ytListo; yt.cueVideoById(r.yt); audio=r.yt;
     btnPlay.disabled=false;
-    estado.textContent=modo==="diario"?"Canción del día. ¡Suerte!":"Modo libre.";
+    estado.textContent=terminado?"Ahora podés escuchar la canción completa."
+      :(modo==="diario"?"Canción del día. ¡Suerte!":"Modo libre.");
   }catch(e){
     estado.textContent=e.message.startsWith("Falta")?e.message:"No encontré el video de esta canción. Probá otra.";
     btnSaltar.disabled=true;
   }
+  refrescarPanel();
 }
 
 /* ---------- reproducción ---------- */
@@ -145,6 +240,7 @@ function pintar(){
     cont.appendChild(d);
   }
   btnSaltar.textContent=paso<MAX-1?`Saltar (+${SEG[paso+1]-SEG[paso]}s)`:"Saltar";
+  pintarPistas();
 }
 
 /* ---------- intentos ---------- */
@@ -153,7 +249,7 @@ function registrar(tipo,texto){
   if(tipo==="bien") return finalizar(true);
   paso++;
   if(paso>=MAX) return finalizar(false);
-  pintar(); detener();
+  pintar(); detener(); guardarPartida();
 }
 function enviar(){
   const c=CANCIONES.find(x=>x.label===input.value.trim()); if(!c) return;
@@ -164,28 +260,87 @@ function enviar(){
 }
 function saltar(){registrar("salto","Salteado")}
 
+/* Cierra la partida: estadísticas, guardado, archivo y ventana de resultado.
+   Las estadísticas y el archivo cuentan solo el modo diario. */
 function finalizar(gano){
-  terminado=true; detener(); pintar();
-  zonaJuego.style.display="none";
-  stats.jugadas++; if(gano){stats.ganadas++;stats.racha++}else{stats.racha=0}
-  store.set("ea_stats",stats);
-  $("#resTitulo").textContent=gano?["¡A la primera!","¡Bien ahí!","¡Buena oreja!","¡Zafaste!","¡Justito!","¡De pedo!"][intentos.length-1]:"Te faltó...";
+  terminado=true;
+  if(modo==="diario"){
+    stats.jugadas++; if(gano){stats.ganadas++;stats.racha++}else{stats.racha=0}
+    store.set("ea_stats",stats);
+    archivar(gano);
+  }
+  guardarPartida();
+  mostrarResultado(gano,true);
+  refrescarPanel();
+}
+
+/* Solo dibuja: no toca estadísticas. Se usa también al restaurar una partida. */
+function mostrarResultado(gano,abrir){
+  detener(); pintar();
+  zonaJuego.style.display="none"; zonaCerrada.hidden=false;
+  const esDiario=modo==="diario";
+  const elogios=["¡A la primera!","¡Bien ahí!","¡Buena oreja!","¡Zafaste!","¡Justito!","¡De pedo!"];
+  $("#resTitulo").textContent=gano?elogios[Math.min(intentos.length,6)-1]:"Te faltó...";
   $("#resCancion").textContent=actual.label;
   $("#resEmojis").textContent=emojis();
   $("#stJugadas").textContent=stats.jugadas; $("#stGanadas").textContent=stats.ganadas; $("#stRacha").textContent=stats.racha;
-  res.classList.add("visible");
+  $("#btnOtra").hidden=esDiario;         /* en modo diario hay una sola por día */
+  $("#notaManana").hidden=!esDiario;
+  $("#nombre").value=nombre;
   estado.textContent="Ahora podés escuchar la canción completa.";
-  btnPlay.disabled=false;
+  btnPlay.disabled=!audio;
+  if(abrir) abrirModal("modalResultado");
 }
 function emojis(){
   const m={salto:"⬛",mal:"🟥",artista:"🟨",bien:"🟩"};
   let s=intentos.map(i=>m[i.tipo]).join(""); while(s.length<MAX*2) s+="⬜"; return s;
 }
-function copiar(){
-  const gano=intentos.some(i=>i.tipo==="bien");
-  const txt=`Escuchadle Argento ${modo==="diario"?"#"+diaHoy():"(libre)"}\n🔉${emojis()}\n${gano?intentos.length:"X"}/6`;
-  navigator.clipboard?.writeText(txt).then(()=>{$("#btnCopiar").textContent="¡Copiado!";setTimeout(()=>$("#btnCopiar").textContent="Copiar resultado",1500)});
+
+/* ---------- nombre y resultados archivados ----------
+   Los resultados quedan en el navegador esperando la base de datos del
+   ranking semanal: cuando exista, este array es lo que hay que subir. */
+function archivar(gano){
+  const h=store.get("ea_resultados",[]);
+  h.push({dia:diaHoy(),fecha:new Date().toISOString(),nombre,
+          cancion:actual.label,gano,intentos:gano?intentos.length:null,
+          marcas:intentos.map(i=>i.tipo)});
+  store.set("ea_resultados",h.slice(-200));
 }
+/* Si escribe el nombre después de terminar, se lo ponemos al último resultado. */
+function renombrarUltimo(){
+  const h=store.get("ea_resultados",[]);
+  if(!h.length||!terminado||modo!=="diario") return;
+  const u=h[h.length-1];
+  if(u.dia!==diaHoy()) return;
+  u.nombre=nombre; store.set("ea_resultados",h);
+}
+$("#nombre").addEventListener("input",e=>{
+  nombre=e.target.value.trim();
+  store.set("ea_nombre",nombre);
+  renombrarUltimo();
+  refrescarPanel();
+});
+
+/* ---------- copiar y compartir ---------- */
+function textoResultado(){
+  const gano=intentos.some(i=>i.tipo==="bien");
+  const quien=nombre?` — ${nombre}`:"";
+  return `Escuchadle Argento ${modo==="diario"?"#"+diaHoy():"(libre)"}${quien}\n🔉${emojis()}\n${gano?intentos.length:"X"}/6`;
+}
+function avisar(btn,texto,original){
+  btn.textContent=texto; setTimeout(()=>btn.textContent=original,1500);
+}
+function alPortapapeles(txt,btn,original){
+  if(!navigator.clipboard) return avisar(btn,"No se pudo",original);
+  navigator.clipboard.writeText(txt).then(()=>avisar(btn,"¡Copiado!",original),()=>avisar(btn,"No se pudo",original));
+}
+$("#btnCopiar").onclick=()=>alPortapapeles(textoResultado(),$("#btnCopiar"),"Copiar resultado");
+$("#btnCompartir").onclick=()=>{
+  const txt=textoResultado();
+  if(navigator.share) navigator.share({title:"Escuchadle Argento",text:txt}).catch(()=>{});
+  else alPortapapeles(txt,$("#btnCompartir"),"Compartir");
+};
+$("#btnVerResultado").onclick=()=>abrirModal("modalResultado");
 
 /* ---------- buscador ---------- */
 let sel=-1, visibles=[];
@@ -208,28 +363,121 @@ input.addEventListener("keydown",e=>{
     sel=(sel+(e.key==="ArrowDown"?1:-1)+visibles.length)%visibles.length;
     [...lista.children].forEach((d,i)=>d.classList.toggle("sel",i===sel));}
   else if(e.key==="Enter"){e.preventDefault();if(sel>=0)elegirItem(visibles[sel].id);else if(!btnEnviar.disabled)enviar()}
-  else if(e.key==="Escape")cerrarLista();
+  else if(e.key==="Escape"){e.stopPropagation();cerrarLista()}
 });
 
 /* ---------- eventos ---------- */
 btnPlay.onclick=reproducir; btnSaltar.onclick=saltar; btnEnviar.onclick=enviar;
-$("#btnCopiar").onclick=copiar; $("#btnOtra").onclick=()=>{if(modo==="diario")setModo("libre");else nuevaPartida()};
-function setModo(m){modo=m;$("#modoDiario").classList.toggle("activo",m==="diario");$("#modoLibre").classList.toggle("activo",m==="libre");nuevaPartida()}
+$("#btnOtra").onclick=()=>nuevaPartida();
+function setModo(m){
+  modo=m;
+  $("#modoDiario").classList.toggle("activo",m==="diario");
+  $("#modoLibre").classList.toggle("activo",m==="libre");
+  $("#badgeLibre").hidden=m!=="libre";
+  nuevaPartida();
+}
 $("#modoDiario").onclick=()=>setModo("diario"); $("#modoLibre").onclick=()=>setModo("libre");
-document.addEventListener("keydown",e=>{if(e.code==="Space"&&document.activeElement!==input){e.preventDefault();reproducir()}});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){const m=modalAbierto(); if(m) cerrarModal(m.id); return}
+  const escribiendo=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if(e.code==="Space"&&!escribiendo&&!modalAbierto()){e.preventDefault();reproducir()}
+});
+
+/* ---------- panel reservado ----------
+   Cinco toques sobre el título, con no más de 2 segundos entre uno y otro. */
+const panel=$("#panel");
+let clics=0, relojClics=null;
+$("#titulo").addEventListener("click",()=>{
+  clearTimeout(relojClics);
+  relojClics=setTimeout(()=>{clics=0},2000);
+  if(++clics>=5){clics=0;clearTimeout(relojClics);abrirPanel(true)}
+});
+function abrirPanel(desplazar){
+  panel.classList.add("visible");
+  try{sessionStorage.setItem("ea_panel","1")}catch{}
+  refrescarPanel();
+  if(desplazar) panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("#cerrarPanel").onclick=()=>{
+  panel.classList.remove("visible");
+  try{sessionStorage.removeItem("ea_panel")}catch{}
+};
+
+/* ---------- panel: canción del día ---------- */
+const selCancion=$("#selCancion");
+selCancion.innerHTML=CANCIONES.map(c=>`<option value="${c.label.replace(/"/g,"&quot;")}">${c.label}</option>`).join("");
+
+/* Guarda el ajuste local y vuelve a armar la partida con la nueva configuración. */
+function ajustarDia(cambios){
+  const d=Object.assign({},dia(),cambios);
+  store.set("ea_dia",{modo:d.modo,cancion:d.cancion,reinicio:d.reinicio});
+  if(modo==="diario") nuevaPartida(); else refrescarPanel();
+}
+$("#diaAuto").onclick=()=>ajustarDia({modo:"auto"});
+$("#diaManual").onclick=()=>ajustarDia({modo:"manual",cancion:selCancion.value||CANCIONES[0].label});
+selCancion.onchange=()=>ajustarDia({modo:"manual",cancion:selCancion.value});
+$("#btnReiniciar").onclick=()=>{
+  borrarPartida();
+  ajustarDia({reinicio:dia().reinicio+1});
+};
+$("#btnPublicado").onclick=()=>{
+  store.del("ea_dia");
+  if(modo==="diario") nuevaPartida(); else refrescarPanel();
+};
+function textoDia(){
+  const d=dia();
+  return "const DIA = {\n"+
+    `  modo: ${JSON.stringify(d.modo)},\n`+
+    `  cancion: ${JSON.stringify(d.modo==="manual"?d.cancion:"")},\n`+
+    `  reinicio: ${d.reinicio}\n};`;
+}
+$("#btnCopiarDia").onclick=()=>alPortapapeles(textoDia(),$("#btnCopiarDia"),"Copiar js/dia.js");
+
+/* ---------- panel: partida y resultados ---------- */
+$("#btnBorrarPartida").onclick=()=>{
+  borrarPartida();
+  if(modo==="diario") nuevaPartida(); else refrescarPanel();
+};
+$("#btnCopiarResultados").onclick=()=>
+  alPortapapeles(JSON.stringify(store.get("ea_resultados",[]),null,2),$("#btnCopiarResultados"),"Copiar como JSON");
+
+/* Deja el panel al día con el estado real del juego. */
+function refrescarPanel(){
+  const d=dia(), local=ajusteLocal();
+  $("#diaAuto").checked=d.modo==="auto";
+  $("#diaManual").checked=d.modo==="manual";
+  selCancion.disabled=d.modo!=="manual";
+  if(d.modo==="manual"&&d.cancion) selCancion.value=d.cancion;
+  else if(actual&&modo==="diario") selCancion.value=actual.label;
+  $("#estadoDia").textContent=(local?"Ajuste local sin publicar":"Igual a lo publicado")+
+    ` · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`;
+  $("#vistaDia").textContent=textoDia();
+
+  const g=partidaGuardada();
+  $("#estadoPartida").textContent=!g?"No hay partida guardada de hoy."
+    :!sirve(g)?"Hay un guardado viejo que ya no aplica."
+    :g.terminado?`Hoy ya jugaste: ${g.intentos.some(i=>i.tipo==="bien")?g.intentos.length+"/6":"X/6"}.`
+    :`Partida en curso: ${g.paso} de 6.`;
+
+  const h=store.get("ea_resultados",[]);
+  $("#estadoResultados").textContent=h.length?`${h.length} partida(s) archivada(s)${nombre?` como "${nombre}"`:" sin nombre"}.`
+    :"Todavía no hay partidas archivadas.";
+}
+
+/* Mientras dure la pestaña el panel sigue abierto: no hay que golpear
+   el título cinco veces después de cada recarga. */
+try{if(sessionStorage.getItem("ea_panel")) abrirPanel(false)}catch{}
 
 /* ---------- verificación del catálogo ---------- */
-const verif=$("#verif"), vLista=$("#verifLista"), vEstado=$("#verifEstado");
-let resueltos={}, verificado=false;
-$("#abrirVerif").onclick=e=>{e.preventDefault();verif.classList.add("visible");verif.scrollIntoView({behavior:"smooth"})};
-$("#cerrarVerif").onclick=()=>verif.classList.remove("visible");
+const vLista=$("#verifLista"), vEstado=$("#verifEstado");
+let resueltos={};
 const PAUSA=600;   /* ms entre búsquedas: evita el 429 */
 let corriendo=false;
 
 async function verificar(){
   if(corriendo) return;
   if(!YT_API_KEY&&!CANCIONES.some(c=>c.yt)){vEstado.textContent="Sin clave de API ni IDs cargados.";return}
-  corriendo=true; verificado=true; vLista.innerHTML="";
+  corriendo=true; vLista.innerHTML="";
   $("#btnVerificar").textContent="Parar";
   let n=0, pendientes=0, cortado=null;
 
@@ -266,9 +514,9 @@ $("#btnLimpiar").onclick=()=>{
 $("#btnCatalogo").onclick=()=>{
   const txt="const CANCIONES = [\n"+CANCIONES.map(c=>{
     const id=c.yt||resueltos[c.id]?.yt;
-    return `  {a:${JSON.stringify(c.a)}, t:${JSON.stringify(c.t)}${id?`, yt:${JSON.stringify(id)}`:""}},`;
+    return `  {a:${JSON.stringify(c.a)}, t:${JSON.stringify(c.t)}${id?`, yt:${JSON.stringify(id)}`:""}${c.g?`, g:${JSON.stringify(c.g)}`:""}},`;
   }).join("\n")+"\n];";
-  navigator.clipboard?.writeText(txt).then(()=>{$("#btnCatalogo").textContent="¡Copiado!";setTimeout(()=>$("#btnCatalogo").textContent="Copiar catálogo con IDs",1500)});
+  alPortapapeles(txt,$("#btnCatalogo"),"Copiar catálogo con IDs");
 };
 
 nuevaPartida();
