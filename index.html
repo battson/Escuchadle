@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=4">
+  <link rel="stylesheet" href="css/estilos.css?v=5">
 </head>
 <body>
 <header>
@@ -117,6 +117,7 @@
     <select id="selCancion" aria-label="Canción del día"></select>
     <div class="verif-cab">
       <span id="estadoDia"></span>
+      <button class="btn btn-sec" id="btnSortear">Sortear otra</button>
       <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
       <button class="btn btn-sec" id="btnPublicado">Volver a lo publicado</button>
     </div>
@@ -125,7 +126,8 @@
       <pre class="codigo" id="vistaDia"></pre>
       <button class="btn btn-sec" id="btnCopiarDia">Copiar js/dia.js</button>
     </div>
-    <p class="panel-ayuda">El sitio es estático: no hay servidor donde guardar la elección. Lo que tocás acá cambia el juego <b>en esta computadora</b> al instante, para que puedas probarlo. Para que le llegue a los demás hay que subir <code>js/dia.js</code> al repositorio.<br><br>
+    <p class="panel-ayuda"><b>Sortear otra</b> deja el modo automático como está pero corre el sorteo: hoy cae otra canción al azar y la secuencia sigue desde ahí. <b>A elección</b> es para fijar una canción puntual a mano.<br><br>
+    El sitio es estático: no hay servidor donde guardar la elección. Lo que tocás acá cambia el juego <b>en esta computadora</b> al instante, para que puedas probarlo. Para que le llegue a los demás hay que subir <code>js/dia.js</code> al repositorio.<br><br>
     <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
   </div>
 
@@ -171,10 +173,10 @@
   </div>
 </section>
 
-<script src="js/config.js?v=4"></script>
-<script src="js/dia.js?v=4"></script>
-<script src="js/catalogo.js?v=4"></script>
-<script src="js/juego.js?v=4"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/dia.js?v=5"></script>
+<script src="js/catalogo.js?v=5"></script>
+<script src="js/juego.js?v=5"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
