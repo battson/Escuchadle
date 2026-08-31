@@ -1,5 +1,8 @@
 /* Escuchadle Argento - logica del juego.
-   Depende de: config.js (YT_API_KEY), dia.js (DIA) y catalogo.js (CANCIONES). */
+   Depende de: config.js (YT_API_KEY), dia.js (DIA) y catalogo.js (CANCIONES).
+   Se apoya, si cargó, en nube.js (window.Nube + eventos "nube:dia" y
+   "nube:estado"). Todo lo que toca la nube va con guarda: si Firebase
+   no está, el juego funciona igual con lo que dice js/dia.js. */
 
 /* ---------- estado ---------- */
 const SEG=[1,2,4,7,11,16], MAX=6;
@@ -45,18 +48,51 @@ document.querySelectorAll(".modal").forEach(m=>{
 $("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
 
 /* ---------- configuración del día ----------
-   DIA viene de js/dia.js (lo ven todos). ea_dia es un ajuste local que
-   solo pisa esa configuración en esta computadora, para poder probar
-   antes de publicar. */
+   La fuente de verdad ahora es Firestore: lo que se toca en el panel se
+   publica y le llega a todo el mundo en el acto, sin recargar y sin
+   subir nada al repositorio. js/dia.js quedó como respaldo para el caso
+   de que la nube no cargue.
+
+   Precedencia, de menor a mayor:
+     PREDETERMINADO  <  js/dia.js  <  lo último que dijo la nube        */
 const PREDETERMINADO={modo:"auto",cancion:"",salto:0,reinicio:0};
 const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:PREDETERMINADO;
-const ajusteLocal=()=>store.get("ea_dia",null);
+
+const CLAVE_NUBE="ea_nube_dia";
+/* Espejo de lo último que llegó de la nube. Sirve para arrancar con la
+   canción correcta sin esperar a que Firebase termine de cargar. */
+let diaNube=store.get(CLAVE_NUBE,null);
+let textoNube="Conectando con la nube…";
+
+/* Los ajustes locales de la versión anterior ya no corresponden: si
+   quedaran, le taparían a este navegador lo que se publica para todos. */
+store.del("ea_dia");
+
 function dia(){
-  const d=Object.assign({},PREDETERMINADO,DIA_BASE,ajusteLocal()||{});
+  const d=Object.assign({},PREDETERMINADO,DIA_BASE,diaNube||{});
   d.salto=Number(d.salto)||0;
   d.reinicio=Number(d.reinicio)||0;
   return d;
 }
+
+/* Si a los ocho segundos el módulo no apareció, es que no cargó. */
+setTimeout(()=>{
+  if(!window.Nube||!window.Nube.disponible){
+    textoNube="No cargó Firebase. El juego anda con el respaldo de js/dia.js.";
+    refrescarPanel();
+  }
+},8000);
+
+/* La nube manda: cuando llega una configuración distinta, se rehace la
+   partida igual que cuando se cambiaba dia.js, pero al instante. */
+window.addEventListener("nube:dia",e=>{
+  const antes=dia();
+  diaNube=e.detail; store.set(CLAVE_NUBE,diaNube);
+  const ahora=dia();
+  const cambio=["modo","cancion","salto","reinicio"].some(k=>antes[k]!==ahora[k]);
+  if(cambio&&modo==="diario") nuevaPartida(); else refrescarPanel();
+});
+window.addEventListener("nube:estado",e=>{textoNube=e.detail.texto; refrescarPanel()});
 
 /* ---------- elección de canción ---------- */
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
@@ -302,22 +338,65 @@ function emojis(){
 }
 
 /* ---------- nombre y resultados archivados ----------
-   Los resultados quedan en el navegador esperando la base de datos del
-   ranking semanal: cuando exista, este array es lo que hay que subir. */
+   Cada partida terminada se archiva en el navegador y, si hay nube, se
+   copia a Firestore para el ranking. El archivo local sigue existiendo:
+   es lo que permite reintentar la subida si en el momento no había
+   señal. Cada fila lleva "subido" para no mandarla dos veces. */
+const escapar=t=>String(t==null?"":t)
+  .replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* Los cinco campos que aceptan las reglas de Firestore, ni uno más.
+   Una derrota viaja como intentos 0: en la tabla se lee X/6. */
+const aFila=r=>({fecha:r.fecha,nombre:r.nombre||"",cancion:r.cancion,
+                 intentos:r.gano?(r.intentos||0):0,marcas:r.marcas||[]});
+const hayNube=()=>!!(window.Nube&&window.Nube.disponible);
+
 function archivar(gano){
   const h=store.get("ea_resultados",[]);
   h.push({dia:diaHoy(),fecha:new Date().toISOString(),nombre,
           cancion:actual.label,gano,intentos:gano?intentos.length:null,
-          marcas:intentos.map(i=>i.tipo)});
+          marcas:intentos.map(i=>i.tipo),subido:false});
   store.set("ea_resultados",h.slice(-200));
+  subirUltimo();
 }
+
+/* Manda el último archivado y lo marca. Si falla, queda pendiente y se
+   puede reintentar desde el panel: no se pierde nada. */
+function subirUltimo(){
+  const h=store.get("ea_resultados",[]), u=h[h.length-1];
+  if(!u||u.subido||!hayNube()) return;
+  window.Nube.guardarResultado(aFila(u)).then(id=>{
+    const h2=store.get("ea_resultados",[]);
+    if(h2.length){h2[h2.length-1].subido=true; h2[h2.length-1].idNube=id; store.set("ea_resultados",h2)}
+    refrescarPanel();
+  }).catch(()=>refrescarPanel());
+}
+
 /* Si escribe el nombre después de terminar, se lo ponemos al último resultado. */
+let relojNombre=null;
 function renombrarUltimo(){
   const h=store.get("ea_resultados",[]);
   if(!h.length||!terminado||modo!=="diario") return;
   const u=h[h.length-1];
   if(u.dia!==diaHoy()) return;
   u.nombre=nombre; store.set("ea_resultados",h);
+  clearTimeout(relojNombre);
+  relojNombre=setTimeout(sincronizarNombre,1200);   /* espera a que termine de tipear */
+}
+
+/* Las reglas no dejan modificar un resultado ya subido, solo crear y
+   borrar. Renombrar es entonces: subir el nuevo y borrar el viejo. */
+function sincronizarNombre(){
+  const h=store.get("ea_resultados",[]), u=h[h.length-1];
+  if(!u||!hayNube()) return;
+  if(!u.subido) return subirUltimo();
+  if(!u.idNube) return;
+  const viejo=u.idNube;
+  window.Nube.guardarResultado(aFila(u)).then(id=>{
+    const h2=store.get("ea_resultados",[]);
+    if(h2.length){h2[h2.length-1].idNube=id; store.set("ea_resultados",h2)}
+    return window.Nube.borrarResultado(viejo);
+  }).then(()=>refrescarPanel()).catch(()=>{});
 }
 $("#nombre").addEventListener("input",e=>{
   nombre=e.target.value.trim();
@@ -398,6 +477,7 @@ $("#titulo").addEventListener("click",()=>{
 });
 function abrirPanel(){
   refrescarPanel();
+  cargarRanking();
   abrirModal("modalPanel");
   try{sessionStorage.setItem("ea_panel","1")}catch{}
 }
@@ -406,10 +486,25 @@ function abrirPanel(){
 const selCancion=$("#selCancion");
 selCancion.innerHTML=CANCIONES.map(c=>`<option value="${c.label.replace(/"/g,"&quot;")}">${c.label}</option>`).join("");
 
-/* Guarda el ajuste local y vuelve a armar la partida con la nueva configuración. */
+/* Publica la configuración nueva. Se aplica acá en el acto para no
+   quedar esperando a la red, y en paralelo sale para todos. Firestore
+   guarda la escritura si en ese momento no hay señal y la manda sola
+   cuando vuelve, así que no hace falta reintentar a mano. */
 function ajustarDia(cambios){
   const d=Object.assign({},dia(),cambios);
-  store.set("ea_dia",{modo:d.modo,cancion:d.cancion,salto:d.salto,reinicio:d.reinicio});
+  const cfg={modo:d.modo,
+             cancion:d.modo==="manual"?d.cancion:"",
+             salto:d.modo==="manual"?0:d.salto,
+             reinicio:d.reinicio};
+  diaNube=cfg; store.set(CLAVE_NUBE,cfg);
+  if(hayNube()){
+    textoNube="Publicando…";
+    window.Nube.publicarDia(cfg)
+      .then(()=>{textoNube="Publicado para todos.";refrescarPanel()})
+      .catch(err=>{textoNube="No se pudo publicar: "+err.message;refrescarPanel()});
+  }else{
+    textoNube="Sin nube: el cambio quedó solo en esta computadora.";
+  }
   if(modo==="diario") nuevaPartida(); else refrescarPanel();
 }
 $("#diaAuto").onclick=()=>ajustarDia({modo:"auto"});
@@ -434,10 +529,6 @@ $("#btnReiniciar").onclick=()=>{
   borrarPartida();
   ajustarDia({reinicio:dia().reinicio+1});
 };
-$("#btnPublicado").onclick=()=>{
-  store.del("ea_dia");
-  if(modo==="diario") nuevaPartida(); else refrescarPanel();
-};
 function textoDia(){
   const d=dia();
   return "const DIA = {\n"+
@@ -446,7 +537,7 @@ function textoDia(){
     `  salto: ${d.modo==="manual"?0:d.salto},\n`+
     `  reinicio: ${d.reinicio}\n};`;
 }
-$("#btnCopiarDia").onclick=()=>alPortapapeles(textoDia(),$("#btnCopiarDia"),"Copiar js/dia.js");
+$("#btnCopiarDia").onclick=()=>alPortapapeles(textoDia(),$("#btnCopiarDia"),"Copiar respaldo");
 
 /* ---------- panel: partida y resultados ---------- */
 $("#btnBorrarPartida").onclick=()=>{
@@ -456,17 +547,79 @@ $("#btnBorrarPartida").onclick=()=>{
 $("#btnCopiarResultados").onclick=()=>
   alPortapapeles(JSON.stringify(store.get("ea_resultados",[]),null,2),$("#btnCopiarResultados"),"Copiar como JSON");
 
+/* ---------- panel: ranking en la nube ----------
+   La tabla no se muestra en el juego todavía: se mira y se corrige
+   solo desde acá. */
+const rankLista=$("#rankLista"), estadoRanking=$("#estadoRanking");
+
+function cargarRanking(){
+  if(!hayNube()){estadoRanking.textContent="Sin conexión con la nube.";return}
+  estadoRanking.textContent="Cargando…";
+  window.Nube.listarResultados(60).then(rs=>{
+    estadoRanking.textContent=rs.length?`${rs.length} partida(s) en la nube.`:"La tabla está vacía.";
+    rankLista.innerHTML=rs.map(r=>{
+      const marca=r.intentos?`${r.intentos}/6`:"X/6";
+      return `<div class="vf"><span class="id">${escapar((r.fecha||"").slice(0,10))}</span>`+
+             `<div><div class="pedido">${escapar(r.nombre)||"(sin nombre)"} · ${marca}</div>`+
+             `<div class="hallado">${escapar(r.cancion)}</div></div>`+
+             `<button data-borrar="${escapar(r.id)}" title="Borrar esta fila">✕</button></div>`;
+    }).join("");
+  }).catch(e=>{estadoRanking.textContent=e.message});
+}
+$("#btnRanking").onclick=cargarRanking;
+
+rankLista.addEventListener("click",e=>{
+  const b=e.target.closest("[data-borrar]"); if(!b) return;
+  b.disabled=true;
+  window.Nube.borrarResultado(b.dataset.borrar)
+    .then(()=>{b.closest(".vf").remove(); estadoRanking.textContent="Fila borrada."})
+    .catch(err=>{b.disabled=false; estadoRanking.textContent=err.message});
+});
+
+$("#btnVaciarRanking").onclick=()=>{
+  if(!hayNube()) return;
+  if(!confirm("¿Borrar todos los resultados de la nube? No se pueden recuperar.")) return;
+  estadoRanking.textContent="Borrando…";
+  window.Nube.vaciarResultados().then(n=>{
+    rankLista.innerHTML="";
+    estadoRanking.textContent=`Tabla vaciada (${n} fila(s)).`;
+  }).catch(e=>{estadoRanking.textContent=e.message});
+};
+
+/* Sube las partidas que quedaron guardadas en este navegador y todavía
+   no llegaron a la nube: las de antes de todo esto, y las que fallaron. */
+async function subirPendientes(){
+  const btn=$("#btnSubirPendientes");
+  if(!hayNube()) return avisar(btn,"Sin nube","Subir pendientes");
+  const h=store.get("ea_resultados",[]);
+  if(!h.some(r=>!r.subido)) return avisar(btn,"No hay","Subir pendientes");
+  btn.disabled=true; btn.textContent="Subiendo…";
+  let n=0, error="";
+  for(const r of h){
+    if(r.subido) continue;
+    try{ r.idNube=await window.Nube.guardarResultado(aFila(r)); r.subido=true; n++; }
+    catch(e){ error=e.message; break; }
+  }
+  store.set("ea_resultados",h);
+  btn.disabled=false; btn.textContent="Subir pendientes";
+  estadoRanking.textContent=error?`Subí ${n} y se cortó: ${error}`:`${n} partida(s) subida(s).`;
+  refrescarPanel(); cargarRanking();
+}
+$("#btnSubirPendientes").onclick=subirPendientes;
+
 /* Deja el panel al día con el estado real del juego. */
 function refrescarPanel(){
-  const d=dia(), local=ajusteLocal();
+  const d=dia();
   $("#diaAuto").checked=d.modo==="auto";
   $("#diaManual").checked=d.modo==="manual";
   selCancion.disabled=d.modo!=="manual";
   $("#btnSortear").disabled=d.modo!=="auto";
   if(d.modo==="manual"&&d.cancion) selCancion.value=d.cancion;
   else if(actual&&modo==="diario") selCancion.value=actual.label;
-  $("#estadoDia").textContent=(local?"Ajuste local sin publicar":"Igual a lo publicado")+
-    ` · salto ${d.salto} · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`;
+  $("#estadoNube").textContent=textoNube;
+  $("#estadoNube").className="nube-estado"+(hayNube()?" ok":"");
+  $("#estadoDia").textContent=
+    `salto ${d.salto} · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`;
   $("#vistaDia").textContent=textoDia();
 
   const g=partidaGuardada();
@@ -476,8 +629,11 @@ function refrescarPanel(){
     :`Partida en curso: ${g.paso} de 6.`;
 
   const h=store.get("ea_resultados",[]);
-  $("#estadoResultados").textContent=h.length?`${h.length} partida(s) archivada(s)${nombre?` como "${nombre}"`:" sin nombre"}.`
-    :"Todavía no hay partidas archivadas.";
+  const pend=h.filter(r=>!r.subido).length;
+  $("#estadoResultados").textContent=h.length
+    ? `${h.length} partida(s) archivada(s) acá${nombre?` como "${nombre}"`:" sin nombre"}` +
+      (pend?` · ${pend} sin subir a la nube.`:" · todas subidas.")
+    : "Todavía no hay partidas archivadas.";
 }
 
 /* Mientras dure la pestaña el panel sigue abierto: no hay que golpear

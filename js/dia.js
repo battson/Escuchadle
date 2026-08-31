@@ -1,10 +1,15 @@
 /* =========================================================
-   Escuchadle Argento — configuración del día
+   Escuchadle Argento — configuración del día (RESPALDO)
 
-   Este archivo SÍ se versiona: es lo único que ven todos los
-   jugadores. El panel reservado arma su contenido y te lo copia
-   al portapapeles; pegalo acá, subilo al repositorio y el cambio
-   le llega a todo el mundo en la próxima carga.
+   Desde que el juego usa Firestore, este archivo dejó de ser la
+   fuente de verdad: lo que mandan son los datos de la nube, que
+   el panel publica en el acto para todos los jugadores.
+
+   Esto queda como red de seguridad. Se usa solo si Firebase no
+   llegó a cargar (sin señal en la primera visita, o el CDN
+   bloqueado). El panel tiene un botón, "Copiar respaldo", que
+   arma este bloque con lo que esté publicado; conviene pegarlo
+   acá de vez en cuando para que el respaldo no envejezca.
 
    modo      "auto"   la canción sale de la fecha, como siempre
              "manual" la canción la elegís vos en cancion
@@ -17,9 +22,10 @@
              la secuencia sigue desde ahí. Solo se usa en modo "auto".
              El panel tiene un botón que lo sortea por vos.
 
-   reinicio  contador. Subilo en 1 y todos los que ya jugaron hoy
+   reinicio  contador. Cuando sube en 1, todos los que ya jugaron hoy
              pierden su partida guardada y arrancan de cero con la
-             canción que esté configurada.
+             canción que esté configurada. El botón "Reiniciar para
+             todos" del panel lo sube y lo publica.
    ========================================================= */
 const DIA = {
   modo: "auto",
