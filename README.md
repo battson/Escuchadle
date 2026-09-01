@@ -4,6 +4,12 @@ Juego tipo *Heardle* con música argentina. Escuchás un fragmento cada vez más
 largo (1 · 2 · 4 · 7 · 11 · 16 segundos) y tenés seis intentos para adivinar
 la canción. Si acertás el artista pero no el tema, el intento queda en amarillo.
 
+Se juega **de lunes a viernes**: sábados y domingos el juego muestra un cartel
+de cerrado en lugar del tablero. Manda el reloj de la máquina del jugador. Una
+partida sin terminar que cruza la medianoche se da por perdida. El panel de
+administración abre los siete días, y tiene un interruptor local para poder
+jugar igual el fin de semana mientras se prueba.
+
 Sitio estático, sin dependencias ni build: se abre con doble clic o se sube
 tal cual a GitHub Pages.
 
@@ -84,7 +90,52 @@ Si algún día conviene cerrar la escritura del todo, el camino es Firebase Auth
 con un usuario administrador y una regla `request.auth.uid == "..."`, no
 esconder la clave.
 
-## Los resultados y el ranking
+**La colección `sugerencias` necesita su propia regla.** Las colecciones nacen
+solas con el primer documento, pero los permisos no: hasta que esto esté en la
+consola, todo envío rebota con *permission denied*. Va junto a las reglas que ya
+están:
+
+```
+match /sugerencias/{id} {
+  allow read, delete: if true;
+  allow create: if request.resource.data.keys().hasOnly(["fecha","nombre","mensaje"])
+                && request.resource.data.fecha is string
+                && request.resource.data.nombre is string
+                && request.resource.data.nombre.size() <= 40
+                && request.resource.data.mensaje is string
+                && request.resource.data.mensaje.size() > 0
+                && request.resource.data.mensaje.size() <= 600;
+  allow update: if false;
+}
+```
+
+## El ranking
+
+Se puntúa por rapidez: **6 puntos** si la sacás al primer intento y uno menos
+por cada intento de más, hasta **1 punto** en el sexto. Sin acertar, cero.
+
+La tabla se abre con el botón *🏆 Ranking* de la cabecera y tiene tres vistas:
+
+- **Semana** — acumulado de puntos de lunes a viernes. Arranca de cero cada
+  lunes a las 00. Las partidas de fin de semana (las del interruptor de
+  administración) no cuentan.
+- **Hoy** — las partidas del día, de menos intentos a más; entre iguales gana
+  el que llegó antes.
+- **Histórico** — acumulado de siempre, sin reinicio.
+
+**Sin nombre no se puntúa.** Las filas anónimas no entran en ninguna vista.
+
+El título de la canción **nunca** se muestra en estas tablas: sería regalarle
+la respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking*
+del panel reservado, que sigue siendo la vista cruda para corregir.
+
+### Tabla lateral (prueba)
+
+Desde el panel, en *Vista y pruebas*, se puede encender un panel plegable con
+el ranking pegado al borde derecho. Es una preferencia **local**: queda en
+`ea_local`, no se publica, y no aparece en pantallas de menos de 1100 px.
+
+## Los resultados y el envío
 
 Cada partida terminada se archiva en el navegador (`ea_resultados`), pero **no
 sube sola**: viaja a la colección `resultados` cuando el jugador escribe su
@@ -94,21 +145,31 @@ para que nadie se anote dos veces por la misma partida. Si en ese momento no
 hay señal, el resultado queda pendiente y *Subir pendientes*, en el panel, lo
 reintenta.
 
-La tabla se ve desde el juego, con el 🏆 de la cabecera, y trae las últimas 200
-partidas en dos vistas:
-
-- **Hoy** — los que acertaron primero, de menos intentos a más; entre iguales
-  gana el que llegó antes. Los que no la sacaron van al final.
-- **Histórico** — acumulado por nombre (ganadas, jugadas, porcentaje y promedio
-  de intentos). Los nombres se agrupan sin distinguir mayúsculas ni tildes.
-
-El título de la canción **nunca** se muestra en esta tabla: sería regalarle la
-respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking en
-la nube* del panel reservado, que sigue siendo la vista cruda para corregir.
+Los nombres se agrupan sin distinguir mayúsculas ni tildes: "Jony" y "jony" son
+la misma persona.
 
 Como no hay login, el nombre es a puro honor: nada impide que alguien se anote
 con el nombre de otro. Para un juego entre conocidos alcanza; si algún día hace
 falta, el camino es Firebase Auth.
+
+## Comentarios y sugerencias
+
+El enlace del pie abre un formulario: nombre o anónimo, y un mensaje de hasta
+600 caracteres. Va a la colección `sugerencias` y se lee desde el panel, en la
+sección del mismo nombre, donde también se borran de a uno.
+
+## El panel de administración
+
+Cinco toques en el título y pide contraseña; hoy es `159357`, escrita en
+`js/juego.js`. **No es seguridad**: la clave viaja en el navegador y cualquiera
+que abra el código la ve. Es una tranquera para que un curioso no entre de
+casualidad. Lo que protege la base son las reglas de Firestore.
+
+La sesión queda abierta mientras dure la pestaña. El panel está dividido en
+secciones —Canción del día, Modo de juego, Ranking, Sugerencias, Vista y
+pruebas, Catálogo, Partida y resultados— con la lista a la izquierda y el
+contenido a la derecha. En pantallas angostas esa lista se convierte en un
+cajón que se abre con el botón ☰.
 
 ## Cargar el catálogo
 
