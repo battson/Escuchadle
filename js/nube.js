@@ -22,12 +22,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/fireba
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentSingleTabManager,
   doc, setDoc, onSnapshot, collection, addDoc, deleteDoc, getDocs,
-  query, orderBy, limit, writeBatch
+  query, where, orderBy, limit, writeBatch
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 const CFG = window.NUBE_CONFIG || null;
 const RUTAS = window.NUBE_RUTAS || {
-  coleccionConfig: "escuchadle", documentoDia: "dia", coleccionResultados: "resultados"
+  coleccionConfig: "escuchadle", documentoDia: "dia",
+  coleccionResultados: "resultados", coleccionSugerencias: "sugerencias"
 };
 
 function avisar(tipo, detalle){
@@ -66,6 +67,10 @@ const Nube = {
   conectada: false,      /* además, la última operación anduvo */
   ultimoEstado: "Conectando…",
   publicarDia(){ return Promise.reject(new Error("La nube no está lista.")); },
+  guardarSugerencia(){ return Promise.reject(new Error("La nube no está lista.")); },
+  listarSugerencias(){ return Promise.reject(new Error("La nube no está lista.")); },
+  borrarSugerencia(){ return Promise.reject(new Error("La nube no está lista.")); },
+  listarDesde(){ return Promise.reject(new Error("La nube no está lista.")); },
   guardarResultado(){ return Promise.reject(new Error("La nube no está lista.")); },
   listarResultados(){ return Promise.reject(new Error("La nube no está lista.")); },
   borrarResultado(){ return Promise.reject(new Error("La nube no está lista.")); },
@@ -94,6 +99,7 @@ if(!CFG || !CFG.projectId){
 
     const refDia = doc(db, RUTAS.coleccionConfig, RUTAS.documentoDia);
     const refResultados = collection(db, RUTAS.coleccionResultados);
+    const refSugerencias = collection(db, RUTAS.coleccionSugerencias);
 
     Nube.disponible = true;
 
@@ -143,8 +149,42 @@ if(!CFG || !CFG.projectId){
         .then(qs => qs.docs.map(d => Object.assign({id: d.id}, d.data())))
         .catch(e => { throw new Error(motivo(e)); });
 
+    /* Para la tabla semanal: todo lo jugado desde una fecha en adelante.
+       El where y el orderBy van sobre el mismo campo, así que Firestore
+       no pide índice compuesto. */
+    Nube.listarDesde = (desdeISO, n = 500) =>
+      getDocs(query(refResultados, where("fecha", ">=", String(desdeISO)),
+                    orderBy("fecha","desc"), limit(n)))
+        .then(qs => qs.docs.map(d => Object.assign({id: d.id}, d.data())))
+        .catch(e => { throw new Error(motivo(e)); });
+
     Nube.borrarResultado = (id) =>
       deleteDoc(doc(db, RUTAS.coleccionResultados, id))
+        .catch(e => { throw new Error(motivo(e)); });
+
+    /* ---------- sugerencias ----------
+       Tres campos y nada más, igual que los resultados: las reglas
+       rechazan cualquier otra cosa. El nombre vacío se lee como
+       anónimo. */
+    Nube.guardarSugerencia = (s) => {
+      const fila = {
+        fecha: String(s.fecha || new Date().toISOString()),
+        nombre: String(s.nombre || "").slice(0,39),
+        mensaje: String(s.mensaje || "").slice(0,600)
+      };
+      if(!fila.mensaje.trim()) return Promise.reject(new Error("El mensaje está vacío."));
+      return addDoc(refSugerencias, fila)
+        .then(ref => ref.id)
+        .catch(e => { throw new Error(motivo(e)); });
+    };
+
+    Nube.listarSugerencias = (n = 100) =>
+      getDocs(query(refSugerencias, orderBy("fecha","desc"), limit(n)))
+        .then(qs => qs.docs.map(d => Object.assign({id: d.id}, d.data())))
+        .catch(e => { throw new Error(motivo(e)); });
+
+    Nube.borrarSugerencia = (id) =>
+      deleteDoc(doc(db, RUTAS.coleccionSugerencias, id))
         .catch(e => { throw new Error(motivo(e)); });
 
     /* Se borra de a tandas: un lote de Firestore aguanta 500 operaciones. */

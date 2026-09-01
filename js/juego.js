@@ -31,6 +31,18 @@ const store={
 let stats=store.get("ea_stats",{jugadas:0,ganadas:0,racha:0});
 let nombre=store.get("ea_nombre","");
 
+/* Preferencias de prueba: valen solo en este navegador y no se publican
+   a nadie. Se encienden desde el panel de administración. */
+const local=Object.assign({lateral:false,saltearFinde:false},store.get("ea_local",{}));
+const guardarLocal=()=>store.set("ea_local",local);
+
+/* ---------- fin de semana ----------
+   Sábados y domingos el juego cierra. Manda el reloj de la máquina del
+   jugador, que es lo que corresponde a un juego entre conocidos. El
+   panel de administración, en cambio, abre los siete días. */
+const esFinde=()=>[0,6].includes(new Date().getDay());
+const cerradoHoy=()=>esFinde()&&!local.saltearFinde;
+
 /* ---------- ventanas ---------- */
 let capa=20;
 function abrirModal(id){
@@ -238,8 +250,27 @@ async function resolver(c){
   }
 }
 
+/* Muestra el cartel de cerrado y esconde el juego, o al revés. */
+function aplicarCierre(){
+  const cerrado=cerradoHoy();
+  document.body.classList.toggle("cerrado",cerrado);
+  $("#finde").hidden=!cerrado;
+  if(cerrado){detener(); cerrarModal("modalResultado")}
+  return cerrado;
+}
+
 async function nuevaPartida(){
   detener(); cerrarModal("modalResultado");
+  if(aplicarCierre()){estado.textContent="";refrescarPanel();return}
+
+  /* Una partida sin terminar de un día anterior se da por perdida:
+     cuenta como jugada, corta la racha y no se puede retomar. */
+  const dejada=store.get(CLAVE_PARTIDA,null);
+  if(dejada&&dejada.dia!==diaHoy()&&!dejada.terminado){
+    stats.jugadas++; stats.racha=0; store.set("ea_stats",stats);
+    borrarPartida();
+  }
+
   actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null; diaPartida=diaHoy();
   zonaJuego.style.display="flex"; zonaCerrada.hidden=true;
   input.value=""; btnEnviar.disabled=true; btnPlay.disabled=true; btnSaltar.disabled=false;
@@ -472,19 +503,41 @@ $("#nombre").addEventListener("input",e=>{
 });
 
 /* ---------- tabla de ranking ----------
-   Ahora se ve desde el juego, con el trofeo de la cabecera. Dos vistas:
-   la del día y un acumulado por nombre. El título de la canción no se
-   muestra nunca acá: sería regalarle la respuesta a quien todavía no
-   terminó de jugar. */
-const TOPE=200;
-const tabla=$("#tabla"), tablaEstado=$("#tablaEstado");
-let vistaTabla="hoy", filasRanking=null;
+   Tres vistas, y las tres se dibujan igual: la ventana del trofeo y el
+   panel lateral comparten el mismo HTML y la misma vista elegida.
 
+   Puntaje: 6 puntos si la sacó al primer intento y uno menos por cada
+   intento de más, hasta 1 punto en el sexto. Si no la sacó, cero.
+
+   Sin nombre no se puntúa. No debería haber filas anónimas nuevas
+   (el botón Enviar está apagado hasta que se escriba uno), pero si
+   quedara alguna vieja, no entra en ninguna tabla. */
+const TOPE=400;
+const tabla=$("#tabla"), tablaEstado=$("#tablaEstado"),
+      latTabla=$("#latTabla"), latEstado=$("#latEstado");
+let vistaTabla="semana", filasRanking=null, filasSemana=null;
+
+const puntosDe=n=>n>0?(MAX+1-n):0;
+
+/* Lunes de esta semana, a las 00:00. La tabla semanal arranca ahí. */
+function lunesDeEstaSemana(){
+  const x=new Date(); x.setHours(0,0,0,0);
+  x.setDate(x.getDate()-((x.getDay()+6)%7));   /* getDay: 0=domingo */
+  return x;
+}
+function rotuloSemana(){
+  const l=lunesDeEstaSemana(), v=new Date(l); v.setDate(v.getDate()+4);
+  const d=x=>`${x.getDate()}/${x.getMonth()+1}`;
+  return `Del ${d(l)} al ${d(v)}`;
+}
 /* De la fecha ISO al mismo número de día que usa el juego. */
 function diaDeFecha(iso){
   const d=new Date(iso);
   return Number.isFinite(d.getTime())?Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5):null;
 }
+const esHabil=iso=>{const d=new Date(iso).getDay(); return d>=1&&d<=5};
+const conNombre=r=>String(r.nombre||"").trim().length>0;
+
 function tiraDe(marcas){
   const m={salto:"⬛",mal:"🟥",artista:"🟨",bien:"🟩"};
   const c=(Array.isArray(marcas)?marcas:[]).map(x=>m[x]||"⬜");
@@ -492,72 +545,203 @@ function tiraDe(marcas){
   return c.slice(0,MAX).join("");
 }
 
-function abrirTabla(){abrirModal("modalTabla"); traerRanking(false)}
+/* ---------- traer los datos ----------
+   Dos consultas: las últimas partidas para "hoy" y el histórico, y
+   todo lo jugado desde el lunes para la semanal. La segunda va por
+   rango de fechas porque una semana movida puede pasarse del tope. */
 function traerRanking(forzar){
   if(filasRanking&&!forzar) return pintarRanking();
-  if(!hayNube()){tablaEstado.textContent="Sin conexión con la nube.";tabla.innerHTML="";return}
-  tablaEstado.textContent="Cargando…"; tabla.innerHTML="";
-  window.Nube.listarResultados(TOPE)
-    .then(rs=>{filasRanking=rs; pintarRanking()})
-    .catch(e=>{tablaEstado.textContent=e.message});
+  if(!hayNube()){escribirTablas("Sin conexión con la nube.","");return}
+  escribirTablas("Cargando…","");
+  Promise.all([
+    window.Nube.listarResultados(TOPE),
+    window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE)
+  ]).then(([todo,semana])=>{
+    filasRanking=todo; filasSemana=semana; pintarRanking();
+  }).catch(e=>escribirTablas(e.message,""));
+}
+function escribirTablas(txt,html){
+  tablaEstado.textContent=txt; tabla.innerHTML=html;
+  latEstado.textContent=txt;   latTabla.innerHTML=html;
 }
 
-function pintarRanking(){
-  $("#solapaHoy").classList.toggle("activo",vistaTabla==="hoy");
-  $("#solapaTodo").classList.toggle("activo",vistaTabla==="todo");
-  if(!filasRanking){tabla.innerHTML="";return}
+/* ---------- armar cada vista ---------- */
+function agrupar(filas){
+  const por={};
+  filas.filter(conNombre).forEach(r=>{
+    const n=r.nombre.trim(), k=norm(n);
+    const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,puntos:0,suma:0});
+    p.jugadas++; p.puntos+=puntosDe(r.intentos);
+    if(r.intentos>0){p.ganadas++; p.suma+=r.intentos}
+  });
+  return Object.values(por).map(p=>Object.assign(p,{
+    prom:p.ganadas?p.suma/p.ganadas:99,
+    pct:p.jugadas?Math.round(p.ganadas/p.jugadas*100):0
+  })).sort((a,b)=>b.puntos-a.puntos||b.ganadas-a.ganadas||a.prom-b.prom);
+}
+const filaGente=(p,i)=>
+  `<div class="fila"><span class="pos">${i+1}</span>`+
+  `<div class="quien"><div class="nom">${escapar(p.nombre)}</div>`+
+  `<div class="detalle">${p.ganadas} de ${p.jugadas} · ${p.pct}%`+
+  `${p.ganadas?` · promedio ${p.prom.toFixed(1)}`:""}</div></div>`+
+  `<span class="marca ok">${p.puntos} <small>pts</small></span></div>`;
 
-  if(vistaTabla==="hoy"){
+function armarTabla(v){
+  if(v==="semana"){
+    if(!filasSemana) return {txt:"Cargando…",html:""};
+    const l=+lunesDeEstaSemana();
+    const g=agrupar(filasSemana.filter(r=>+new Date(r.fecha)>=l&&esHabil(r.fecha)));
+    return {
+      txt:g.length?`${rotuloSemana()} · ${plural(g.length,"jugador","jugadores")}.`
+                  :`${rotuloSemana()} · todavía no jugó nadie.`,
+      html:g.map(filaGente).join("")
+    };
+  }
+  if(v==="hoy"){
+    if(!filasRanking) return {txt:"Cargando…",html:""};
     /* Primero los que acertaron, de menos intentos a más; entre iguales
        gana el que llegó antes. Los que no la sacaron van al final. */
-    const hoy=filasRanking.filter(r=>diaDeFecha(r.fecha)===diaHoy()).sort((a,b)=>{
+    const hoy=filasRanking.filter(r=>diaDeFecha(r.fecha)===diaHoy()&&conNombre(r)).sort((a,b)=>{
       const ga=a.intentos>0, gb=b.intentos>0;
       if(ga!==gb) return ga?-1:1;
       if(ga&&a.intentos!==b.intentos) return a.intentos-b.intentos;
       return String(a.fecha).localeCompare(String(b.fecha));
     });
-    tablaEstado.textContent=hoy.length
-      ? `${plural(hoy.length,"partida jugada","partidas jugadas")} hoy.`
-      : "Todavía no jugó nadie. Estrenala vos.";
-    tabla.innerHTML=hoy.map((r,i)=>
-      `<div class="fila"><span class="pos">${i+1}</span>`+
-      `<div class="quien"><div class="nom">${escapar(r.nombre)||"(sin nombre)"}</div>`+
-      `<div class="tira">${tiraDe(r.marcas)}</div></div>`+
-      `<span class="marca ${r.intentos>0?"ok":"no"}">${r.intentos>0?r.intentos+"/6":"X/6"}</span></div>`
-    ).join("");
-    return;
+    return {
+      txt:hoy.length?`${plural(hoy.length,"partida jugada","partidas jugadas")} hoy.`
+                    :"Todavía no jugó nadie. Estrenala vos.",
+      html:hoy.map((r,i)=>
+        `<div class="fila"><span class="pos">${i+1}</span>`+
+        `<div class="quien"><div class="nom">${escapar(r.nombre)}</div>`+
+        `<div class="tira">${tiraDe(r.marcas)}</div></div>`+
+        `<span class="marca ${r.intentos>0?"ok":"no"}">${r.intentos>0?r.intentos+"/6":"X/6"}`+
+        `<small>${puntosDe(r.intentos)} pts</small></span></div>`
+      ).join("")
+    };
   }
-
-  const por={};
-  filasRanking.forEach(r=>{
-    const n=(r.nombre||"").trim()||"(sin nombre)";
-    const k=norm(n);
-    const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,suma:0});
-    p.jugadas++;
-    if(r.intentos>0){p.ganadas++; p.suma+=r.intentos}
-  });
-  const gente=Object.values(por).map(p=>Object.assign(p,{
-    prom:p.ganadas?p.suma/p.ganadas:99,
-    pct:p.jugadas?Math.round(p.ganadas/p.jugadas*100):0
-  })).sort((a,b)=>b.ganadas-a.ganadas||a.prom-b.prom||b.pct-a.pct);
-
-  tablaEstado.textContent=gente.length
-    ? `${plural(gente.length,"jugador","jugadores")} · últimas ${TOPE} partidas.`
-    : "Todavía no hay partidas en la tabla.";
-  tabla.innerHTML=gente.map((p,i)=>
-    `<div class="fila"><span class="pos">${i+1}</span>`+
-    `<div class="quien"><div class="nom">${escapar(p.nombre)}</div>`+
-    `<div class="detalle">${p.ganadas} de ${p.jugadas} · ${p.pct}%`+
-    `${p.ganadas?` · promedio ${p.prom.toFixed(1)}`:""}</div></div>`+
-    `<span class="marca ok">${p.ganadas}</span></div>`
-  ).join("");
+  if(!filasRanking) return {txt:"Cargando…",html:""};
+  const g=agrupar(filasRanking);
+  return {
+    txt:g.length?`${plural(g.length,"jugador","jugadores")} · últimas ${TOPE} partidas.`
+                :"Todavía no hay partidas en la tabla.",
+    html:g.map(filaGente).join("")
+  };
 }
 
+function pintarRanking(){
+  const {txt,html}=armarTabla(vistaTabla);
+  escribirTablas(txt,html);
+  [["#solapaSemana","#latSemana","semana"],
+   ["#solapaHoy","#latHoy","hoy"],
+   ["#solapaTodo","#latTodo","todo"]].forEach(([a,b,v])=>{
+    $(a).classList.toggle("activo",vistaTabla===v);
+    $(b).classList.toggle("activo",vistaTabla===v);
+  });
+  $("#lateralSemana").textContent=rotuloSemana();
+}
+function verVista(v){vistaTabla=v; pintarRanking()}
+
+function abrirTabla(){abrirModal("modalTabla"); traerRanking(false)}
 $("#btnTabla").onclick=abrirTabla;
 $("#btnVerTabla").onclick=abrirTabla;
+$("#btnFindeTabla").onclick=abrirTabla;
 $("#btnActualizarTabla").onclick=()=>traerRanking(true);
-$("#solapaHoy").onclick=()=>{vistaTabla="hoy";pintarRanking()};
-$("#solapaTodo").onclick=()=>{vistaTabla="todo";pintarRanking()};
+$("#latActualizar").onclick=()=>traerRanking(true);
+$("#solapaSemana").onclick=()=>verVista("semana");
+$("#solapaHoy").onclick=()=>verVista("hoy");
+$("#solapaTodo").onclick=()=>verVista("todo");
+$("#latSemana").onclick=()=>verVista("semana");
+$("#latHoy").onclick=()=>verVista("hoy");
+$("#latTodo").onclick=()=>verVista("todo");
+
+/* ---------- panel lateral (prueba local) ----------
+   Se enciende desde el panel de administración y queda guardado solo
+   en este navegador. En pantallas angostas no existe: ahí manda el
+   botón de la cabecera. */
+const ANCHO_LATERAL=window.matchMedia("(min-width:1100px)");
+function aplicarLateral(){
+  const puede=ANCHO_LATERAL.matches, on=!!local.lateral&&puede;
+  $("#lateral").hidden=!on;
+  document.body.classList.toggle("con-lateral",on);
+  if(on&&!filasRanking) traerRanking(false);
+}
+$("#lateralLengueta").onclick=()=>{
+  const plegado=$("#lateral").classList.toggle("plegado");
+  $("#lateralLengueta").setAttribute("aria-expanded",String(!plegado));
+};
+ANCHO_LATERAL.addEventListener("change",aplicarLateral);
+
+/* ---------- sugerencias ---------- */
+const sugNombre=$("#sugNombre"), sugMensaje=$("#sugMensaje"),
+      btnSugEnviar=$("#btnSugEnviar"), sugAviso=$("#sugAviso");
+
+function abrirSugerir(){
+  sugAviso.textContent=""; sugMensaje.value="";
+  sugNombre.value=nombre; $("#sugFirmado").checked=true;
+  btnSugEnviar.textContent="Enviar";
+  refrescarSug(); abrirModal("modalSugerir");
+  setTimeout(()=>sugMensaje.focus(),60);
+}
+function refrescarSug(){
+  const anon=$("#sugAnonimo").checked;
+  sugNombre.disabled=anon;
+  sugNombre.placeholder=anon?"Va como anónimo":"Tu nombre";
+  const hay=sugMensaje.value.trim().length>1;
+  btnSugEnviar.disabled=!hay||(!anon&&!sugNombre.value.trim());
+  if(!hay) sugAviso.textContent="Escribí un mensaje.";
+  else if(!anon&&!sugNombre.value.trim()) sugAviso.textContent="Poné tu nombre, o elegí anónimo.";
+  else sugAviso.textContent=`Quedan ${600-sugMensaje.value.length} caracteres.`;
+}
+function enviarSugerencia(){
+  if(btnSugEnviar.disabled) return;
+  const anon=$("#sugAnonimo").checked;
+  if(!hayNube()){sugAviso.textContent="Sin conexión con la nube. Probá de nuevo en un rato.";return}
+  btnSugEnviar.disabled=true; btnSugEnviar.textContent="Enviando…";
+  window.Nube.guardarSugerencia({
+    fecha:new Date().toISOString(),
+    nombre:anon?"":sugNombre.value.trim(),
+    mensaje:sugMensaje.value.trim()
+  }).then(()=>{
+    btnSugEnviar.textContent="¡Gracias!";
+    sugAviso.textContent="Tu mensaje llegó.";
+    setTimeout(()=>cerrarModal("modalSugerir"),1200);
+  }).catch(e=>{
+    btnSugEnviar.disabled=false; btnSugEnviar.textContent="Enviar";
+    sugAviso.textContent="No se pudo enviar: "+e.message;
+  });
+}
+$("#btnSugerir").onclick=abrirSugerir;
+$("#btnFindeSugerir").onclick=abrirSugerir;
+$("#btnSugEnviar").onclick=enviarSugerencia;
+sugMensaje.addEventListener("input",refrescarSug);
+sugNombre.addEventListener("input",refrescarSug);
+$("#sugFirmado").onchange=refrescarSug;
+$("#sugAnonimo").onchange=refrescarSug;
+
+/* ---------- panel: sugerencias recibidas ---------- */
+const sugLista=$("#sugLista"), estadoSug=$("#estadoSug");
+function cargarSugerencias(){
+  if(!hayNube()){estadoSug.textContent="Sin conexión con la nube.";return}
+  estadoSug.textContent="Cargando…";
+  window.Nube.listarSugerencias(100).then(ss=>{
+    estadoSug.textContent=ss.length?`${plural(ss.length,"mensaje","mensajes")}.`:"Todavía no hay mensajes.";
+    sugLista.innerHTML=ss.map(x=>{
+      const cuando=(x.fecha||"").slice(0,10).split("-").reverse().join("/");
+      return `<div class="vf"><span class="id">${escapar(cuando)}</span>`+
+             `<div><div class="pedido">${escapar(x.nombre)||"<i>anónimo</i>"}</div>`+
+             `<div class="hallado">${escapar(x.mensaje)}</div></div>`+
+             `<button data-sug="${escapar(x.id)}" title="Borrar este mensaje">✕</button></div>`;
+    }).join("");
+  }).catch(e=>{estadoSug.textContent=e.message});
+}
+$("#btnSugActualizar").onclick=cargarSugerencias;
+sugLista.addEventListener("click",e=>{
+  const b=e.target.closest("[data-sug]"); if(!b) return;
+  b.disabled=true;
+  window.Nube.borrarSugerencia(b.dataset.sug)
+    .then(()=>{b.closest(".vf").remove(); estadoSug.textContent="Mensaje borrado."})
+    .catch(err=>{b.disabled=false; estadoSug.textContent=err.message});
+});
 
 /* ---------- copiar y compartir ---------- */
 /* La fecha sale del día de la partida, no del reloj del momento: si
@@ -630,14 +814,67 @@ let clics=0, relojClics=null;
 $("#titulo").addEventListener("click",()=>{
   clearTimeout(relojClics);
   relojClics=setTimeout(()=>{clics=0},2000);
-  if(++clics>=5){clics=0;clearTimeout(relojClics);abrirPanel()}
+  if(++clics>=5){clics=0;clearTimeout(relojClics);pedirClave()}
 });
+
+/* Una tranquera, no una cerradura: la clave viaja en el JavaScript y
+   cualquiera que abra el código la ve. Alcanza para que un curioso no
+   entre de casualidad. Lo que protege la base son las reglas de
+   Firestore. */
+const CLAVE_PANEL="159357";
+const admin=()=>{try{return sessionStorage.getItem("ea_admin")==="1"}catch{return false}};
+function pedirClave(){
+  if(admin()) return abrirPanel();
+  $("#claveEntrada").value=""; $("#claveAviso").textContent="";
+  abrirModal("modalClave");
+  setTimeout(()=>$("#claveEntrada").focus(),60);
+}
+function probarClave(){
+  if($("#claveEntrada").value.trim()===CLAVE_PANEL){
+    try{sessionStorage.setItem("ea_admin","1")}catch{}
+    cerrarModal("modalClave"); abrirPanel();
+  }else{
+    $("#claveAviso").textContent="No es esa.";
+    $("#claveEntrada").select();
+  }
+}
+$("#btnClave").onclick=probarClave;
+$("#claveEntrada").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();probarClave()}});
 function abrirPanel(){
   refrescarPanel();
-  cargarRanking();
   abrirModal("modalPanel");
+  irASeccion(seccionActual);
   try{sessionStorage.setItem("ea_panel","1")}catch{}
 }
+
+/* ---------- panel: navegación por secciones ----------
+   Columna de secciones a la izquierda, contenido a la derecha. En
+   pantallas angostas la columna sale de la fila y se convierte en un
+   cajón que se abre con el botón de las tres rayas. */
+let seccionActual="dia";
+function irASeccion(id){
+  seccionActual=id;
+  document.querySelectorAll("#panelNav [data-ir]").forEach(b=>b.classList.toggle("activo",b.dataset.ir===id));
+  document.querySelectorAll("#panelCont .panel-sec").forEach(x=>{x.hidden=x.dataset.sec!==id});
+  $("#panelCont").scrollTop=0;
+  cajon(false);
+  if(id==="ranking") cargarRanking();
+  if(id==="sugerencias") cargarSugerencias();
+}
+function cajon(abrir){
+  $("#panelNav").classList.toggle("abierto",abrir);
+  $("#panelVelo").hidden=!abrir;
+  $("#panelMenu").setAttribute("aria-expanded",String(abrir));
+}
+$("#panelNav").addEventListener("click",e=>{
+  const b=e.target.closest("[data-ir]"); if(b) irASeccion(b.dataset.ir);
+});
+$("#panelMenu").onclick=()=>cajon($("#panelVelo").hidden);
+$("#panelVelo").onclick=()=>cajon(false);
+
+/* ---------- panel: interruptores de prueba ---------- */
+$("#swLateral").onchange=e=>{local.lateral=e.target.checked; guardarLocal(); aplicarLateral()};
+$("#swFinde").onchange=e=>{local.saltearFinde=e.target.checked; guardarLocal(); nuevaPartida()};
 
 /* ---------- panel: canción del día ---------- */
 const selCancion=$("#selCancion");
@@ -767,6 +1004,8 @@ $("#btnSubirPendientes").onclick=subirPendientes;
 /* Deja el panel al día con el estado real del juego. */
 function refrescarPanel(){
   const d=dia();
+  $("#swLateral").checked=!!local.lateral;
+  $("#swFinde").checked=!!local.saltearFinde;
   $("#diaAuto").checked=d.modo==="auto";
   $("#diaManual").checked=d.modo==="manual";
   selCancion.disabled=d.modo!=="manual";
@@ -795,7 +1034,7 @@ function refrescarPanel(){
 
 /* Mientras dure la pestaña el panel sigue abierto: no hay que golpear
    el título cinco veces después de cada recarga. */
-try{if(sessionStorage.getItem("ea_panel")) abrirPanel()}catch{}
+try{if(sessionStorage.getItem("ea_panel")&&admin()) abrirPanel()}catch{}
 
 /* ---------- verificación del catálogo ---------- */
 const vLista=$("#verifLista"), vEstado=$("#verifEstado");
@@ -848,4 +1087,5 @@ $("#btnCatalogo").onclick=()=>{
   alPortapapeles(txt,$("#btnCatalogo"),"Copiar catálogo con IDs");
 };
 
+aplicarLateral();
 nuevaPartida();

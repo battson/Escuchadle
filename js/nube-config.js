@@ -22,9 +22,12 @@ window.NUBE_CONFIG = {
   appId: "1:379218628804:web:5d007216848013372ff991"
 };
 
-/* Dónde vive cada cosa dentro de Firestore. */
+/* Dónde vive cada cosa dentro de Firestore. Las colecciones no hay que
+   crearlas a mano: nacen solas con el primer documento que se les
+   escribe. Lo que sí hay que cargar en la consola son las reglas. */
 window.NUBE_RUTAS = {
   coleccionConfig: "escuchadle",
   documentoDia: "dia",
-  coleccionResultados: "resultados"
+  coleccionResultados: "resultados",
+  coleccionSugerencias: "sugerencias"
 };
