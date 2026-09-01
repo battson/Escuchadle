@@ -90,31 +90,32 @@ Si algún día conviene cerrar la escritura del todo, el camino es Firebase Auth
 con un usuario administrador y una regla `request.auth.uid == "..."`, no
 esconder la clave.
 
-**La colección `sugerencias` necesita su propia regla.** Las colecciones nacen
-solas con el primer documento, pero los permisos no: hasta que esto esté en la
-consola, todo envío rebota con *permission denied*. Va junto a las reglas que ya
-están:
+Las reglas completas están versionadas en **`firestore.rules`**, en la raíz del
+repositorio. Ese archivo es la fuente de verdad: si se toca algo en la consola,
+conviene copiarlo de vuelta ahí para que no se pierda.
 
-```
-match /sugerencias/{id} {
-  allow read, delete: if true;
-  allow create: if request.resource.data.keys().hasOnly(["fecha","nombre","mensaje"])
-                && request.resource.data.fecha is string
-                && request.resource.data.nombre is string
-                && request.resource.data.nombre.size() <= 40
-                && request.resource.data.mensaje is string
-                && request.resource.data.mensaje.size() > 0
-                && request.resource.data.mensaje.size() <= 600;
-  allow update: if false;
-}
-```
+**Cuidado al pegarlas:** las reglas son un documento único. Lo que se publica
+reemplaza todo lo anterior, así que hay que pegar el archivo entero y no un
+bloque suelto, o las colecciones que queden afuera dejan de funcionar.
+
+Cubren tres cosas: el documento `escuchadle/dia`, la colección `resultados` y
+la colección `sugerencias`. En las dos colecciones se puede crear y borrar pero
+no modificar, y cada campo se valida por tipo y por largo. Como no hay login,
+el borrado queda abierto: cualquiera que sepa manejar la consola podría borrar
+filas. Entre compañeros de trabajo no es un problema; si algún día lo fuera, se
+cierra con Firebase Auth.
+
 
 ## El ranking
 
 Se puntúa por rapidez: **6 puntos** si la sacás al primer intento y uno menos
 por cada intento de más, hasta **1 punto** en el sexto. Sin acertar, cero.
 
-La tabla se abre con el botón *🏆 Ranking* de la cabecera y tiene tres vistas:
+La tabla vive plegada contra el borde derecho de la pantalla. Se despliega con
+el 🏆 de la cabecera —que hace de llave de luz: si está abierta, la cierra— o
+tocando la lengüeta vertical. **Arranca plegada en cada carga.** Va encimada
+sobre la página (`position:fixed`), así que abrirla no mueve nada del
+contenido. Tiene tres vistas:
 
 - **Semana** — acumulado de puntos de lunes a viernes. Arranca de cero cada
   lunes a las 00. Las partidas de fin de semana (las del interruptor de
@@ -128,12 +129,6 @@ La tabla se abre con el botón *🏆 Ranking* de la cabecera y tiene tres vistas
 El título de la canción **nunca** se muestra en estas tablas: sería regalarle
 la respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking*
 del panel reservado, que sigue siendo la vista cruda para corregir.
-
-### Tabla lateral (prueba)
-
-Desde el panel, en *Vista y pruebas*, se puede encender un panel plegable con
-el ranking pegado al borde derecho. Es una preferencia **local**: queda en
-`ea_local`, no se publica, y no aparece en pantallas de menos de 1100 px.
 
 ## Los resultados y el envío
 
@@ -154,8 +149,8 @@ falta, el camino es Firebase Auth.
 
 ## Comentarios y sugerencias
 
-El enlace del pie abre un formulario: nombre o anónimo, y un mensaje de hasta
-600 caracteres. Va a la colección `sugerencias` y se lee desde el panel, en la
+El botón *Dejar comentario* de la cabecera abre un formulario: nombre o
+anónimo, y un mensaje de hasta 600 caracteres. Va a la colección `sugerencias` y se lee desde el panel, en la
 sección del mismo nombre, donde también se borran de a uno.
 
 ## El panel de administración

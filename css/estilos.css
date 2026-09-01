@@ -33,6 +33,7 @@
     display:grid;place-items:center;transition:color .15s,border-color .15s
   }
   .ayuda-btn:hover{color:var(--celeste);border-color:var(--celeste)}
+  .ayuda-btn[aria-expanded="true"]{color:var(--sol);border-color:var(--sol)}
   .ayuda-btn:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .modo{display:flex;gap:6px}
   .modo button{background:transparent;border:1px solid var(--borde);color:var(--gris);font:500 12px/1 "Space Grotesk",sans-serif;padding:8px 10px;border-radius:999px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
@@ -298,16 +299,16 @@
   .vf button{background:transparent;border:1px solid var(--borde);color:var(--crema);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:12px}
   .vf .id{font-family:monospace;color:var(--gris)}
 
-  /* ---------- botón de ranking en la cabecera ---------- */
-  .btn-ranking{
+  /* ---------- píldora de la cabecera ---------- */
+  .btn-pildora{
     display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
     background:transparent;border:1px solid var(--borde);color:var(--crema);
     border-radius:999px;padding:8px 14px;
     font:500 12px/1 "Space Grotesk",sans-serif;letter-spacing:.06em;text-transform:uppercase;
     transition:color .15s,border-color .15s
   }
-  .btn-ranking:hover{color:var(--sol);border-color:var(--sol)}
-  .btn-ranking:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+  .btn-pildora:hover{color:var(--celeste);border-color:var(--celeste)}
+  .btn-pildora:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
 
   /* ---------- fin de semana ---------- */
   body.cerrado .escenario,body.cerrado .pistas,body.cerrado .intentos,
@@ -347,11 +348,14 @@
   .tabla .marca small{display:block;font-size:10px;color:var(--gris);font-weight:400}
 
   /* ---------- panel lateral de ranking ---------- */
+  /* Va encimada sobre la página: como es position:fixed, no ocupa
+     lugar en el flujo y nada del contenido se mueve al abrirla.
+     Plegada deja a la vista solo la lengüeta. */
   .lateral{
-    position:fixed;top:0;right:0;height:100vh;z-index:15;display:flex;align-items:stretch;
-    transition:transform .25s ease
+    position:fixed;top:0;right:0;height:100vh;height:100dvh;z-index:15;
+    display:flex;align-items:stretch;transition:transform .25s ease;
+    filter:drop-shadow(-14px 0 34px rgba(0,0,0,.55))
   }
-  .lateral[hidden]{display:none}
   .lateral.plegado{transform:translateX(calc(100% - 34px))}
   .lateral-lengueta{
     width:34px;flex:none;background:var(--pista);border:1px solid var(--borde);border-right:0;
@@ -366,7 +370,7 @@
     letter-spacing:.22em;text-transform:uppercase
   }
   .lateral-cuerpo{
-    width:290px;background:var(--pista);border-left:1px solid var(--borde);
+    width:min(300px,82vw);background:var(--pista);border-left:1px solid var(--borde);
     padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto
   }
   .lateral-cab{display:flex;flex-direction:column;gap:2px}
@@ -374,8 +378,6 @@
   .lateral-cab span{font-size:11px;color:var(--gris)}
   .lateral .tabla{max-height:none}
   .solapas.chicas button{padding:7px 6px;font-size:10px;letter-spacing:.04em}
-  /* con el lateral abierto, el juego se corre para no quedar tapado */
-  body.con-lateral{padding-right:330px}
 
   /* ---------- pantallas angostas ---------- */
   @media (max-width:900px){
@@ -389,12 +391,10 @@
     .panel-nav.abierto{transform:none}
   }
   @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
-  @media (max-width:1099px){
-    .lateral{display:none!important}
-    body.con-lateral{padding-right:16px}
-  }
   @media (max-width:420px){
-    .btn-ranking{padding:8px 11px;font-size:11px}
+    .btn-pildora{padding:8px 10px;font-size:10px}
+    .cabecera-der{gap:7px}
+    header{gap:8px}
     .escenario{flex-direction:column}
     .tocadiscos,.vinilo{width:100px;height:100px}
     .vinilo::after{inset:30px}

@@ -1,0 +1,87 @@
+/* =========================================================
+   Escuchadle Argento — reglas de Firestore.
+
+   OJO: esto es el archivo COMPLETO. Las reglas son un único
+   documento: lo que se pega en la consola reemplaza todo lo
+   anterior. Si pegás solo un bloque, los otros dejan de existir
+   y el juego se rompe.
+
+   Cómo se cargan:
+     console.firebase.google.com → tu proyecto → Firestore
+     → pestaña "Reglas" → pegar todo → Publicar.
+
+   Qué protegen: que nadie pueda escribir campos raros ni tocar
+   documentos que no corresponden. NO son un login: cualquiera
+   que abra el juego puede escribir dentro de estos límites.
+   Para un juego entre conocidos alcanza. El día que haga falta
+   más, el camino es Firebase Auth, no esconder la clave.
+   ========================================================= */
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* Nadie toca nada que no esté nombrado más abajo. */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    /* ---------- configuración del día ----------
+       Un solo documento, con cinco campos y nada más. Lo escribe
+       el panel reservado; lo lee todo el mundo, en vivo. */
+    match /escuchadle/dia {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(
+                        ['modo','cancion','salto','reinicio','actualizado'])
+                   && request.resource.data.modo in ['auto','manual']
+                   && request.resource.data.cancion is string
+                   && request.resource.data.cancion.size() <= 120
+                   && request.resource.data.salto is number
+                   && request.resource.data.reinicio is number
+                   && request.resource.data.actualizado is number;
+    }
+
+    /* ---------- resultados de las partidas ----------
+       Se crean y se borran, nunca se modifican: por eso el
+       update queda cerrado. "intentos" en 0 significa que no la
+       sacó; de 1 a 6, en cuántos intentos la sacó. */
+    match /resultados/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['fecha','nombre','cancion','intentos','marcas'])
+                    && request.resource.data.fecha is string
+                    && request.resource.data.fecha.size() <= 40
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() <= 40
+                    && request.resource.data.cancion is string
+                    && request.resource.data.cancion.size() <= 120
+                    && request.resource.data.intentos is number
+                    && request.resource.data.intentos >= 0
+                    && request.resource.data.intentos <= 6
+                    && request.resource.data.marcas is list
+                    && request.resource.data.marcas.size() <= 6;
+      allow update: if false;
+      allow delete: if true;
+    }
+
+    /* ---------- comentarios y sugerencias ----------
+       Tres campos. El nombre vacío se lee como anónimo, así que
+       se permite; el mensaje, en cambio, no puede venir vacío.
+       Igual que los resultados: se crean y se borran, no se
+       modifican. */
+    match /sugerencias/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['fecha','nombre','mensaje'])
+                    && request.resource.data.fecha is string
+                    && request.resource.data.fecha.size() <= 40
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() <= 40
+                    && request.resource.data.mensaje is string
+                    && request.resource.data.mensaje.size() > 0
+                    && request.resource.data.mensaje.size() <= 600;
+      allow update: if false;
+      allow delete: if true;
+    }
+  }
+}

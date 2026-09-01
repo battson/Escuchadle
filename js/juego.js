@@ -33,7 +33,7 @@ let nombre=store.get("ea_nombre","");
 
 /* Preferencias de prueba: valen solo en este navegador y no se publican
    a nadie. Se encienden desde el panel de administración. */
-const local=Object.assign({lateral:false,saltearFinde:false},store.get("ea_local",{}));
+const local=Object.assign({saltearFinde:false},store.get("ea_local",{}));
 const guardarLocal=()=>store.set("ea_local",local);
 
 /* ---------- fin de semana ----------
@@ -513,8 +513,7 @@ $("#nombre").addEventListener("input",e=>{
    (el botón Enviar está apagado hasta que se escriba uno), pero si
    quedara alguna vieja, no entra en ninguna tabla. */
 const TOPE=400;
-const tabla=$("#tabla"), tablaEstado=$("#tablaEstado"),
-      latTabla=$("#latTabla"), latEstado=$("#latEstado");
+const latTabla=$("#latTabla"), latEstado=$("#latEstado");
 let vistaTabla="semana", filasRanking=null, filasSemana=null;
 
 const puntosDe=n=>n>0?(MAX+1-n):0;
@@ -561,8 +560,7 @@ function traerRanking(forzar){
   }).catch(e=>escribirTablas(e.message,""));
 }
 function escribirTablas(txt,html){
-  tablaEstado.textContent=txt; tabla.innerHTML=html;
-  latEstado.textContent=txt;   latTabla.innerHTML=html;
+  latEstado.textContent=txt; latTabla.innerHTML=html;
 }
 
 /* ---------- armar cada vista ---------- */
@@ -631,45 +629,36 @@ function armarTabla(v){
 function pintarRanking(){
   const {txt,html}=armarTabla(vistaTabla);
   escribirTablas(txt,html);
-  [["#solapaSemana","#latSemana","semana"],
-   ["#solapaHoy","#latHoy","hoy"],
-   ["#solapaTodo","#latTodo","todo"]].forEach(([a,b,v])=>{
-    $(a).classList.toggle("activo",vistaTabla===v);
-    $(b).classList.toggle("activo",vistaTabla===v);
-  });
+  [["#latSemana","semana"],["#latHoy","hoy"],["#latTodo","todo"]]
+    .forEach(([b,v])=>$(b).classList.toggle("activo",vistaTabla===v));
   $("#lateralSemana").textContent=rotuloSemana();
 }
 function verVista(v){vistaTabla=v; pintarRanking()}
 
-function abrirTabla(){abrirModal("modalTabla"); traerRanking(false)}
-$("#btnTabla").onclick=abrirTabla;
-$("#btnVerTabla").onclick=abrirTabla;
-$("#btnFindeTabla").onclick=abrirTabla;
-$("#btnActualizarTabla").onclick=()=>traerRanking(true);
+/* ---------- el ranking, plegado al costado ----------
+   Es la única tabla que hay: se encima sobre la página, no la
+   corre, y arranca cerrada en cada carga. Se abre con la lengüeta
+   del borde o con el trofeo de la cabecera, que hace de llave de
+   luz: si está abierta, la cierra. */
+function verLateral(mostrar){
+  const lat=$("#lateral");
+  const plegar = mostrar===undefined ? !lat.classList.contains("plegado") : !mostrar;
+  lat.classList.toggle("plegado",plegar);
+  $("#lateralLengueta").setAttribute("aria-expanded",String(!plegar));
+  $("#btnTabla").setAttribute("aria-expanded",String(!plegar));
+  if(!plegar) traerRanking(false);
+}
+/* Desde el resultado o el cartel del finde: la ventana estorba, se cierra. */
+function mostrarLateral(){cerrarModal("modalResultado"); verLateral(true)}
+
+$("#btnTabla").onclick=()=>verLateral();
+$("#lateralLengueta").onclick=()=>verLateral();
+$("#btnVerTabla").onclick=mostrarLateral;
+$("#btnFindeTabla").onclick=mostrarLateral;
 $("#latActualizar").onclick=()=>traerRanking(true);
-$("#solapaSemana").onclick=()=>verVista("semana");
-$("#solapaHoy").onclick=()=>verVista("hoy");
-$("#solapaTodo").onclick=()=>verVista("todo");
 $("#latSemana").onclick=()=>verVista("semana");
 $("#latHoy").onclick=()=>verVista("hoy");
 $("#latTodo").onclick=()=>verVista("todo");
-
-/* ---------- panel lateral (prueba local) ----------
-   Se enciende desde el panel de administración y queda guardado solo
-   en este navegador. En pantallas angostas no existe: ahí manda el
-   botón de la cabecera. */
-const ANCHO_LATERAL=window.matchMedia("(min-width:1100px)");
-function aplicarLateral(){
-  const puede=ANCHO_LATERAL.matches, on=!!local.lateral&&puede;
-  $("#lateral").hidden=!on;
-  document.body.classList.toggle("con-lateral",on);
-  if(on&&!filasRanking) traerRanking(false);
-}
-$("#lateralLengueta").onclick=()=>{
-  const plegado=$("#lateral").classList.toggle("plegado");
-  $("#lateralLengueta").setAttribute("aria-expanded",String(!plegado));
-};
-ANCHO_LATERAL.addEventListener("change",aplicarLateral);
 
 /* ---------- sugerencias ---------- */
 const sugNombre=$("#sugNombre"), sugMensaje=$("#sugMensaje"),
@@ -873,7 +862,6 @@ $("#panelMenu").onclick=()=>cajon($("#panelVelo").hidden);
 $("#panelVelo").onclick=()=>cajon(false);
 
 /* ---------- panel: interruptores de prueba ---------- */
-$("#swLateral").onchange=e=>{local.lateral=e.target.checked; guardarLocal(); aplicarLateral()};
 $("#swFinde").onchange=e=>{local.saltearFinde=e.target.checked; guardarLocal(); nuevaPartida()};
 
 /* ---------- panel: canción del día ---------- */
@@ -1004,7 +992,6 @@ $("#btnSubirPendientes").onclick=subirPendientes;
 /* Deja el panel al día con el estado real del juego. */
 function refrescarPanel(){
   const d=dia();
-  $("#swLateral").checked=!!local.lateral;
   $("#swFinde").checked=!!local.saltearFinde;
   $("#diaAuto").checked=d.modo==="auto";
   $("#diaManual").checked=d.modo==="manual";
@@ -1087,5 +1074,4 @@ $("#btnCatalogo").onclick=()=>{
   alPortapapeles(txt,$("#btnCatalogo"),"Copiar catálogo con IDs");
 };
 
-aplicarLateral();
 nuevaPartida();
