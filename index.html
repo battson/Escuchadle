@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=7">
+  <link rel="stylesheet" href="css/estilos.css?v=8">
 </head>
 <body>
 <header>
@@ -35,6 +35,7 @@
         <button class="btn btn-play" id="btnPlay">▶ Escuchar</button>
         <span class="estado" id="estado">Cargando canción…</span>
       </div>
+      <div class="pauta" id="pauta" aria-live="polite"></div>
     </div>
   </section>
 
@@ -60,15 +61,50 @@
 
 <!-- ---------- ventana de ayuda ---------- -->
 <div class="modal" id="modalAyuda" role="dialog" aria-modal="true" aria-labelledby="tituloAyuda" hidden>
-  <div class="modal-caja">
+  <div class="modal-caja ayuda">
     <div class="modal-cab">
       <strong id="tituloAyuda">Cómo se juega</strong>
       <button class="modal-x" data-cerrar="modalAyuda" aria-label="Cerrar">×</button>
     </div>
-    <p>Cada intento fallido o salto desbloquea más segundos: 1 · 2 · 4 · 7 · 11 · 16.</p>
-    <p><span style="color:var(--sol)">Amarillo</span> = acertaste el artista, no la canción.</p>
-    <p>El audio se reproduce con el reproductor oficial de YouTube.</p>
-    <p class="modal-nota">Cada fallo destapa además una pista nueva sobre la canción.</p>
+
+    <p>Suena un pedacito de una canción argentina y tenés <b>seis intentos</b> para
+    decir cuál es. Hay una sola por día y es la misma para todo el mundo.</p>
+
+    <ol class="ayuda-pasos">
+      <li><b>Escuchá.</b> Tocá <i>▶ Escuchar</i> (o apretá la barra espaciadora).
+      La primera vez suena <b>un segundo</b> nada más.</li>
+      <li><b>Tirá tu apuesta.</b> Escribí en el buscador: te va sugiriendo canciones
+      del catálogo. Elegí una de la lista y tocá <i>Enviar</i>.</li>
+      <li><b>Si errás, ganás tiempo.</b> Cada intento fallido alarga el fragmento:
+      <b>1 · 2 · 4 · 7 · 11 · 16</b> segundos.</li>
+      <li><b>¿No se te ocurre nada?</b> <i>Saltar</i> te gasta un intento, pero te
+      destraba los segundos siguientes sin arriesgar.</li>
+    </ol>
+
+    <div class="ayuda-bloque">
+      <div class="ayuda-titulo">Qué significa cada color</div>
+      <ul class="leyenda">
+        <li><span class="pt verde"></span> Le pegaste: canción y artista.</li>
+        <li><span class="pt sol"></span> Acertaste el artista, pero no la canción.</li>
+        <li><span class="pt rojo"></span> Ni una cosa ni la otra.</li>
+        <li><span class="pt gris"></span> Intento salteado.</li>
+      </ul>
+    </div>
+
+    <div class="ayuda-bloque">
+      <div class="ayuda-titulo">Las pistas</div>
+      <p>Son <b>tres</b> y aparecen recién sobre el final, una por intento, cuando
+      ya te quedan pocas balas:</p>
+      <ul class="leyenda">
+        <li><b>4.º intento</b> — el <b>género</b> de la canción.</li>
+        <li><b>5.º intento</b> — cuántas palabras y letras tiene el <b>título</b>.</li>
+        <li><b>6.º intento</b> — cuántas palabras y letras tiene el <b>artista</b>.</li>
+      </ul>
+      <p>Hasta entonces las vas a ver con candado 🔒, para que sepas qué se viene.</p>
+    </div>
+
+    <p class="modal-nota">El audio sale del reproductor oficial de YouTube. Si cerrás
+    la página, la partida del día te queda donde la dejaste.</p>
   </div>
 </div>
 
@@ -187,14 +223,14 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=7"></script>
-<script src="js/config.js?v=7"></script>
-<script src="js/dia.js?v=7"></script>
-<script src="js/catalogo.js?v=7"></script>
-<script src="js/juego.js?v=7"></script>
+<script src="js/nube-config.js?v=8"></script>
+<script src="js/config.js?v=8"></script>
+<script src="js/dia.js?v=8"></script>
+<script src="js/catalogo.js?v=8"></script>
+<script src="js/juego.js?v=8"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=7"></script>
+<script type="module" src="js/nube.js?v=8"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
