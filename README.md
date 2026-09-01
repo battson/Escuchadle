@@ -7,6 +7,21 @@ la canción. Si acertás el artista pero no el tema, el intento queda en amarill
 Sitio estático, sin dependencias ni build: se abre con doble clic o se sube
 tal cual a GitHub Pages.
 
+## Las pistas
+
+Son tres y salen sobre el final, una por intento, durante los últimos tres:
+
+| Intento | Pista |
+|---|---|
+| 4.º | género de la canción (campo `g` del catálogo) |
+| 5.º | palabras y letras del **título** |
+| 6.º | palabras y letras del **artista** |
+
+Antes de que les toque se muestran con candado, para que el jugador sepa
+cuántas hay y de qué van a hablar. Al terminar la partida se abren todas.
+Las reglas completas están en la ventana de ayuda (el `?` de la cabecera),
+que además se abre sola la primera vez que alguien entra.
+
 ## Estructura
 
 ```
@@ -69,16 +84,31 @@ Si algún día conviene cerrar la escritura del todo, el camino es Firebase Auth
 con un usuario administrador y una regla `request.auth.uid == "..."`, no
 esconder la clave.
 
-## Los resultados
+## Los resultados y el ranking
 
-Cada partida terminada se archiva en el navegador (`ea_resultados`) y se copia
-a la colección `resultados`. Si en el momento no hay señal queda pendiente, y
-el botón *Subir pendientes* del panel reintenta. Las reglas no permiten
-modificar un resultado ya subido, solo crear y borrar: por eso, renombrarse
-después de jugar sube una fila nueva y borra la anterior.
+Cada partida terminada se archiva en el navegador (`ea_resultados`), pero **no
+sube sola**: viaja a la colección `resultados` cuando el jugador escribe su
+nombre y toca *Enviar al ranking* en la ventana de resultado. Sin nombre el
+botón está apagado, y una vez enviada la fila el botón y el campo se bloquean
+para que nadie se anote dos veces por la misma partida. Si en ese momento no
+hay señal, el resultado queda pendiente y *Subir pendientes*, en el panel, lo
+reintenta.
 
-La tabla todavía no se muestra en el juego. Se mira y se corrige desde el
-panel, en el bloque *Ranking en la nube*.
+La tabla se ve desde el juego, con el 🏆 de la cabecera, y trae las últimas 200
+partidas en dos vistas:
+
+- **Hoy** — los que acertaron primero, de menos intentos a más; entre iguales
+  gana el que llegó antes. Los que no la sacaron van al final.
+- **Histórico** — acumulado por nombre (ganadas, jugadas, porcentaje y promedio
+  de intentos). Los nombres se agrupan sin distinguir mayúsculas ni tildes.
+
+El título de la canción **nunca** se muestra en esta tabla: sería regalarle la
+respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking en
+la nube* del panel reservado, que sigue siendo la vista cruda para corregir.
+
+Como no hay login, el nombre es a puro honor: nada impide que alguien se anote
+con el nombre de otro. Para un juego entre conocidos alcanza; si algún día hace
+falta, el camino es Firebase Auth.
 
 ## Cargar el catálogo
 
