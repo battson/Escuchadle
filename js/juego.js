@@ -6,11 +6,15 @@
 
 /* ---------- estado ---------- */
 const SEG=[1,2,4,7,11,16], MAX=6;
+/* Dirección pública del juego: va en el texto que se copia para compartir.
+   Si algún día cambia el dominio, se toca solo acá. */
+const SITIO="https://battson.github.io/Escuchadle/";
 let modo="diario", actual=null, intentos=[], paso=0, terminado=false, audio=null, timer=null, raf=null;
+let diaPartida=0;   /* el día que corresponde a la partida en pantalla */
 
 const $=s=>document.querySelector(s);
 const vinilo=$("#vinilo"), barra=$("#barra"), desbloq=$("#desbloq"), progreso=$("#progreso"),
-      tActual=$("#tActual"), btnPlay=$("#btnPlay"), estado=$("#estado"), cont=$("#intentos"),
+      tActual=$("#tActual"), tTotal=$("#tTotal"), btnPlay=$("#btnPlay"), estado=$("#estado"), cont=$("#intentos"),
       input=$("#busqueda"), lista=$("#lista"), btnSaltar=$("#btnSaltar"), btnEnviar=$("#btnEnviar"),
       zonaJuego=$("#zonaJuego"), zonaCerrada=$("#zonaCerrada"), contPistas=$("#pistas"),
       pauta=$("#pauta");
@@ -236,7 +240,7 @@ async function resolver(c){
 
 async function nuevaPartida(){
   detener(); cerrarModal("modalResultado");
-  actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null;
+  actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null; diaPartida=diaHoy();
   zonaJuego.style.display="flex"; zonaCerrada.hidden=true;
   input.value=""; btnEnviar.disabled=true; btnPlay.disabled=true; btnSaltar.disabled=false;
   estado.textContent="Cargando canción…";
@@ -244,7 +248,7 @@ async function nuevaPartida(){
   /* ¿Hay algo guardado de hoy que siga valiendo? */
   const g=modo==="diario"?partidaGuardada():null;
   if(sirve(g)){
-    intentos=g.intentos; paso=g.paso||0; terminado=!!g.terminado;
+    intentos=g.intentos; paso=g.paso||0; terminado=!!g.terminado; diaPartida=g.dia;
   }else if(g){
     borrarPartida();   /* cambió la canción o hubo un reinicio: no aplica más */
   }
@@ -265,22 +269,45 @@ async function nuevaPartida(){
   refrescarPanel();
 }
 
-/* ---------- reproducción ---------- */
-let sonando=false, limite=0;
+/* ---------- reproducción ----------
+   El reloj cuenta en minutos y segundos: mientras se juega nunca pasa
+   de 0:16, pero al terminar suena el tema entero y ahí sí hace falta.
+   La barra también cambia de escala: durante la partida mide 16
+   segundos, y al terminar mide lo que dure la canción. */
+let sonando=false, limite=0, escala=16;
+const reloj=s=>{s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+
+/* Deja la barra y el rótulo de la derecha midiendo los segundos que
+   correspondan. Al terminar se sacan las marcas de los tramos: ya no
+   representan nada. */
+function fijarEscala(seg){
+  escala=Math.max(1,seg);
+  tTotal.textContent=reloj(escala);
+  barra.classList.toggle("entera",terminado);
+}
+function duracion(){
+  const d=yt&&yt.getDuration?yt.getDuration():0;
+  return Number.isFinite(d)&&d>0?d:0;
+}
 function reproducir(){
   if(!audio||!yt) return;
   if(sonando){detener();return}
-  limite=terminado?600:SEG[paso]; sonando=true;
+  if(terminado){const d=duracion(); limite=d||600; fijarEscala(d||16)}
+  else {limite=SEG[paso]; fijarEscala(16)}
+  sonando=true;
   yt.seekTo(0,true); yt.playVideo();
   vinilo.classList.add("gira"); btnPlay.textContent="■ Parar"; estado.textContent="Cargando…";
 }
 function onYtEstado(e){
   if(e.data===YT.PlayerState.PLAYING&&sonando){
     estado.textContent="";
+    /* Recién ahora YouTube sabe cuánto dura: si es la canción entera,
+       se corrige la escala con el dato real. */
+    if(terminado){const d=duracion(); if(d&&Math.abs(d-limite)>1){limite=d; fijarEscala(d)}}
     clearTimeout(timer); timer=setTimeout(detener,limite*1000);
     const t0=performance.now();
     const tick=()=>{const t=Math.min((performance.now()-t0)/1000,limite);
-      progreso.style.width=(Math.min(t,16)/16*100)+"%"; tActual.textContent="0:"+String(Math.floor(t)).padStart(2,"0");
+      progreso.style.width=(Math.min(t,escala)/escala*100)+"%"; tActual.textContent=reloj(t);
       raf=requestAnimationFrame(tick)};
     cancelAnimationFrame(raf); tick();
   }
@@ -290,12 +317,13 @@ function detener(){
   clearTimeout(timer); cancelAnimationFrame(raf); sonando=false;
   if(yt&&yt.pauseVideo) yt.pauseVideo();
   vinilo.classList.remove("gira"); btnPlay.textContent="▶ Escuchar";
-  progreso.style.width="0"; tActual.textContent="0:00";
+  progreso.style.width="0"; tActual.textContent=reloj(0);
 }
 
 /* ---------- pintar ---------- */
 function pintar(){
   desbloq.style.width=(SEG[Math.min(paso,MAX-1)]/16*100)+"%";
+  if(!sonando) fijarEscala(terminado?(duracion()||16):16);
   cont.innerHTML="";
   for(let i=0;i<MAX;i++){
     const it=intentos[i], d=document.createElement("div");
@@ -354,13 +382,20 @@ function mostrarResultado(gano,abrir){
   $("#btnOtra").hidden=esDiario;         /* en modo diario hay una sola por día */
   $("#notaManana").hidden=!esDiario;
   $("#nombre").value=nombre;
+  estadoEnvio();
   estado.textContent="Ahora podés escuchar la canción completa.";
   btnPlay.disabled=!audio;
   if(abrir) abrirModal("modalResultado");
 }
+/* Un casillero por intento, siempre seis. Ojo: los emojis de color
+   ocupan dos unidades en un string de JavaScript y el cuadrado blanco
+   una sola, así que hay que rellenar contando elementos del array y no
+   la longitud del texto. */
 function emojis(){
   const m={salto:"⬛",mal:"🟥",artista:"🟨",bien:"🟩"};
-  let s=intentos.map(i=>m[i.tipo]).join(""); while(s.length<MAX*2) s+="⬜"; return s;
+  const c=intentos.map(i=>m[i.tipo]);
+  while(c.length<MAX) c.push("⬜");
+  return c.slice(0,MAX).join("");
 }
 
 /* ---------- nombre y resultados archivados ----------
@@ -379,63 +414,164 @@ const hayNube=()=>!!(window.Nube&&window.Nube.disponible);
 
 function archivar(gano){
   const h=store.get("ea_resultados",[]);
-  h.push({dia:diaHoy(),fecha:new Date().toISOString(),nombre,
+  h.push({dia:diaPartida,fecha:new Date().toISOString(),nombre,
           cancion:actual.label,gano,intentos:gano?intentos.length:null,
           marcas:intentos.map(i=>i.tipo),subido:false});
   store.set("ea_resultados",h.slice(-200));
-  subirUltimo();
 }
 
-/* Manda el último archivado y lo marca. Si falla, queda pendiente y se
-   puede reintentar desde el panel: no se pierde nada. */
-function subirUltimo(){
+/* ---------- envío al ranking ----------
+   Ya no sale nada solo: la partida se archiva acá y viaja recién cuando
+   el jugador toca Enviar, con un nombre puesto. Si en ese momento no hay
+   señal, queda pendiente y se puede reintentar. */
+function ultimoResultado(){
   const h=store.get("ea_resultados",[]), u=h[h.length-1];
-  if(!u||u.subido||!hayNube()) return;
+  return (u&&u.dia===diaPartida)?u:null;
+}
+function estadoEnvio(){
+  const btn=$("#btnEnviarRanking"), aviso=$("#firmaAviso"),
+        campo=$("#nombre"), firma=$("#nombre").closest(".firma");
+  const u=modo==="diario"?ultimoResultado():null;
+  btn.hidden=!u; firma.hidden=!u;
+  if(!u){aviso.textContent="";return}
+  if(u.subido){
+    btn.disabled=true; btn.textContent="Enviado ✓"; campo.disabled=true;
+    aviso.textContent=`Ya figurás en la tabla como "${u.nombre||"(sin nombre)"}".`;
+    return;
+  }
+  campo.disabled=false;
+  btn.disabled=!nombre; btn.textContent="Enviar al ranking";
+  aviso.textContent=nombre?"Tocá Enviar para que tu resultado aparezca en la tabla."
+                          :"Poné un nombre para poder enviar tu resultado.";
+}
+function enviarAlRanking(){
+  const btn=$("#btnEnviarRanking"), aviso=$("#firmaAviso");
+  const h=store.get("ea_resultados",[]), u=h[h.length-1];
+  if(!u||u.dia!==diaPartida||u.subido||!nombre) return;
+  u.nombre=nombre; store.set("ea_resultados",h);
+  if(!hayNube()){
+    aviso.textContent="Sin conexión con la nube. Tu resultado quedó guardado: probá de nuevo en un rato.";
+    return;
+  }
+  btn.disabled=true; btn.textContent="Enviando…";
   window.Nube.guardarResultado(aFila(u)).then(id=>{
     const h2=store.get("ea_resultados",[]);
     if(h2.length){h2[h2.length-1].subido=true; h2[h2.length-1].idNube=id; store.set("ea_resultados",h2)}
-    refrescarPanel();
-  }).catch(()=>refrescarPanel());
+    filasRanking=null;               /* la tabla que teníamos quedó vieja */
+    estadoEnvio(); refrescarPanel();
+  }).catch(e=>{
+    btn.disabled=false; btn.textContent="Enviar al ranking";
+    aviso.textContent="No se pudo enviar: "+e.message;
+  });
 }
-
-/* Si escribe el nombre después de terminar, se lo ponemos al último resultado. */
-let relojNombre=null;
-function renombrarUltimo(){
-  const h=store.get("ea_resultados",[]);
-  if(!h.length||!terminado||modo!=="diario") return;
-  const u=h[h.length-1];
-  if(u.dia!==diaHoy()) return;
-  u.nombre=nombre; store.set("ea_resultados",h);
-  clearTimeout(relojNombre);
-  relojNombre=setTimeout(sincronizarNombre,1200);   /* espera a que termine de tipear */
-}
-
-/* Las reglas no dejan modificar un resultado ya subido, solo crear y
-   borrar. Renombrar es entonces: subir el nuevo y borrar el viejo. */
-function sincronizarNombre(){
-  const h=store.get("ea_resultados",[]), u=h[h.length-1];
-  if(!u||!hayNube()) return;
-  if(!u.subido) return subirUltimo();
-  if(!u.idNube) return;
-  const viejo=u.idNube;
-  window.Nube.guardarResultado(aFila(u)).then(id=>{
-    const h2=store.get("ea_resultados",[]);
-    if(h2.length){h2[h2.length-1].idNube=id; store.set("ea_resultados",h2)}
-    return window.Nube.borrarResultado(viejo);
-  }).then(()=>refrescarPanel()).catch(()=>{});
-}
+$("#btnEnviarRanking").onclick=enviarAlRanking;
 $("#nombre").addEventListener("input",e=>{
   nombre=e.target.value.trim();
   store.set("ea_nombre",nombre);
-  renombrarUltimo();
-  refrescarPanel();
+  estadoEnvio(); refrescarPanel();
 });
 
+/* ---------- tabla de ranking ----------
+   Ahora se ve desde el juego, con el trofeo de la cabecera. Dos vistas:
+   la del día y un acumulado por nombre. El título de la canción no se
+   muestra nunca acá: sería regalarle la respuesta a quien todavía no
+   terminó de jugar. */
+const TOPE=200;
+const tabla=$("#tabla"), tablaEstado=$("#tablaEstado");
+let vistaTabla="hoy", filasRanking=null;
+
+/* De la fecha ISO al mismo número de día que usa el juego. */
+function diaDeFecha(iso){
+  const d=new Date(iso);
+  return Number.isFinite(d.getTime())?Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5):null;
+}
+function tiraDe(marcas){
+  const m={salto:"⬛",mal:"🟥",artista:"🟨",bien:"🟩"};
+  const c=(Array.isArray(marcas)?marcas:[]).map(x=>m[x]||"⬜");
+  while(c.length<MAX) c.push("⬜");
+  return c.slice(0,MAX).join("");
+}
+
+function abrirTabla(){abrirModal("modalTabla"); traerRanking(false)}
+function traerRanking(forzar){
+  if(filasRanking&&!forzar) return pintarRanking();
+  if(!hayNube()){tablaEstado.textContent="Sin conexión con la nube.";tabla.innerHTML="";return}
+  tablaEstado.textContent="Cargando…"; tabla.innerHTML="";
+  window.Nube.listarResultados(TOPE)
+    .then(rs=>{filasRanking=rs; pintarRanking()})
+    .catch(e=>{tablaEstado.textContent=e.message});
+}
+
+function pintarRanking(){
+  $("#solapaHoy").classList.toggle("activo",vistaTabla==="hoy");
+  $("#solapaTodo").classList.toggle("activo",vistaTabla==="todo");
+  if(!filasRanking){tabla.innerHTML="";return}
+
+  if(vistaTabla==="hoy"){
+    /* Primero los que acertaron, de menos intentos a más; entre iguales
+       gana el que llegó antes. Los que no la sacaron van al final. */
+    const hoy=filasRanking.filter(r=>diaDeFecha(r.fecha)===diaHoy()).sort((a,b)=>{
+      const ga=a.intentos>0, gb=b.intentos>0;
+      if(ga!==gb) return ga?-1:1;
+      if(ga&&a.intentos!==b.intentos) return a.intentos-b.intentos;
+      return String(a.fecha).localeCompare(String(b.fecha));
+    });
+    tablaEstado.textContent=hoy.length
+      ? `${plural(hoy.length,"partida jugada","partidas jugadas")} hoy.`
+      : "Todavía no jugó nadie. Estrenala vos.";
+    tabla.innerHTML=hoy.map((r,i)=>
+      `<div class="fila"><span class="pos">${i+1}</span>`+
+      `<div class="quien"><div class="nom">${escapar(r.nombre)||"(sin nombre)"}</div>`+
+      `<div class="tira">${tiraDe(r.marcas)}</div></div>`+
+      `<span class="marca ${r.intentos>0?"ok":"no"}">${r.intentos>0?r.intentos+"/6":"X/6"}</span></div>`
+    ).join("");
+    return;
+  }
+
+  const por={};
+  filasRanking.forEach(r=>{
+    const n=(r.nombre||"").trim()||"(sin nombre)";
+    const k=norm(n);
+    const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,suma:0});
+    p.jugadas++;
+    if(r.intentos>0){p.ganadas++; p.suma+=r.intentos}
+  });
+  const gente=Object.values(por).map(p=>Object.assign(p,{
+    prom:p.ganadas?p.suma/p.ganadas:99,
+    pct:p.jugadas?Math.round(p.ganadas/p.jugadas*100):0
+  })).sort((a,b)=>b.ganadas-a.ganadas||a.prom-b.prom||b.pct-a.pct);
+
+  tablaEstado.textContent=gente.length
+    ? `${plural(gente.length,"jugador","jugadores")} · últimas ${TOPE} partidas.`
+    : "Todavía no hay partidas en la tabla.";
+  tabla.innerHTML=gente.map((p,i)=>
+    `<div class="fila"><span class="pos">${i+1}</span>`+
+    `<div class="quien"><div class="nom">${escapar(p.nombre)}</div>`+
+    `<div class="detalle">${p.ganadas} de ${p.jugadas} · ${p.pct}%`+
+    `${p.ganadas?` · promedio ${p.prom.toFixed(1)}`:""}</div></div>`+
+    `<span class="marca ok">${p.ganadas}</span></div>`
+  ).join("");
+}
+
+$("#btnTabla").onclick=abrirTabla;
+$("#btnVerTabla").onclick=abrirTabla;
+$("#btnActualizarTabla").onclick=()=>traerRanking(true);
+$("#solapaHoy").onclick=()=>{vistaTabla="hoy";pintarRanking()};
+$("#solapaTodo").onclick=()=>{vistaTabla="todo";pintarRanking()};
+
 /* ---------- copiar y compartir ---------- */
+/* La fecha sale del día de la partida, no del reloj del momento: si
+   alguien copia su resultado pasada la medianoche, tiene que seguir
+   diciendo el día que jugó. */
+function fechaDeDia(n){
+  const d=new Date(n*864e5);
+  return [d.getUTCDate(),d.getUTCMonth()+1,d.getUTCFullYear()%100]
+         .map(x=>String(x).padStart(2,"0")).join("/");
+}
 function textoResultado(){
   const gano=intentos.some(i=>i.tipo==="bien");
-  const quien=nombre?` — ${nombre}`:"";
-  return `Escuchadle Argento ${modo==="diario"?"#"+diaHoy():"(libre)"}${quien}\n🔉${emojis()}\n${gano?intentos.length:"X"}/6`;
+  const cuando=modo==="diario"?fechaDeDia(diaPartida):"(libre)";
+  return `Escuchadle Argento ${cuando}\n🔉${emojis()} ${gano?intentos.length:"X"}/6\n${SITIO}`;
 }
 function avisar(btn,texto,original){
   btn.textContent=texto; setTimeout(()=>btn.textContent=original,1500);
@@ -445,11 +581,6 @@ function alPortapapeles(txt,btn,original){
   navigator.clipboard.writeText(txt).then(()=>avisar(btn,"¡Copiado!",original),()=>avisar(btn,"No se pudo",original));
 }
 $("#btnCopiar").onclick=()=>alPortapapeles(textoResultado(),$("#btnCopiar"),"Copiar resultado");
-$("#btnCompartir").onclick=()=>{
-  const txt=textoResultado();
-  if(navigator.share) navigator.share({title:"Escuchadle Argento",text:txt}).catch(()=>{});
-  else alPortapapeles(txt,$("#btnCompartir"),"Compartir");
-};
 $("#btnVerResultado").onclick=()=>abrirModal("modalResultado");
 
 /* ---------- buscador ---------- */
