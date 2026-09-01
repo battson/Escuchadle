@@ -4,19 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Escuchadle Argento — adiviná la canción</title>
+<meta name="description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta name="theme-color" content="#0E1524">
 <link rel="icon" href="imgs/vinilo.png" type="image/png"/>
+<link rel="canonical" href="https://battson.github.io/Escuchadle/">
+
+<!-- ---------- tarjeta para compartir ----------
+     Lo que se ve cuando alguien pega el link en WhatsApp, Instagram
+     o Discord. La imagen VA CON URL ABSOLUTA: con ruta relativa
+     ninguna de esas apps la encuentra.
+
+     WhatsApp y Facebook guardan esta tarjeta en caché por mucho
+     tiempo. Si algún día cambiás la imagen, cambiale también el
+     ?v= del final para que la vuelvan a leer. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Escuchadle Argento">
+<meta property="og:title" content="Escuchadle Argento — adiviná la canción">
+<meta property="og:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta property="og:url" content="https://battson.github.io/Escuchadle/">
+<meta property="og:image" content="https://battson.github.io/Escuchadle/imgs/OpenGraph.jpg?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Escuchadle Argento">
+<meta property="og:locale" content="es_AR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Escuchadle Argento — adiviná la canción">
+<meta name="twitter:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta name="twitter:image" content="https://battson.github.io/Escuchadle/imgs/OpenGraph.jpg?v=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=11">
+  <link rel="stylesheet" href="css/estilos.css?v=12">
 </head>
 <body>
 <header>
   <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
   <div class="cabecera-der">
     <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
-    <button class="ayuda-btn" id="btnTabla" aria-label="Ranking" title="Ranking"
-            aria-expanded="false" aria-controls="lateral">🏆</button>
+    <button class="btn-pildora" id="btnTabla" title="Ranking"
+            aria-expanded="false" aria-controls="lateral">
+      <img src="imgs/ranking.png" alt="" class="ico"> Ranking
+    </button>
     <button class="btn-pildora" id="btnSugerir">Dejar comentario</button>
     <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
   </div>
@@ -197,7 +225,6 @@
     </div>
     <div class="solapas chicas" role="tablist">
       <button id="latSemana" class="activo" role="tab">Semana</button>
-      <button id="latHoy" role="tab">Hoy</button>
       <button id="latTodo" role="tab">Histórico</button>
     </div>
     <div class="tabla-estado" id="latEstado"></div>
@@ -376,14 +403,14 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=11"></script>
-<script src="js/config.js?v=11"></script>
-<script src="js/dia.js?v=11"></script>
-<script src="js/catalogo.js?v=11"></script>
-<script src="js/juego.js?v=11"></script>
+<script src="js/nube-config.js?v=12"></script>
+<script src="js/config.js?v=12"></script>
+<script src="js/dia.js?v=12"></script>
+<script src="js/catalogo.js?v=12"></script>
+<script src="js/juego.js?v=12"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=11"></script>
+<script type="module" src="js/nube.js?v=12"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;

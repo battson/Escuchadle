@@ -112,16 +112,15 @@ Se puntúa por rapidez: **6 puntos** si la sacás al primer intento y uno menos
 por cada intento de más, hasta **1 punto** en el sexto. Sin acertar, cero.
 
 La tabla vive plegada contra el borde derecho de la pantalla. Se despliega con
-el 🏆 de la cabecera —que hace de llave de luz: si está abierta, la cierra— o
+el botón *Ranking* de la cabecera —que hace de llave de luz: si está abierta,
+la cierra— o
 tocando la lengüeta vertical. **Arranca plegada en cada carga.** Va encimada
 sobre la página (`position:fixed`), así que abrirla no mueve nada del
-contenido. Tiene tres vistas:
+contenido. Tiene dos vistas:
 
 - **Semana** — acumulado de puntos de lunes a viernes. Arranca de cero cada
   lunes a las 00. Las partidas de fin de semana (las del interruptor de
   administración) no cuentan.
-- **Hoy** — las partidas del día, de menos intentos a más; entre iguales gana
-  el que llegó antes.
 - **Histórico** — acumulado de siempre, sin reinicio.
 
 **Sin nombre no se puntúa.** Las filas anónimas no entran en ninguna vista.
@@ -181,6 +180,35 @@ Para agregar canciones, sumá una línea a ese array:
 
 El `yt` es lo que va después de `watch?v=` en la URL. Es opcional; sin él, el
 juego busca el video solo.
+
+## La tarjeta para compartir
+
+El `<head>` lleva las etiquetas Open Graph que arman la vista previa cuando
+alguien pega el link en WhatsApp, Instagram o Discord. La imagen es
+`imgs/OpenGraph.jpg` (1200×630) y se declara con **URL absoluta**: con ruta
+relativa ninguna de esas apps la encuentra.
+
+WhatsApp y Facebook cachean esa tarjeta por mucho tiempo. Si cambiás la imagen,
+subile el `?v=` del final de `og:image` y `twitter:image`, o van a seguir
+mostrando la vieja. Para forzar una relectura sirve el Sharing Debugger de
+Facebook (`developers.facebook.com/tools/debug/`), que además avisa si algo está
+mal armado.
+
+Y ojo con el nombre del archivo: GitHub Pages distingue mayúsculas, así que
+`OpenGraph.jpg` tiene que llamarse exactamente así.
+
+## Imágenes
+
+`imgs/` tiene que contener, además del vinilo:
+
+```
+imgs/ranking.png     ícono del botón Ranking, se dibuja a 16 px
+imgs/OpenGraph.jpg   tarjeta para compartir, 1200×630, menos de 300 KB
+```
+
+Si alguna vez cambiás la tarjeta, subile el `?v=` del `og:image` en el
+`<head>`: WhatsApp y Facebook la guardan en caché por mucho tiempo y sin eso
+siguen mostrando la vieja.
 
 ## Publicar en GitHub Pages
 

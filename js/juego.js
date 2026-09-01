@@ -503,8 +503,7 @@ $("#nombre").addEventListener("input",e=>{
 });
 
 /* ---------- tabla de ranking ----------
-   Tres vistas, y las tres se dibujan igual: la ventana del trofeo y el
-   panel lateral comparten el mismo HTML y la misma vista elegida.
+   Dos vistas: la semana en curso y el acumulado de siempre.
 
    Puntaje: 6 puntos si la sacó al primer intento y uno menos por cada
    intento de más, hasta 1 punto en el sexto. Si no la sacó, cero.
@@ -529,23 +528,11 @@ function rotuloSemana(){
   const d=x=>`${x.getDate()}/${x.getMonth()+1}`;
   return `Del ${d(l)} al ${d(v)}`;
 }
-/* De la fecha ISO al mismo número de día que usa el juego. */
-function diaDeFecha(iso){
-  const d=new Date(iso);
-  return Number.isFinite(d.getTime())?Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5):null;
-}
 const esHabil=iso=>{const d=new Date(iso).getDay(); return d>=1&&d<=5};
 const conNombre=r=>String(r.nombre||"").trim().length>0;
 
-function tiraDe(marcas){
-  const m={salto:"⬛",mal:"🟥",artista:"🟨",bien:"🟩"};
-  const c=(Array.isArray(marcas)?marcas:[]).map(x=>m[x]||"⬜");
-  while(c.length<MAX) c.push("⬜");
-  return c.slice(0,MAX).join("");
-}
-
 /* ---------- traer los datos ----------
-   Dos consultas: las últimas partidas para "hoy" y el histórico, y
+   Dos consultas: las últimas partidas para el histórico, y
    todo lo jugado desde el lunes para la semanal. La segunda va por
    rango de fechas porque una semana movida puede pasarse del tope. */
 function traerRanking(forzar){
@@ -595,28 +582,6 @@ function armarTabla(v){
       html:g.map(filaGente).join("")
     };
   }
-  if(v==="hoy"){
-    if(!filasRanking) return {txt:"Cargando…",html:""};
-    /* Primero los que acertaron, de menos intentos a más; entre iguales
-       gana el que llegó antes. Los que no la sacaron van al final. */
-    const hoy=filasRanking.filter(r=>diaDeFecha(r.fecha)===diaHoy()&&conNombre(r)).sort((a,b)=>{
-      const ga=a.intentos>0, gb=b.intentos>0;
-      if(ga!==gb) return ga?-1:1;
-      if(ga&&a.intentos!==b.intentos) return a.intentos-b.intentos;
-      return String(a.fecha).localeCompare(String(b.fecha));
-    });
-    return {
-      txt:hoy.length?`${plural(hoy.length,"partida jugada","partidas jugadas")} hoy.`
-                    :"Todavía no jugó nadie. Estrenala vos.",
-      html:hoy.map((r,i)=>
-        `<div class="fila"><span class="pos">${i+1}</span>`+
-        `<div class="quien"><div class="nom">${escapar(r.nombre)}</div>`+
-        `<div class="tira">${tiraDe(r.marcas)}</div></div>`+
-        `<span class="marca ${r.intentos>0?"ok":"no"}">${r.intentos>0?r.intentos+"/6":"X/6"}`+
-        `<small>${puntosDe(r.intentos)} pts</small></span></div>`
-      ).join("")
-    };
-  }
   if(!filasRanking) return {txt:"Cargando…",html:""};
   const g=agrupar(filasRanking);
   return {
@@ -629,7 +594,7 @@ function armarTabla(v){
 function pintarRanking(){
   const {txt,html}=armarTabla(vistaTabla);
   escribirTablas(txt,html);
-  [["#latSemana","semana"],["#latHoy","hoy"],["#latTodo","todo"]]
+  [["#latSemana","semana"],["#latTodo","todo"]]
     .forEach(([b,v])=>$(b).classList.toggle("activo",vistaTabla===v));
   $("#lateralSemana").textContent=rotuloSemana();
 }
@@ -657,7 +622,6 @@ $("#btnVerTabla").onclick=mostrarLateral;
 $("#btnFindeTabla").onclick=mostrarLateral;
 $("#latActualizar").onclick=()=>traerRanking(true);
 $("#latSemana").onclick=()=>verVista("semana");
-$("#latHoy").onclick=()=>verVista("hoy");
 $("#latTodo").onclick=()=>verVista("todo");
 
 /* ---------- sugerencias ---------- */

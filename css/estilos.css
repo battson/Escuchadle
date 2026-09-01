@@ -307,6 +307,12 @@
     font:500 12px/1 "Space Grotesk",sans-serif;letter-spacing:.06em;text-transform:uppercase;
     transition:color .15s,border-color .15s
   }
+  .btn-pildora .ico{
+    width:16px;height:16px;flex:none;object-fit:contain;display:block;
+    opacity:.85;transition:opacity .15s
+  }
+  .btn-pildora:hover .ico{opacity:1}
+  .btn-pildora[aria-expanded="true"]{color:var(--sol);border-color:var(--sol)}
   .btn-pildora:hover{color:var(--celeste);border-color:var(--celeste)}
   .btn-pildora:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
 
@@ -392,7 +398,8 @@
   }
   @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
   @media (max-width:420px){
-    .btn-pildora{padding:8px 10px;font-size:10px}
+    .btn-pildora{padding:7px 9px;font-size:10px;gap:5px}
+    .btn-pildora .ico{width:14px;height:14px}
     .cabecera-der{gap:7px}
     header{gap:8px}
     .escenario{flex-direction:column}
