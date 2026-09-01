@@ -8,13 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=8">
+  <link rel="stylesheet" href="css/estilos.css?v=9">
 </head>
 <body>
 <header>
   <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
   <div class="cabecera-der">
     <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
+    <button class="ayuda-btn" id="btnTabla" aria-label="Ranking" title="Ranking">🏆</button>
     <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
   </div>
 </header>
@@ -30,7 +31,7 @@
         <div class="desbloq" id="desbloq"></div>
         <div class="progreso" id="progreso"></div>
       </div>
-      <div class="tiempos"><span id="tActual">0:00</span><span>0:16</span></div>
+      <div class="tiempos"><span id="tActual">0:00</span><span id="tTotal">0:16</span></div>
       <div class="play">
         <button class="btn btn-play" id="btnPlay">▶ Escuchar</button>
         <span class="estado" id="estado">Cargando canción…</span>
@@ -103,6 +104,13 @@
       <p>Hasta entonces las vas a ver con candado 🔒, para que sepas qué se viene.</p>
     </div>
 
+    <div class="ayuda-bloque">
+      <div class="ayuda-titulo">La tabla</div>
+      <p>Al terminar podés poner tu nombre y tocar <i>Enviar al ranking</i>. Recién
+      ahí tu partida entra en la tabla: si no lo tocás, no figurás. Se mira cuando
+      quieras con el 🏆 de arriba, y tiene dos vistas, la de hoy y el histórico.</p>
+    </div>
+
     <p class="modal-nota">El audio sale del reproductor oficial de YouTube. Si cerrás
     la página, la partida del día te queda donde la dejaste.</p>
   </div>
@@ -126,14 +134,32 @@
     <div class="firma">
       <label for="nombre">Tu nombre para el ranking</label>
       <input id="nombre" type="text" maxlength="24" placeholder="Cómo querés figurar" autocomplete="nickname">
-      <span class="firma-aviso" id="firmaAviso">Por ahora queda guardado en este navegador.</span>
+      <span class="firma-aviso" id="firmaAviso"></span>
     </div>
     <div class="acciones">
       <button class="btn btn-sec" id="btnCopiar">Copiar resultado</button>
-      <button class="btn btn-ok" id="btnCompartir">Compartir</button>
+      <button class="btn btn-ok" id="btnEnviarRanking">Enviar al ranking</button>
     </div>
+    <button class="btn btn-sec" id="btnVerTabla">Ver la tabla</button>
     <button class="btn btn-sec" id="btnOtra" hidden>Otra canción</button>
     <div class="nota-manana" id="notaManana" hidden>La del día ya está jugada. Volvé mañana por otra.</div>
+  </div>
+</div>
+
+<!-- ---------- tabla de ranking ---------- -->
+<div class="modal" id="modalTabla" role="dialog" aria-modal="true" aria-labelledby="tituloTabla" hidden>
+  <div class="modal-caja">
+    <div class="modal-cab">
+      <strong id="tituloTabla">Ranking</strong>
+      <button class="modal-x" data-cerrar="modalTabla" aria-label="Cerrar">×</button>
+    </div>
+    <div class="solapas" role="tablist">
+      <button id="solapaHoy" class="activo" role="tab">Hoy</button>
+      <button id="solapaTodo" role="tab">Histórico</button>
+    </div>
+    <div class="tabla-estado" id="tablaEstado">Cargando…</div>
+    <div class="tabla" id="tabla"></div>
+    <button class="btn btn-sec" id="btnActualizarTabla">Actualizar</button>
   </div>
 </div>
 
@@ -207,7 +233,7 @@
       <button class="btn btn-sec" id="btnSubirPendientes">Subir pendientes</button>
       <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
     </div>
-    <p class="panel-ayuda">Cada partida terminada se anota acá y se copia a la nube. Si en el momento no hay señal, queda pendiente: <b>Subir pendientes</b> reintenta, y sirve también para las partidas viejas, de antes de que existiera la base.</p>
+    <p class="panel-ayuda">Cada partida terminada se anota acá, pero ya no viaja sola: sube cuando el jugador toca <b>Enviar al ranking</b> en la ventana de resultado. <b>Subir pendientes</b> fuerza la subida de todo lo que haya quedado sin mandar, sirva por falta de señal o porque nadie apretó el botón.</p>
   </div>
 
   <div class="panel-bloque">
@@ -217,20 +243,20 @@
       <button class="btn btn-sec" id="btnRanking">Actualizar</button>
       <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
     </div>
-    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Todavía no se muestran en el juego: por ahora la tabla se mira y se corrige solo desde acá. La ✕ borra una fila suelta.</p>
+    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el trofeo de la cabecera. La ✕ borra una fila suelta.</p>
     <div id="rankLista"></div>
   </div>
   </div>
 </div>
 
-<script src="js/nube-config.js?v=8"></script>
-<script src="js/config.js?v=8"></script>
-<script src="js/dia.js?v=8"></script>
-<script src="js/catalogo.js?v=8"></script>
-<script src="js/juego.js?v=8"></script>
+<script src="js/nube-config.js?v=9"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/dia.js?v=9"></script>
+<script src="js/catalogo.js?v=9"></script>
+<script src="js/juego.js?v=9"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=8"></script>
+<script type="module" src="js/nube.js?v=9"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
