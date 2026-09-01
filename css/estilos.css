@@ -170,6 +170,8 @@
   .leyenda .pt{width:11px;height:11px;border-radius:50%;flex:none}
   .leyenda .verde{background:var(--verde)} .leyenda .sol{background:var(--sol)}
   .leyenda .rojo{background:var(--rojo)}  .leyenda .gris{background:var(--gris)}
+  .leyenda.puntos{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+  .leyenda.puntos b{color:var(--sol)}
   .modal-nota{color:var(--gris)!important;font-size:13px!important;border-top:1px solid var(--borde);padding-top:12px}
   .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
@@ -224,10 +226,38 @@
   .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
   .resultado .nota-manana{font-size:12px;color:var(--gris)}
   .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
-  /* ---------- panel reservado ---------- */
-  .modal-caja.panel{max-width:560px;gap:18px;border-color:var(--sol)}
-  .panel .modal-cab{border-bottom:1px solid var(--borde);padding-bottom:12px}
-  .panel .modal-cab strong{color:var(--sol)}
+  /* ---------- panel reservado ----------
+     Secciones a la izquierda, contenido a la derecha. En pantallas
+     angostas la columna sale de la fila y se vuelve un cajón. */
+  .modal-caja.panel{max-width:940px;gap:0;border-color:var(--sol);padding:0;height:min(86vh,780px)}
+  .panel .panel-cab{border-bottom:1px solid var(--borde);padding:16px 18px}
+  .panel .panel-cab strong{color:var(--sol);flex:1}
+  .hamburguesa{
+    display:none;background:transparent;border:1px solid var(--borde);color:var(--crema);
+    border-radius:9px;font-size:15px;line-height:1;padding:6px 9px;cursor:pointer
+  }
+  .panel-cuerpo{flex:1;display:flex;min-height:0;position:relative}
+  .panel-nav{
+    width:22%;min-width:170px;flex:none;display:flex;flex-direction:column;gap:2px;
+    padding:12px 10px;border-right:1px solid var(--borde);overflow:auto
+  }
+  .panel-nav button{
+    text-align:left;background:transparent;border:0;border-radius:10px;cursor:pointer;
+    color:var(--gris);font:500 13px/1.3 "Space Grotesk",sans-serif;padding:10px 12px
+  }
+  .panel-nav button:hover{background:var(--noche);color:var(--crema)}
+  .panel-nav button.activo{background:var(--noche);color:var(--sol)}
+  .panel-cont{flex:1;min-width:0;overflow:auto;padding:18px 20px}
+  .panel-sec{display:flex;flex-direction:column;gap:18px}
+  .panel-sec[hidden]{display:none}
+  .panel-sec-titulo{
+    font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.05em;
+    color:var(--crema);font-weight:400
+  }
+  .panel-velo{position:absolute;inset:0;background:rgba(6,9,16,.6);z-index:3}
+  .panel-velo[hidden]{display:none}
+  .interruptor{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--crema);cursor:pointer}
+  .interruptor input{accent-color:var(--celeste);cursor:pointer;width:16px;height:16px}
   .panel-bloque{display:flex;flex-direction:column;gap:10px}
   .panel-titulo{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
   .panel-ayuda{font-size:12px;color:var(--gris);line-height:1.5}
@@ -267,7 +297,104 @@
   .vf.ok .hallado{color:var(--verde)} .vf.dudoso .hallado{color:var(--sol)} .vf.error .hallado{color:var(--rojo)}
   .vf button{background:transparent;border:1px solid var(--borde);color:var(--crema);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:12px}
   .vf .id{font-family:monospace;color:var(--gris)}
+
+  /* ---------- botón de ranking en la cabecera ---------- */
+  .btn-ranking{
+    display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+    background:transparent;border:1px solid var(--borde);color:var(--crema);
+    border-radius:999px;padding:8px 14px;
+    font:500 12px/1 "Space Grotesk",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+    transition:color .15s,border-color .15s
+  }
+  .btn-ranking:hover{color:var(--sol);border-color:var(--sol)}
+  .btn-ranking:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+
+  /* ---------- fin de semana ---------- */
+  body.cerrado .escenario,body.cerrado .pistas,body.cerrado .intentos,
+  body.cerrado #zonaJuego,body.cerrado .zona-cerrada{display:none!important}
+  .finde{
+    display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
+    background:var(--pista);border:1px solid var(--borde);border-radius:18px;padding:32px 22px
+  }
+  .finde[hidden]{display:none}
+  .finde-icono{font-size:40px;line-height:1}
+  .finde-titulo{font-family:"Bebas Neue",Impact,sans-serif;font-size:30px;letter-spacing:.04em;color:var(--sol)}
+  .finde p{font-size:14px;color:var(--crema);line-height:1.55;max-width:380px}
+  .finde-acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+
+  /* ---------- pie ---------- */
+  .pie{width:100%;max-width:560px;margin-top:22px;display:flex;justify-content:center}
+  .enlace{
+    background:transparent;border:0;cursor:pointer;color:var(--gris);
+    font:500 12px "Space Grotesk",sans-serif;text-decoration:underline;text-underline-offset:3px
+  }
+  .enlace:hover{color:var(--celeste)}
+
+  /* ---------- campos de formulario ---------- */
+  .campo{display:flex;flex-direction:column;gap:8px}
+  .campo label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
+  .campo input,.campo textarea{
+    width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--borde);
+    background:#0b0f19;color:var(--crema);font:500 14px "Space Grotesk",sans-serif;outline:none
+  }
+  .campo textarea{resize:vertical;line-height:1.5;font-weight:400}
+  .campo input:focus,.campo textarea:focus{border-color:var(--celeste)}
+  .campo input:disabled{opacity:.45}
+  .campo input::placeholder,.campo textarea::placeholder{color:var(--gris)}
+  .opciones.fila{gap:18px}
+  .modal-caja.angosta{max-width:340px}
+  .firma-regla{font-size:11px;color:var(--sol);line-height:1.5}
+  .tabla .marca small{display:block;font-size:10px;color:var(--gris);font-weight:400}
+
+  /* ---------- panel lateral de ranking ---------- */
+  .lateral{
+    position:fixed;top:0;right:0;height:100vh;z-index:15;display:flex;align-items:stretch;
+    transition:transform .25s ease
+  }
+  .lateral[hidden]{display:none}
+  .lateral.plegado{transform:translateX(calc(100% - 34px))}
+  .lateral-lengueta{
+    width:34px;flex:none;background:var(--pista);border:1px solid var(--borde);border-right:0;
+    border-radius:14px 0 0 14px;color:var(--gris);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0
+  }
+  .lateral-lengueta:hover{color:var(--sol)}
+  .lateral-flecha{font-size:17px;line-height:1;transition:transform .25s ease}
+  .lateral.plegado .lateral-flecha{transform:rotate(180deg)}
+  .lateral-vertical{
+    writing-mode:vertical-rl;font:500 10px "Space Grotesk",sans-serif;
+    letter-spacing:.22em;text-transform:uppercase
+  }
+  .lateral-cuerpo{
+    width:290px;background:var(--pista);border-left:1px solid var(--borde);
+    padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto
+  }
+  .lateral-cab{display:flex;flex-direction:column;gap:2px}
+  .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste)}
+  .lateral-cab span{font-size:11px;color:var(--gris)}
+  .lateral .tabla{max-height:none}
+  .solapas.chicas button{padding:7px 6px;font-size:10px;letter-spacing:.04em}
+  /* con el lateral abierto, el juego se corre para no quedar tapado */
+  body.con-lateral{padding-right:330px}
+
+  /* ---------- pantallas angostas ---------- */
+  @media (max-width:900px){
+    .modal-caja.panel{height:min(90vh,780px)}
+    .hamburguesa{display:block}
+    .panel-nav{
+      position:absolute;top:0;bottom:0;left:0;z-index:4;width:74%;max-width:250px;
+      background:var(--pista);border-right:1px solid var(--borde);
+      transform:translateX(-100%);transition:transform .22s ease
+    }
+    .panel-nav.abierto{transform:none}
+  }
+  @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
+  @media (max-width:1099px){
+    .lateral{display:none!important}
+    body.con-lateral{padding-right:16px}
+  }
   @media (max-width:420px){
+    .btn-ranking{padding:8px 11px;font-size:11px}
     .escenario{flex-direction:column}
     .tocadiscos,.vinilo{width:100px;height:100px}
     .vinilo::after{inset:30px}
