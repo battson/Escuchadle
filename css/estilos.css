@@ -72,18 +72,26 @@
   .btn-sec{background:transparent;border:1px solid var(--borde);color:var(--crema)}
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .estado{font-size:13px;color:var(--gris);min-height:18px}
+  .pauta{font-size:12px;color:var(--gris);letter-spacing:.02em;min-height:16px}
 
   /* ---------- pistas ---------- */
-  .pistas{display:flex;flex-wrap:wrap;gap:8px}
+  .pistas{display:flex;flex-direction:column;gap:8px}
   .pistas[hidden]{display:none}   /* si no, el display:flex le gana al atributo */
+  .pistas-cab{
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);
+    display:flex;flex-wrap:wrap;gap:6px
+  }
+  .pistas-cab span{color:var(--gris);opacity:.85;text-transform:none;letter-spacing:.02em;font-size:11px}
+  .pistas-fila{display:flex;flex-wrap:wrap;gap:8px}
   .pista{
     display:flex;align-items:baseline;gap:8px;padding:8px 12px;border-radius:999px;
     border:1px solid var(--borde);background:var(--pista);font-size:13px;color:var(--crema);
     animation:aparecer .35s ease both
   }
+  .pista.cerrada{opacity:.45;border-style:dashed;animation:none}
+  .pista.cerrada .et{color:var(--gris)}
   .pista .et{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sol)}
   .pista .vl{font-variant-numeric:tabular-nums}
-  .pista .vl.velado{font-family:monospace;letter-spacing:.12em}
   @keyframes aparecer{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.pista{animation:none}}
 
@@ -141,6 +149,24 @@
   @keyframes subir{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.modal,.modal-caja{animation:none}}
   .modal-caja p{font-size:14px;color:var(--crema);line-height:1.55}
+
+  /* ---------- ventana de ayuda ---------- */
+  .ayuda{gap:14px}
+  .ayuda-pasos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}
+  .ayuda-pasos li{font-size:14px;color:var(--crema);line-height:1.5}
+  .ayuda-pasos li::marker{color:var(--celeste);font-weight:700}
+  .ayuda-pasos i{color:var(--celeste);font-style:normal;font-weight:500}
+  .ayuda-bloque{border-top:1px solid var(--borde);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  .ayuda-titulo{
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--sol)
+  }
+  .leyenda{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  .leyenda li{
+    display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--crema);line-height:1.45
+  }
+  .leyenda .pt{width:11px;height:11px;border-radius:50%;flex:none}
+  .leyenda .verde{background:var(--verde)} .leyenda .sol{background:var(--sol)}
+  .leyenda .rojo{background:var(--rojo)}  .leyenda .gris{background:var(--gris)}
   .modal-nota{color:var(--gris)!important;font-size:13px!important;border-top:1px solid var(--borde);padding-top:12px}
   .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
