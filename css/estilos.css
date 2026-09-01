@@ -59,6 +59,9 @@
   .barra .desbloq{position:absolute;inset:0;width:0;background:#2a3856}
   .barra .progreso{position:absolute;inset:0;width:0;background:var(--celeste);transition:width .1s linear}
   .barra .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--noche)}
+  /* Al terminar, la barra mide la canción entera: los tramos de la
+     partida ya no representan nada y estorban. */
+  .barra.entera .tick,.barra.entera .desbloq{display:none}
   .tiempos{display:flex;justify-content:space-between;font-size:12px;color:var(--gris);font-variant-numeric:tabular-nums}
   .play{display:flex;align-items:center;gap:10px}
   .btn{
@@ -193,6 +196,32 @@
   .resultado .firma input:focus{border-color:var(--celeste)}
   .resultado .firma input::placeholder{color:var(--gris)}
   .firma-aviso{font-size:11px;color:var(--gris)}
+  .resultado .firma[hidden]{display:none}
+
+  /* ---------- tabla de ranking ---------- */
+  .solapas{display:flex;gap:6px}
+  .solapas button{
+    flex:1;background:transparent;border:1px solid var(--borde);color:var(--gris);
+    font:500 12px/1 "Space Grotesk",sans-serif;padding:9px 10px;border-radius:999px;
+    cursor:pointer;letter-spacing:.06em;text-transform:uppercase
+  }
+  .solapas button.activo{border-color:var(--celeste);color:var(--celeste)}
+  .solapas button:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+  .tabla-estado{font-size:12px;color:var(--gris)}
+  .tabla{display:flex;flex-direction:column;max-height:46vh;overflow:auto}
+  .tabla .fila{
+    display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;
+    padding:9px 0;border-top:1px solid var(--borde)
+  }
+  .tabla .fila:first-child{border-top:0}
+  .tabla .pos{font-family:"Bebas Neue",Impact,sans-serif;font-size:19px;color:var(--gris);text-align:center}
+  .tabla .fila:nth-child(1) .pos{color:var(--sol)}
+  .tabla .quien{min-width:0}
+  .tabla .nom{font-size:14px;color:var(--crema);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabla .tira{font-size:11px;letter-spacing:1px;line-height:1.6}
+  .tabla .detalle{font-size:11px;color:var(--gris)}
+  .tabla .marca{font-size:13px;font-variant-numeric:tabular-nums;color:var(--gris)}
+  .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
   .resultado .nota-manana{font-size:12px;color:var(--gris)}
   .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
   /* ---------- panel reservado ---------- */
