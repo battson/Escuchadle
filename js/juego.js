@@ -12,7 +12,8 @@ const $=s=>document.querySelector(s);
 const vinilo=$("#vinilo"), barra=$("#barra"), desbloq=$("#desbloq"), progreso=$("#progreso"),
       tActual=$("#tActual"), btnPlay=$("#btnPlay"), estado=$("#estado"), cont=$("#intentos"),
       input=$("#busqueda"), lista=$("#lista"), btnSaltar=$("#btnSaltar"), btnEnviar=$("#btnEnviar"),
-      zonaJuego=$("#zonaJuego"), zonaCerrada=$("#zonaCerrada"), contPistas=$("#pistas");
+      zonaJuego=$("#zonaJuego"), zonaCerrada=$("#zonaCerrada"), contPistas=$("#pistas"),
+      pauta=$("#pauta");
 
 /* ticks de la barra */
 SEG.slice(0,-1).forEach(s=>{const t=document.createElement("div");t.className="tick";t.style.left=(s/16*100)+"%";barra.appendChild(t);});
@@ -46,6 +47,13 @@ document.querySelectorAll(".modal").forEach(m=>{
   m.addEventListener("mousedown",e=>{if(e.target===m) cerrarModal(m.id)});   /* clic en el fondo */
 });
 $("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
+
+/* La primera vez que alguien abre el juego, las reglas se muestran solas.
+   Después queda el "?" de la cabecera para volver a leerlas. */
+if(!store.get("ea_ayuda_vista",false)){
+  abrirModal("modalAyuda");
+  store.set("ea_ayuda_vista",true);
+}
 
 /* ---------- configuración del día ----------
    La fuente de verdad ahora es Firestore: lo que se toca en el panel se
@@ -129,28 +137,43 @@ function sirve(g){return g&&g.cancion===actual.label&&(g.reinicio||0)===dia().re
 function borrarPartida(){store.del(CLAVE_PARTIDA)}
 
 /* ---------- pistas ----------
-   Cada intento fallido o salteado destapa una pista más. */
-const PALABRAS=t=>t.split(/\s+/).filter(Boolean);
+   Son tres y llegan sobre el final: una por intento durante los últimos
+   tres. Con MAX=6, la primera se destapa recién al cuarto intento. Las
+   que todavía no salieron se muestran con candado, así se ve de entrada
+   cuántas hay y de qué van a hablar. */
+const PISTAS=3;
+const PALABRAS=t=>t.split(/\s+/).filter(Boolean).length;
 const LETRAS=t=>[...t].filter(ch=>/\p{L}/u.test(ch)).length;
-const velar=t=>PALABRAS(t).map(p=>[...p].map((ch,i)=>i===0?ch:(/\p{L}/u.test(ch)?"\u2022":ch)).join("")).join(" ");
+const plural=(n,s,p)=>`${n} ${n===1?s:p}`;
+const medida=t=>`${plural(PALABRAS(t),"palabra","palabras")} · ${plural(LETRAS(t),"letra","letras")}`;
 
 function pistasDe(c){
-  const p=[];
-  if(c.g) p.push({et:"Género",v:c.g});
-  p.push({et:"Artista",v:velar(c.a),velado:true});
-  p.push({et:"Título",v:`${PALABRAS(c.t).length} palabras · ${LETRAS(c.t)} letras`});
-  p.push({et:"Artista",v:c.a});
-  p.push({et:"Título",v:velar(c.t),velado:true});
-  return p;
+  return [
+    {et:"Género",  v:c.g||"Sin clasificar"},
+    {et:"Título",  v:medida(c.t)},
+    {et:"Artista", v:medida(c.a)}
+  ];
+}
+/* Cuántas van destapadas. Al terminar la partida se abren todas. */
+function pistasAbiertas(){
+  if(terminado) return PISTAS;
+  return Math.max(0,Math.min(PISTAS,paso-(MAX-PISTAS)+1));
 }
 function pintarPistas(){
-  if(!actual||paso===0){contPistas.hidden=true;contPistas.innerHTML="";return}
-  const p=pistasDe(actual).slice(0,paso);
-  if(!p.length){contPistas.hidden=true;return}
+  if(!actual){contPistas.hidden=true;contPistas.innerHTML="";return}
+  const abiertas=pistasAbiertas(), faltan=(MAX-PISTAS)-paso;
+  const aviso=terminado?""
+    :abiertas===0?` · la primera llega en ${plural(faltan,"intento","intentos")}`
+    :abiertas<PISTAS?" · una más por intento":"";
   contPistas.hidden=false;
-  contPistas.innerHTML=p.map(x=>
-    `<div class="pista"><span class="et">${x.et}</span><span class="vl${x.velado?" velado":""}">${x.v}</span></div>`
-  ).join("");
+  contPistas.innerHTML=
+    `<div class="pistas-cab">Pistas <span>${abiertas} de ${PISTAS}${aviso}</span></div>`+
+    `<div class="pistas-fila">`+
+    pistasDe(actual).map((x,i)=>i<abiertas
+      ? `<div class="pista"><span class="et">${escapar(x.et)}</span><span class="vl">${escapar(x.v)}</span></div>`
+      : `<div class="pista cerrada"><span class="et">${escapar(x.et)}</span><span class="vl" aria-label="Todavía bloqueada">🔒</span></div>`
+    ).join("")+
+    `</div>`;
 }
 
 /* ---------- YouTube: reproductor oficial + búsqueda opcional ---------- */
@@ -281,6 +304,9 @@ function pintar(){
     cont.appendChild(d);
   }
   btnSaltar.textContent=paso<MAX-1?`Saltar (+${SEG[paso+1]-SEG[paso]}s)`:"Saltar";
+  pauta.textContent=terminado
+    ? "Partida terminada · ahora suena la canción entera."
+    : `Intento ${paso+1} de ${MAX} · escuchás ${plural(SEG[Math.min(paso,MAX-1)],"segundo","segundos")}`;
   pintarPistas();
 }
 

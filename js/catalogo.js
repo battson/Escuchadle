@@ -10,8 +10,9 @@
    API. Con todos completos, la API no se usa nunca y no hay
    cuota que saturar.
 
-   El campo g es el género: se usa como primera pista cuando el
-   jugador falla un intento. Si lo omitís, esa pista se saltea.
+   El campo g es el género: es la primera de las tres pistas, la
+   que se destapa al cuarto intento. Si lo omitís, esa pista sale
+   como "Sin clasificar", así que conviene completarlo siempre.
 
    Mezcla actual: 28 rock · 16 cumbia · 6 cuarteto · 6 pop
    6 urbano · 2 clásicos = 64 canciones.
