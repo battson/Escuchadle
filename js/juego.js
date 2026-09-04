@@ -255,7 +255,7 @@ function aplicarCierre(){
   const cerrado=cerradoHoy();
   document.body.classList.toggle("cerrado",cerrado);
   $("#finde").hidden=!cerrado;
-  if(cerrado){detener(); cerrarModal("modalResultado")}
+  if(cerrado){detener(); cerrarModal("modalResultado"); pintarFinde()}
   return cerrado;
 }
 
@@ -613,13 +613,35 @@ function verLateral(mostrar){
   $("#btnTabla").setAttribute("aria-expanded",String(!plegar));
   if(!plegar) traerRanking(false);
 }
-/* Desde el resultado o el cartel del finde: la ventana estorba, se cierra. */
+/* Desde el resultado: la ventana estorba, se cierra. */
 function mostrarLateral(){cerrarModal("modalResultado"); verLateral(true)}
+
+/* ---------- la tabla del fin de semana ----------
+   Debajo del cartel de cerrado va la semana que acaba de terminar,
+   en solo lectura. El sábado y el domingo lunesDeEstaSemana() sigue
+   apuntando al lunes de esa misma semana, así que se reutiliza la
+   consulta y el armado de la vista semanal tal cual. Si la nube
+   todavía no cargó, se vuelve a intentar cuando avise. */
+let findePedido=false;
+function pintarFinde(){
+  const est=$("#findeEstado"), tab=$("#findeTabla");
+  if(!est||!tab) return;
+  if(!hayNube()){
+    est.textContent="Conectando con la nube…"; tab.innerHTML="";
+    if(!findePedido){findePedido=true; window.addEventListener("nube:estado",()=>{if(cerradoHoy()) pintarFinde()},{once:true})}
+    return;
+  }
+  est.textContent="Cargando…";
+  window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE).then(semana=>{
+    filasSemana=semana;
+    const {txt,html}=armarTabla("semana");
+    est.textContent=txt; tab.innerHTML=html;
+  }).catch(e=>{est.textContent=e.message; tab.innerHTML=""});
+}
 
 $("#btnTabla").onclick=()=>verLateral();
 $("#lateralLengueta").onclick=()=>verLateral();
 $("#btnVerTabla").onclick=mostrarLateral;
-$("#btnFindeTabla").onclick=mostrarLateral;
 $("#latActualizar").onclick=()=>traerRanking(true);
 $("#latSemana").onclick=()=>verVista("semana");
 $("#latTodo").onclick=()=>verVista("todo");

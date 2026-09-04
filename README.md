@@ -199,12 +199,19 @@ Y ojo con el nombre del archivo: GitHub Pages distingue mayúsculas, así que
 
 ## Imágenes
 
-`imgs/` tiene que contener, además del vinilo:
+`imgs/` tiene que contener:
 
 ```
-imgs/ranking.png     ícono del botón Ranking, se dibuja a 16 px
+imgs/vinilo.svg      el disco del reproductor (gira con CSS) y el favicon
+imgs/vinilo.png      respaldo del favicon para navegadores sin favicon SVG
+imgs/ranking.svg     ícono del botón Ranking y de la cabecera del panel lateral
+imgs/cartel.svg      cartel de "cerrado" de la pantalla de fin de semana
+imgs/malvinas.svg    marca de agua fija abajo a la derecha
 imgs/OpenGraph.jpg   tarjeta para compartir, 1200×630, menos de 300 KB
 ```
+
+Las esquinas de cajas, campos y botones salen de la variable `--radio`
+en `css/estilos.css` (hoy 5 px): se cambia en un solo lugar.
 
 Si alguna vez cambiás la tarjeta, subile el `?v=` del `og:image` en el
 `<head>`: WhatsApp y Facebook la guardan en caché por mucho tiempo y sin eso

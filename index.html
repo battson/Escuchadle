@@ -6,7 +6,8 @@
 <title>Escuchadle Argento — adiviná la canción</title>
 <meta name="description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
 <meta name="theme-color" content="#0E1524">
-<link rel="icon" href="imgs/vinilo.png" type="image/png"/>
+<link rel="icon" href="imgs/vinilo.svg" type="image/svg+xml">
+<link rel="alternate icon" href="imgs/vinilo.png" type="image/png">
 <link rel="canonical" href="https://battson.github.io/Escuchadle/">
 
 <!-- ---------- tarjeta para compartir ----------
@@ -34,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=12">
+  <link rel="stylesheet" href="css/estilos.css?v=13">
 </head>
 <body>
 <header>
@@ -43,7 +44,7 @@
     <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
     <button class="btn-pildora" id="btnTabla" title="Ranking"
             aria-expanded="false" aria-controls="lateral">
-      <img src="imgs/ranking.png" alt="" class="ico"> Ranking
+      <img src="imgs/ranking.svg" alt="" class="ico"> Ranking
     </button>
     <button class="btn-pildora" id="btnSugerir">Dejar comentario</button>
     <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
@@ -54,7 +55,7 @@
   <section class="escenario">
     <div class="tocadiscos">
       <div id="ytplayer"></div>
-      <div class="vinilo" id="vinilo" aria-hidden="true"></div>
+      <img class="vinilo" id="vinilo" src="imgs/vinilo.svg" alt="" aria-hidden="true" draggable="false">
     </div>
     <div class="controles">
       <div class="barra" id="barra" aria-hidden="true">
@@ -89,18 +90,25 @@
     <button class="btn btn-ok" id="btnVerResultado">Ver resultado</button>
   </section>
 
-  <!-- Fin de semana: reemplaza a todo el juego. -->
+  <!-- Fin de semana: reemplaza a todo el juego. El cartel es una
+       ilustración; debajo va la tabla de la semana que acaba de cerrar,
+       en solo lectura. -->
   <section class="finde" id="finde" hidden>
-    <div class="finde-icono" aria-hidden="true">🥁</div>
-    <div class="finde-titulo">Cerrado por fin de semana</div>
-    <p>Los sábados y domingos <b>Escuchadle</b> baja la persiana. Volvé el lunes,
-    que arranca semana nueva y tabla en cero.</p>
+    <img class="finde-cartel" src="imgs/cartel.svg"
+         alt="Cerrado. Volvé el lunes para seguir jugando. ¡Muchas gracias!">
+    <div class="finde-ranking">
+      <div class="finde-leyenda">Te dejamos el ranking de esta semana</div>
+      <div class="tabla-estado" id="findeEstado"></div>
+      <div class="tabla" id="findeTabla"></div>
+    </div>
     <div class="finde-acciones">
-      <button class="btn btn-ok" id="btnFindeTabla">Ver el ranking</button>
       <button class="btn btn-sec" id="btnFindeSugerir">Dejar una sugerencia</button>
     </div>
   </section>
 </main>
+
+<!-- Marca de agua fija, decorativa: no captura clics. -->
+<img class="malvinas" src="imgs/malvinas.svg" alt="" aria-hidden="true" draggable="false">
 
 
 <!-- ---------- ventana de ayuda ---------- -->
@@ -163,7 +171,7 @@
       <p><b>Ojo:</b> para figurar tenés que escribir tu nombre <b>y</b> tocar
       <i>Enviar al ranking</i> al terminar. Sin eso tu partida queda guardada
       pero no suma puntos.</p>
-      <p>La tabla vive plegada en el borde derecho: se abre con el 🏆 de arriba
+      <p>La tabla vive plegada en el borde derecho: se abre con el botón <i>Ranking</i> de arriba
       o tocando la lengüeta, y se cierra igual.</p>
     </div>
 
@@ -220,7 +228,7 @@
   </button>
   <div class="lateral-cuerpo" id="lateralCuerpo">
     <div class="lateral-cab">
-      <strong>🏆 Ranking</strong>
+      <strong><img src="imgs/ranking.svg" alt="" class="ico"> Ranking</strong>
       <span id="lateralSemana"></span>
     </div>
     <div class="solapas chicas" role="tablist">
@@ -337,7 +345,7 @@
       <button class="btn btn-sec" id="btnRanking">Actualizar</button>
       <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
     </div>
-    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el trofeo de la cabecera. La ✕ borra una fila suelta.</p>
+    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el botón Ranking de la cabecera. La ✕ borra una fila suelta.</p>
     <div id="rankLista"></div>
   </div>
       </section>
@@ -403,14 +411,14 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=12"></script>
-<script src="js/config.js?v=12"></script>
-<script src="js/dia.js?v=12"></script>
-<script src="js/catalogo.js?v=12"></script>
-<script src="js/juego.js?v=12"></script>
+<script src="js/nube-config.js?v=13"></script>
+<script src="js/config.js?v=13"></script>
+<script src="js/dia.js?v=13"></script>
+<script src="js/catalogo.js?v=13"></script>
+<script src="js/juego.js?v=13"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=12"></script>
+<script type="module" src="js/nube.js?v=13"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
