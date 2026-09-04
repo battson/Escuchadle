@@ -29,10 +29,10 @@
     content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     background:linear-gradient(135deg,#0E1524 0%,#182136 100%)
   }
-  /* Malvinas: marca de agua fija abajo a la derecha, debajo de todo
+  /* Malvinas: marca de agua fija abajo a la izquierda, debajo de todo
      lo que se toca (panel lateral, ventanas). */
   .malvinas{
-    position:fixed;right:22px;bottom:18px;width:150px;height:auto;
+    position:fixed;left:22px;bottom:18px;width:150px;height:auto;
     opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
   }
   header,main{position:relative;z-index:1}
