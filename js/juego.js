@@ -58,6 +58,16 @@ function cerrarModal(id){
   if(!document.querySelector(".modal:not([hidden])")) document.documentElement.style.overflow="";
 }
 function modalAbierto(){return document.querySelector(".modal:not([hidden])")}
+
+/* Acordeones de la ayuda: uno abierto por vez. Los navegadores nuevos
+   lo hacen solos con el atributo name="ayuda" de los <details>; esto es
+   para los que todavía no lo entienden. */
+document.querySelectorAll("#modalAyuda details.ayuda-bloque").forEach(d=>{
+  d.addEventListener("toggle",()=>{
+    if(!d.open) return;
+    document.querySelectorAll("#modalAyuda details.ayuda-bloque[open]").forEach(o=>{if(o!==d) o.open=false});
+  });
+});
 document.querySelectorAll("[data-cerrar]").forEach(b=>b.onclick=()=>cerrarModal(b.dataset.cerrar));
 document.querySelectorAll(".modal").forEach(m=>{
   m.addEventListener("mousedown",e=>{if(e.target===m) cerrarModal(m.id)});   /* clic en el fondo */

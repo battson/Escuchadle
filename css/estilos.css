@@ -180,10 +180,27 @@
   .ayuda-pasos li{font-size:14px;color:var(--crema);line-height:1.5}
   .ayuda-pasos li::marker{color:var(--celeste);font-weight:700}
   .ayuda-pasos i{color:var(--celeste);font-style:normal;font-weight:500}
-  .ayuda-bloque{border-top:1px solid var(--borde);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  /* Acordeones: <details> nativos, así el teclado y los lectores de
+     pantalla funcionan sin JavaScript. Abre uno por vez (ver juego.js). */
+  .ayuda-bloque{border-top:1px solid var(--borde);padding-top:12px}
+  .ayuda-bloque:last-of-type{border-bottom:1px solid var(--borde);padding-bottom:12px}
   .ayuda-titulo{
-    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--sol)
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--sol);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    cursor:pointer;list-style:none;-webkit-user-select:none;user-select:none;
+    border-radius:var(--radio);transition:color .15s
   }
+  .ayuda-titulo::-webkit-details-marker{display:none}
+  .ayuda-titulo::after{
+    content:"";width:7px;height:7px;flex:none;margin-right:4px;
+    border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(45deg);transition:transform .2s ease
+  }
+  .ayuda-bloque[open] .ayuda-titulo::after{transform:rotate(-135deg)}
+  .ayuda-titulo:hover{color:var(--celeste)}
+  .ayuda-titulo:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
+  .ayuda-cuerpo{display:flex;flex-direction:column;gap:8px;padding-top:10px;animation:aparecer .2s ease both}
+  @media (prefers-reduced-motion:reduce){.ayuda-cuerpo{animation:none}.ayuda-titulo::after{transition:none}}
   .leyenda{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
   .leyenda li{
     display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--crema);line-height:1.45
@@ -193,7 +210,7 @@
   .leyenda .rojo{background:var(--rojo)}  .leyenda .gris{background:var(--gris)}
   .leyenda.puntos{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
   .leyenda.puntos b{color:var(--sol)}
-  .modal-nota{color:var(--gris)!important;font-size:13px!important;border-top:1px solid var(--borde);padding-top:12px}
+  .modal-nota{color:var(--gris)!important;font-size:13px!important}
   .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
   .modal-x{
