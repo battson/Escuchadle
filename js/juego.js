@@ -59,6 +59,15 @@ function cerrarModal(id){
 }
 function modalAbierto(){return document.querySelector(".modal:not([hidden])")}
 
+/* Arma el HTML de un estado de error con ilustración.
+   modo "block": ícono arriba, texto abajo (sin conexión, ranking vacío).
+   modo "inline": ícono a la izquierda, texto a la derecha (fallo del reproductor). */
+function htmlError(txt,svg,modo="block"){
+  return `<div class="estado-error${modo==="inline"?" compact":""}"><img src="imgs/${svg}" alt="">`+
+         `<span class="est-txt">${txt}</span></div>`;
+}
+
+
 /* Acordeones de la ayuda: uno abierto por vez. Los navegadores nuevos
    lo hacen solos con el atributo name="ayuda" de los <details>; esto es
    para los que todavía no lo entienden. */
@@ -130,7 +139,7 @@ window.addEventListener("nube:estado",e=>{textoNube=e.detail.texto; refrescarPan
 
 /* ---------- elección de canción ---------- */
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
-function ordenDiario(){const r=rng(20260101),a=CANCIONES.map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function ordenDiario(){const r=rng(20260101),a=CANCIONES.filter(c=>!c.nueva).map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function diaHoy(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)}
 function cancionDelDia(){
   const d=dia();
@@ -304,7 +313,7 @@ async function nuevaPartida(){
     estado.textContent=terminado?"Ahora podés escuchar la canción completa."
       :(modo==="diario"?"Canción del día. ¡Suerte!":"Modo libre.");
   }catch(e){
-    estado.textContent=e.message.startsWith("Falta")?e.message:"No encontré el video de esta canción. Probá otra.";
+    estado.innerHTML=e.message.startsWith("Falta")?e.message:htmlError("No encontré el video de esta canción. Probá otra.","alert.svg","inline");
     btnSaltar.disabled=true;
   }
   refrescarPanel();
@@ -336,7 +345,8 @@ function reproducir(){
   if(terminado){const d=duracion(); limite=d||600; fijarEscala(d||16)}
   else {limite=SEG[paso]; fijarEscala(16)}
   sonando=true;
-  yt.seekTo(0,true); yt.playVideo();
+  const ini=actual?.ini||0;
+  yt.seekTo(ini,true); yt.playVideo();
   vinilo.classList.add("gira"); btnPlay.textContent="■ Parar"; estado.textContent="Cargando…";
 }
 function onYtEstado(e){
@@ -491,7 +501,7 @@ function enviarAlRanking(){
   if(!u||u.dia!==diaPartida||u.subido||!nombre) return;
   u.nombre=nombre; store.set("ea_resultados",h);
   if(!hayNube()){
-    aviso.textContent="Sin conexión con la nube. Tu resultado quedó guardado: probá de nuevo en un rato.";
+    aviso.innerHTML=htmlError("Sin conexión con la nube. Tu resultado quedó guardado: probá de nuevo en un rato.","no-signal.svg");
     return;
   }
   btn.disabled=true; btn.textContent="Enviando…";
@@ -547,14 +557,14 @@ const conNombre=r=>String(r.nombre||"").trim().length>0;
    rango de fechas porque una semana movida puede pasarse del tope. */
 function traerRanking(forzar){
   if(filasRanking&&!forzar) return pintarRanking();
-  if(!hayNube()){escribirTablas("Sin conexión con la nube.","");return}
+  if(!hayNube()){latEstado.innerHTML=htmlError("Sin conexión con la nube.","no-signal.svg"); latTabla.innerHTML="";return}
   escribirTablas("Cargando…","");
   Promise.all([
     window.Nube.listarResultados(TOPE),
     window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE)
   ]).then(([todo,semana])=>{
     filasRanking=todo; filasSemana=semana; pintarRanking();
-  }).catch(e=>escribirTablas(e.message,""));
+  }).catch(e=>{latEstado.innerHTML=htmlError(e.message,"no-signal.svg"); latTabla.innerHTML=""});
 }
 function escribirTablas(txt,html){
   latEstado.textContent=txt; latTabla.innerHTML=html;
@@ -637,7 +647,7 @@ function pintarFinde(){
   const est=$("#findeEstado"), tab=$("#findeTabla");
   if(!est||!tab) return;
   if(!hayNube()){
-    est.textContent="Conectando con la nube…"; tab.innerHTML="";
+    est.innerHTML=htmlError("Conectando con la nube…","no-signal.svg"); tab.innerHTML="";
     if(!findePedido){findePedido=true; window.addEventListener("nube:estado",()=>{if(cerradoHoy()) pintarFinde()},{once:true})}
     return;
   }
@@ -646,8 +656,37 @@ function pintarFinde(){
     filasSemana=semana;
     const {txt,html}=armarTabla("semana");
     est.textContent=txt; tab.innerHTML=html;
-  }).catch(e=>{est.textContent=e.message; tab.innerHTML=""});
+  }).catch(e=>{est.innerHTML=htmlError(e.message,"no-signal.svg"); tab.innerHTML=""});
 }
+
+/* ---------- 36: ganador de la semana pasada ----------
+   Trae lo jugado desde el lunes anterior, se queda con lo que cayó
+   dentro de esa semana (hábil), agrupa igual que la tabla y corona
+   al primero. Si no hay datos o nadie sumó puntos, la leyenda no
+   aparece. Espera a la nube si todavía no conectó. */
+let ganadorPedido=false;
+function mostrarGanador(){
+  const el=$("#ganador");
+  if(!el||el.textContent) return;
+  if(!hayNube()){
+    if(!ganadorPedido){ganadorPedido=true;
+      window.addEventListener("nube:estado",e=>{if(e.detail.ok) mostrarGanador()},{once:true});}
+    return;
+  }
+  const esteLunes=lunesDeEstaSemana();
+  const lunesPasado=new Date(esteLunes); lunesPasado.setDate(lunesPasado.getDate()-7);
+  window.Nube.listarDesde(lunesPasado.toISOString(),TOPE).then(filas=>{
+    const g=agrupar(filas.filter(r=>{
+      const f=+new Date(r.fecha);
+      return f>=+lunesPasado&&f<+esteLunes&&esHabil(r.fecha);
+    }));
+    if(g.length&&g[0].puntos>0){
+      el.innerHTML=`Felicitaciones a <b>${escapar(g[0].nombre)}</b> por ser el ganador de la semana`;
+      el.hidden=false;
+    }
+  }).catch(()=>{});
+}
+mostrarGanador();
 
 $("#btnTabla").onclick=()=>verLateral();
 $("#lateralLengueta").onclick=()=>verLateral();
@@ -845,6 +884,7 @@ function irASeccion(id){
   cajon(false);
   if(id==="ranking") cargarRanking();
   if(id==="sugerencias") cargarSugerencias();
+  if(id==="catalogo") rellenarBancoSel();
 }
 function cajon(abrir){
   $("#panelNav").classList.toggle("abierto",abrir);
@@ -1019,55 +1059,157 @@ function refrescarPanel(){
    el título cinco veces después de cada recarga. */
 try{if(sessionStorage.getItem("ea_panel")&&admin()) abrirPanel()}catch{}
 
-/* ---------- verificación del catálogo ---------- */
-const vLista=$("#verifLista"), vEstado=$("#verifEstado");
-let resueltos={};
-const PAUSA=600;   /* ms entre búsquedas: evita el 429 */
-let corriendo=false;
+/* ---------- banco de pruebas y edición del catálogo (17, 18, 38) ----------
+   Todo lo guardado acá vive en localStorage: correcciones de canciones
+   existentes en ea_banco (por id) y canciones nuevas en ea_banco_nuevas.
+   Al cargar la página se aplican sobre CANCIONES, así valen ya en este
+   navegador. Las nuevas quedan fuera del sorteo del día (nueva:true)
+   hasta que se publiquen en js/catalogo.js: si entraran antes, este
+   navegador vería una canción del día distinta a la de los jugadores. */
+const bancoStore="ea_banco", bancoNuevasStore="ea_banco_nuevas";
+let bancoCambios=store.get(bancoStore,{});
+let bancoNuevas=store.get(bancoNuevasStore,[]);
+const guardarBanco=()=>{store.set(bancoStore,bancoCambios); store.set(bancoNuevasStore,bancoNuevas)};
 
-async function verificar(){
-  if(corriendo) return;
-  if(!YT_API_KEY&&!CANCIONES.some(c=>c.yt)){vEstado.textContent="Sin clave de API ni IDs cargados.";return}
-  corriendo=true; vLista.innerHTML="";
-  $("#btnVerificar").textContent="Parar";
-  let n=0, pendientes=0, cortado=null;
-
-  for(const c of CANCIONES){
-    if(!corriendo){cortado="Parado. Volvé a tocar Verificar para seguir donde quedó.";break}
-    const fila=document.createElement("div"); fila.className="vf";
-    fila.innerHTML=`<a href="#" data-p="${c.id}" title="Abrir en YouTube" style="color:var(--crema);text-decoration:none">▶</a><div><div class="pedido">${c.label}</div><div class="hallado">buscando…</div></div><span class="id"></span>`;
-    vLista.appendChild(fila);
-    const nuevo=!c.yt&&!cache[c.label];
-    try{
-      const r=await resolver(c); resueltos[c.id]=r;
-      fila.classList.add(MALAS.test(r.titulo)?"dudoso":"ok");
-      fila.querySelector(".hallado").textContent=`${r.canal} — ${r.titulo}`;
-      fila.querySelector(".id").textContent=r.yt;
-      const a=fila.querySelector("[data-p]");
-      a.href="https://www.youtube.com/watch?v="+r.yt; a.target="_blank";
-    }catch(e){
-      fila.classList.add("error"); fila.querySelector(".hallado").textContent=e.message;
-      if(e instanceof SinCuota){cortado="Cuota diaria agotada. Lo hecho quedó guardado; seguí mañana desde donde quedó.";break}
-      pendientes++;
-    }
-    vEstado.textContent=`${++n}/${CANCIONES.length} revisadas`;
-    if(nuevo) await dormir(PAUSA);   /* solo espera si consultó la API */
+/* Aplicar lo guardado sobre el catálogo en memoria, antes de que
+   arranque la primera partida. */
+(function(){
+  for(const k in bancoCambios){
+    const c=CANCIONES[+k]; if(!c) continue; const o=bancoCambios[k];
+    if(o.a) c.a=o.a; if(o.t) c.t=o.t; if(o.g) c.g=o.g;
+    if(o.yt) c.yt=o.yt;
+    if(o.ini) c.ini=o.ini; else delete c.ini;
+    c.label=`${c.a} — ${c.t}`;
   }
-  corriendo=false; $("#btnVerificar").textContent="Verificar";
-  vEstado.textContent=cortado||`Listo: ${n}/${CANCIONES.length}${pendientes?` · ${pendientes} con problemas`:""}`;
+  bancoNuevas.forEach(n=>{
+    const c=Object.assign({},n,{nueva:true});
+    c.id=CANCIONES.length; c.label=`${c.a} — ${c.t}`;
+    CANCIONES.push(c);
+  });
+})();
+
+/* iFrame de YouTube dedicado al banco, en la posición off-screen del HTML. */
+let bancoYt=null;
+const bancoYtListo=new Promise(r=>{
+  const orig=window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady=()=>{
+    if(orig) orig();
+    const div=document.getElementById("bancoPlayer");
+    if(!div){r();return}
+    bancoYt=new YT.Player("bancoPlayer",{width:1,height:1,
+      playerVars:{autoplay:0,controls:0,disablekb:1,playsinline:1},
+      events:{onReady:()=>r()}
+    });
+  };
+  if(window.YT&&YT.Player){window.onYouTubeIframeAPIReady();}
+});
+
+const OTRO_GENERO="__otro__";
+function generosDelCatalogo(){
+  return [...new Set(CANCIONES.map(c=>c.g).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
 }
-$("#btnVerificar").onclick=()=>{corriendo?corriendo=false:verificar()};
-$("#btnLimpiar").onclick=()=>{
-  if(!confirm("¿Borrar los resultados guardados y volver a buscar todo?")) return;
-  for(const k in cache) delete cache[k];
-  guardarCache(); resueltos={}; vLista.innerHTML=""; vEstado.textContent="Caché borrada.";
-};
-$("#btnCatalogo").onclick=()=>{
-  const txt="const CANCIONES = [\n"+CANCIONES.map(c=>{
-    const id=c.yt||resueltos[c.id]?.yt;
-    return `  {a:${JSON.stringify(c.a)}, t:${JSON.stringify(c.t)}${id?`, yt:${JSON.stringify(id)}`:""}${c.g?`, g:${JSON.stringify(c.g)}`:""}},`;
-  }).join("\n")+"\n];";
+function rellenarBancoSel(){
+  const sel=document.getElementById("bancoSel"); if(!sel) return;
+  sel.innerHTML='<option value="-1">➕ Agregar canción nueva…</option>'+
+    CANCIONES.map((c,i)=>{
+      const marca=c.nueva?" 🆕":(bancoCambios[c.id]?" ✎":"");
+      return `<option value="${i}">${c.label}${c.yt?"":" ⚠"}${marca}</option>`;
+    }).join("");
+  const gen=document.getElementById("bancoGenero");
+  gen.innerHTML=generosDelCatalogo().map(g=>`<option value="${g}">${g}</option>`).join("")+
+    `<option value="${OTRO_GENERO}">Otro género…</option>`;
+  sel.value="-1"; bancoSelCambiar();
+}
+function bancoSelCambiar(){
+  const sel=document.getElementById("bancoSel"); if(!sel) return;
+  const i=+sel.value, c=i>=0?CANCIONES[i]:null;
+  document.getElementById("bancoArtista").value=c?c.a:"";
+  document.getElementById("bancoTitulo").value=c?c.t:"";
+  document.getElementById("bancoId").value=c?(c.yt||""):"";
+  document.getElementById("bancoIni").value=c?(c.ini||0):0;
+  const gen=document.getElementById("bancoGenero"), otro=document.getElementById("bancoGeneroOtro");
+  if(c&&c.g&&[...gen.options].some(o=>o.value===c.g)) gen.value=c.g;
+  else gen.selectedIndex=0;
+  otro.hidden=true; otro.value="";
+  document.getElementById("bancoAviso").textContent=c?"":"Completá los campos y guardá para sumarla al catálogo.";
+}
+function bancoGenero(){
+  const gen=document.getElementById("bancoGenero"), otro=document.getElementById("bancoGeneroOtro");
+  if(gen.value===OTRO_GENERO) return otro.value.trim();
+  return gen.value;
+}
+function bancoIdLimpio(){
+  return document.getElementById("bancoId").value.trim().replace(/.*[?&]v=([^&]+).*/,"$1").trim();
+}
+async function bancoEscuchar(){
+  const id=bancoIdLimpio();
+  if(!id){document.getElementById("bancoAviso").textContent="Pegá un ID o URL de YouTube primero.";return}
+  const ini=parseFloat(document.getElementById("bancoIni").value)||0;
+  document.getElementById("bancoAviso").textContent="Cargando…";
+  await bancoYtListo;
+  bancoYt.loadVideoById({videoId:id,startSeconds:ini});
+  setTimeout(()=>{try{bancoYt.stopVideo()}catch(err){}document.getElementById("bancoAviso").textContent="";},1200);
+}
+function bancoGuardar(){
+  const sel=document.getElementById("bancoSel");
+  const i=+sel.value;
+  const a=document.getElementById("bancoArtista").value.trim();
+  const t=document.getElementById("bancoTitulo").value.trim();
+  const g=bancoGenero();
+  const id=bancoIdLimpio();
+  const ini=parseFloat(document.getElementById("bancoIni").value)||0;
+  const aviso=document.getElementById("bancoAviso");
+  if(!a||!t){aviso.textContent="Faltan el artista o la canción.";return}
+  if(!id){aviso.textContent="El ID no puede estar vacío.";return}
+
+  let quedarEn;
+  if(i<0){   /* canción nueva */
+    if(CANCIONES.some(c=>c.a===a&&c.t===t)){aviso.textContent="Esa canción ya está en el catálogo.";return}
+    const n={a,t,yt:id}; if(g) n.g=g; if(ini) n.ini=ini;
+    bancoNuevas.push(n);
+    const c=Object.assign({},n,{nueva:true,id:CANCIONES.length,label:`${a} — ${t}`});
+    CANCIONES.push(c);
+    quedarEn=c.id;
+    aviso.textContent=`✓ Agregada: ${c.label}. Entra al sorteo cuando publiques el catálogo.`;
+  }else{     /* corregir existente */
+    const c=CANCIONES[i]; quedarEn=i;
+    if(c.nueva){   /* las nuevas se editan en su propia lista */
+      const idx=CANCIONES.filter(x=>x.nueva).indexOf(c);
+      const n=bancoNuevas[idx];
+      if(n){n.a=a;n.t=t;n.yt=id; if(g)n.g=g; else delete n.g; if(ini)n.ini=ini; else delete n.ini;}
+    }else{
+      const o=bancoCambios[c.id]||{};
+      o.a=a; o.t=t; o.yt=id;
+      if(g) o.g=g; else delete o.g;
+      if(ini) o.ini=ini; else delete o.ini;
+      bancoCambios[c.id]=o;
+    }
+    c.a=a;c.t=t; if(g)c.g=g; c.yt=id; if(ini)c.ini=ini; else delete c.ini;
+    c.label=`${a} — ${t}`;
+    aviso.textContent=`✓ Guardado: ${c.label}`;
+  }
+  guardarBanco();
+  const msg=aviso.textContent;
+  rellenarBancoSel();
+  sel.value=String(quedarEn); bancoSelCambiar();
+  aviso.textContent=msg;
+}
+document.getElementById("bancoSel")?.addEventListener("change",bancoSelCambiar);
+document.getElementById("bancoGenero")?.addEventListener("change",()=>{
+  const otro=document.getElementById("bancoGeneroOtro");
+  otro.hidden=document.getElementById("bancoGenero").value!==OTRO_GENERO;
+  if(!otro.hidden) otro.focus();
+});
+document.getElementById("bancoEscuchar")?.addEventListener("click",bancoEscuchar);
+document.getElementById("bancoGuardar")?.addEventListener("click",bancoGuardar);
+document.getElementById("bancoId")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();bancoEscuchar()}});
+
+$("#btnCatalogo")?.addEventListener("click",()=>{
+  const txt="const CANCIONES = [\n"+CANCIONES.map(c=>
+    `  {a:${JSON.stringify(c.a)}, t:${JSON.stringify(c.t)}`+
+    `${c.yt?`, yt:${JSON.stringify(c.yt)}`:""}${c.ini?`, ini:${JSON.stringify(c.ini)}`:""}${c.g?`, g:${JSON.stringify(c.g)}`:""}},`
+  ).join("\n")+"\n];";
   alPortapapeles(txt,$("#btnCatalogo"),"Copiar catálogo con IDs");
-};
+});
 
 nuevaPartida();

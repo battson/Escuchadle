@@ -39,6 +39,14 @@
     opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
   }
   header,main{position:relative;z-index:1}
+  /* 36: leyenda del ganador de la semana pasada */
+  .ganador{
+    width:100%;max-width:560px;text-align:center;color:var(--sol);
+    font:500 13px/1.5 "Space Grotesk",sans-serif;letter-spacing:.02em;
+    padding:2px 0 14px
+  }
+  .ganador[hidden]{display:none}
+  .ganador b{font-weight:700}
   header{width:100%;max-width:560px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--borde);padding-bottom:12px}
   h1{font-family:"Bebas Neue",Impact,sans-serif;font-size:44px;letter-spacing:.04em;line-height:.9;color:var(--crema);
      cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -238,6 +246,33 @@
   .firma-aviso{font-size:11px;color:var(--gris)}
   .resultado .firma[hidden]{display:none}
 
+  /* ---------- banco de pruebas del panel ---------- */
+  .banco-fila{display:flex;gap:8px;flex-wrap:wrap}
+  .banco-campo{
+    padding:9px 11px;border-radius:var(--radio);border:1px solid var(--borde);
+    background:#0b0f19;color:var(--crema);font:500 13px "Space Grotesk",sans-serif;outline:none
+  }
+  .banco-campo:focus{border-color:var(--celeste)}
+  .banco-campo::placeholder{color:var(--gris)}
+  select.banco-campo{cursor:pointer}
+
+  /* ---------- estados de error con ilustración ---------- */
+  .estado-error{
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+    padding:12px 0;text-align:center
+  }
+  .estado-error img{
+    width:90px;height:auto;opacity:.9;display:block
+  }
+  .estado-error.compact{
+    flex-direction:row;align-items:center;gap:8px;
+    padding:6px 0;text-align:left
+  }
+  .estado-error.compact img{
+    width:28px;height:28px;object-fit:contain;flex:none
+  }
+  .estado-error .est-txt{font-size:12px;color:var(--gris)}
+
   /* ---------- tabla de ranking ---------- */
   .solapas{display:flex;gap:6px}
   .solapas button{
@@ -256,6 +291,7 @@
   .tabla .fila:first-child{border-top:0}
   .tabla .pos{font-family:"Bebas Neue",Impact,sans-serif;font-size:19px;color:var(--gris);text-align:center}
   .tabla .fila:nth-child(1) .pos{color:var(--sol)}
+  .tabla .fila:nth-child(1) .nom{color:var(--sol)}
   .tabla .quien{min-width:0}
   .tabla .nom{font-size:14px;color:var(--crema);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tabla .tira{font-size:11px;letter-spacing:1px;line-height:1.6}

@@ -35,9 +35,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=15">
+  <link rel="stylesheet" href="css/estilos.css?v=18">
 </head>
 <body>
+<!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
+     tiene datos de la semana anterior; si no hubo ganador, no aparece. -->
+<div class="ganador" id="ganador" hidden></div>
 <header>
   <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
   <div class="cabecera-der">
@@ -303,7 +306,7 @@
         <button data-ir="ranking">Ranking</button>
         <button data-ir="sugerencias">Sugerencias</button>
         <button data-ir="vista">Vista y pruebas</button>
-        <button data-ir="catalogo">Catálogo</button>
+        <button data-ir="catalogo">Catálogo / IDs</button>
         <button data-ir="datos">Partida y resultados</button>
       </nav>
 
@@ -379,18 +382,44 @@
       </section>
       <section class="panel-sec" data-sec="catalogo" hidden>
         <h3 class="panel-sec-titulo">Catálogo</h3>
+
+  <!-- 17 + 38: banco de pruebas y edición del catálogo -->
   <div class="panel-bloque">
-    <div class="panel-titulo">Verificación del catálogo</div>
+    <div class="panel-titulo">Canciones: probar, corregir y agregar</div>
+    <p class="panel-ayuda">Elegí una canción para corregirla, o la primera opción para cargar una nueva. Escuchá el primer segundo antes de guardar. Lo guardado vale ya en este navegador; para publicarlo a todos, exportá el catálogo y reemplazá <code>js/catalogo.js</code>.</p>
+    <div class="verif-cab">
+      <select id="bancoSel" class="banco-campo" style="flex:1"></select>
+    </div>
+    <div class="banco-fila">
+      <input id="bancoArtista" class="banco-campo" type="text" placeholder="Artista" autocomplete="off" style="flex:1;min-width:150px">
+      <input id="bancoTitulo"  class="banco-campo" type="text" placeholder="Canción" autocomplete="off" style="flex:1;min-width:150px">
+    </div>
+    <div class="banco-fila">
+      <select id="bancoGenero" class="banco-campo" style="flex:1;min-width:140px"></select>
+      <input id="bancoGeneroOtro" class="banco-campo" type="text" placeholder="Género nuevo" autocomplete="off" style="flex:1;min-width:140px" hidden>
+    </div>
+    <div class="banco-fila">
+      <input id="bancoId" class="banco-campo" type="text" placeholder="ID de YouTube (watch?v=…)" autocomplete="off" style="flex:1;min-width:180px">
+      <button class="btn btn-sec" id="bancoEscuchar" style="padding:9px 14px;font-size:13px">▶ 1 seg</button>
+      <button class="btn btn-ok"  id="bancoGuardar"  style="padding:9px 14px;font-size:13px">Guardar</button>
+    </div>
+    <!-- 18: campo ini -->
+    <div class="banco-fila" style="align-items:center">
+      <label style="font-size:12px;color:var(--gris);white-space:nowrap">Silencio inicial (s):</label>
+      <input id="bancoIni" class="banco-campo" type="number" min="0" max="30" step="0.5" placeholder="0" style="width:80px">
+      <span class="panel-ayuda" style="flex:1;margin:0">Segundos a saltar al reproducir (campo <code>ini</code>). Dejalo en 0 si el video arranca directo.</span>
+    </div>
+    <div id="bancoAviso" style="font-size:12px;color:var(--gris);min-height:16px"></div>
+    <div id="bancoPlayer" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"></div>
+  </div>
+
+  <div class="panel-bloque" style="border-top:1px solid var(--borde);padding-top:14px">
+    <div class="panel-titulo">Exportar catálogo</div>
     <div class="verif-cab">
       <span id="verifEstado"></span>
-      <button class="btn btn-sec" id="btnVerificar">Verificar</button>
       <button class="btn btn-sec" id="btnCatalogo">Copiar catálogo con IDs</button>
-      <button class="btn btn-sec" id="btnLimpiar">Borrar caché</button>
     </div>
-    <p class="panel-ayuda">Tocá <b>Verificar</b> para revisar el catálogo. Va de a una canción por vez para no saturar la API de YouTube, así que unas 64 canciones tardan cerca de un minuto. Lo encontrado queda guardado en este navegador: si lo parás, o si se corta, al volver a tocar Verificar sigue desde donde quedó sin repetir búsquedas.<br><br>
-    Cada fila muestra qué video eligió la búsqueda. Tocá ▶ para abrirlo en YouTube y confirmar. Si alguno está mal, copiá el ID correcto de la URL (watch?v=<b>ID</b>) y ponelo en el catálogo como <code>yt:"ID"</code>. "Copiar catálogo con IDs" te da el array entero ya fijado, listo para reemplazar; después de eso la clave de API deja de ser necesaria.</p>
-    <p class="panel-ayuda" id="ayudaClave" hidden><b>Cómo obtener la clave (gratis, 5 min):</b> console.cloud.google.com → crear proyecto → "APIs y servicios" → habilitar <i>YouTube Data API v3</i> → "Credenciales" → crear clave de API. Copiá <code>js/config.example.js</code> como <code>js/config.js</code> y pegala ahí. La cuota gratuita alcanza para ~100 búsquedas por día, suficiente para verificar todo el catálogo de una vez.</p>
-    <div id="verifLista"></div>
+    <p class="panel-ayuda">"Copiar catálogo" te da el array entero con todas las correcciones, los <code>ini</code> y las canciones nuevas que cargaste acá, listo para reemplazar en <code>js/catalogo.js</code>. Hasta que lo publiques, las canciones nuevas existen solo en este navegador y <b>no entran</b> en el sorteo del día, para no desincronizar a los jugadores.</p>
   </div>
       </section>
       <section class="panel-sec" data-sec="datos" hidden>
@@ -419,14 +448,14 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=15"></script>
-<script src="js/config.js?v=15"></script>
-<script src="js/dia.js?v=15"></script>
-<script src="js/catalogo.js?v=15"></script>
-<script src="js/juego.js?v=15"></script>
+<script src="js/nube-config.js?v=18"></script>
+<script src="js/config.js?v=18"></script>
+<script src="js/dia.js?v=18"></script>
+<script src="js/catalogo.js?v=18"></script>
+<script src="js/juego.js?v=18"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=15"></script>
+<script type="module" src="js/nube.js?v=18"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
