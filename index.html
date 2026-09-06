@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=20">
+  <link rel="stylesheet" href="css/estilos.css?v=21">
 </head>
 <body>
 <!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
@@ -434,7 +434,7 @@
   <div class="panel-bloque" id="catTabSonadas" hidden>
     <div class="panel-titulo">Canciones que ya sonaron</div>
     <div class="verif-cab"><span id="sonadasEstado"></span></div>
-    <p class="panel-ayuda">Las más recientes primero. Cada una se desactiva sola el día que sale; desde acá se activan o desactivan de a una. Los cambios se publican con el botón de abajo.</p>
+    <p class="panel-ayuda">Las que salieron como canción del día y siguen fuera del sorteo, las más recientes primero. <b>Activar</b> la devuelve al sorteo y la saca de esta lista; para volver a desactivarla está la solapa Editar. Los cambios se publican con el botón de abajo.</p>
     <div id="sonadasLista"></div>
   </div>
 
@@ -476,14 +476,14 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=20"></script>
-<script src="js/config.js?v=20"></script>
-<script src="js/dia.js?v=20"></script>
-<script src="js/catalogo.js?v=20"></script>
-<script src="js/juego.js?v=20"></script>
+<script src="js/nube-config.js?v=21"></script>
+<script src="js/config.js?v=21"></script>
+<script src="js/dia.js?v=21"></script>
+<script src="js/catalogo.js?v=21"></script>
+<script src="js/juego.js?v=21"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=20"></script>
+<script type="module" src="js/nube.js?v=21"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY){const a=document.getElementById("ayudaClave"); if(a) a.hidden=false;}
