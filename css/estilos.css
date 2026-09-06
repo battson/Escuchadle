@@ -366,6 +366,9 @@
   .verif-cab span.sin-publicar{color:var(--sol)}
   .btn-sec.peligro{border-color:var(--rojo);color:var(--rojo)}
   .banco-acciones{border-top:1px dashed var(--borde);padding-top:8px}
+  #sonadasLista .vf.apagada .pedido{color:var(--gris)}
+  #sonadasLista .vf .estado{font-size:11px;color:var(--gris)}
+  #sonadasLista .vf .estado.ok{color:var(--verde)}
   .verif-cab span{color:var(--gris);font-size:12px;flex:1;min-width:120px}
   .verif-cab .btn{padding:8px 12px;font-size:12px}
   .vf{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--borde);font-size:12px}
