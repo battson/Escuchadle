@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=19">
+  <link rel="stylesheet" href="css/estilos.css?v=20">
 </head>
 <body>
 <!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
@@ -386,8 +386,15 @@
   <!-- Catálogo: vive en Firestore (escuchadle/catalogo). Se edita acá y
        se publica con un botón; js/catalogo.js quedó como respaldo. -->
   <div class="panel-bloque">
-    <div class="panel-titulo">Canciones: probar, corregir, agregar y dar de baja</div>
     <div class="verif-cab"><span id="catEstado"></span></div>
+    <div class="solapas chicas" role="tablist">
+      <button id="catSolEditar" class="activo" role="tab">Editar</button>
+      <button id="catSolSonadas" role="tab">Ya sonaron</button>
+    </div>
+  </div>
+
+  <div class="panel-bloque" id="catTabEditar">
+    <div class="panel-titulo">Canciones: probar, corregir, agregar y dar de baja</div>
     <p class="panel-ayuda">Elegí una canción para corregirla, o la primera opción para cargar una nueva. Escuchá el primer segundo (o la canción completa) antes de guardar. Las que ya sonaron como canción del día se desactivan solas y quedan fuera del sorteo hasta que las vuelvas a activar; siguen apareciendo en el buscador, así que no regalan nada. Nada llega a los jugadores hasta que toques <b>Publicar</b>, más abajo.</p>
     <div class="verif-cab">
       <select id="bancoSel" class="banco-campo" style="flex:1"></select>
@@ -420,6 +427,15 @@
     </div>
     <div id="bancoAviso" style="font-size:12px;color:var(--gris);min-height:16px"></div>
     <div id="bancoPlayer" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"></div>
+  </div>
+
+  <!-- Pestaña "Ya sonaron": las que fueron canción del día, con la fecha y
+       un interruptor por fila para devolverlas al sorteo o sacarlas. -->
+  <div class="panel-bloque" id="catTabSonadas" hidden>
+    <div class="panel-titulo">Canciones que ya sonaron</div>
+    <div class="verif-cab"><span id="sonadasEstado"></span></div>
+    <p class="panel-ayuda">Las más recientes primero. Cada una se desactiva sola el día que sale; desde acá se activan o desactivan de a una. Los cambios se publican con el botón de abajo.</p>
+    <div id="sonadasLista"></div>
   </div>
 
   <div class="panel-bloque" style="border-top:1px solid var(--borde);padding-top:14px">
@@ -460,14 +476,14 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=19"></script>
-<script src="js/config.js?v=19"></script>
-<script src="js/dia.js?v=19"></script>
-<script src="js/catalogo.js?v=19"></script>
-<script src="js/juego.js?v=19"></script>
+<script src="js/nube-config.js?v=20"></script>
+<script src="js/config.js?v=20"></script>
+<script src="js/dia.js?v=20"></script>
+<script src="js/catalogo.js?v=20"></script>
+<script src="js/juego.js?v=20"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=19"></script>
+<script type="module" src="js/nube.js?v=20"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY){const a=document.getElementById("ayudaClave"); if(a) a.hidden=false;}
