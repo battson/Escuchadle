@@ -248,7 +248,7 @@ window.addEventListener("nube:catalogo",e=>{
   /* Recién ahora se sabe que el catálogo está en la nube: si hoy todavía
      no tiene canción fijada, se fija la que está sonando. */
   if(modo==="diario"&&actual) fijarHoyEnNube(actual.label,false);
-  rellenarSelCancion(); rellenarBancoSel(true); refrescarPanel();
+  rellenarSelCancion(); rellenarBancoSel(true); pintarSonadas(); refrescarPanel();
 });
 
 /* ---------- elección de canción ---------- */
@@ -1213,7 +1213,7 @@ try{if(sessionStorage.getItem("ea_panel")&&admin()) abrirPanel()}catch{}
    canción a nadie. "Copiar respaldo" arma el bloque para js/catalogo.js. */
 const bancoEl=id=>document.getElementById(id);
 const fechaCorta=n=>{const d=new Date(n*864e5);return `${String(d.getUTCDate()).padStart(2,"0")}/${String(d.getUTCMonth()+1).padStart(2,"0")}`};
-function marcarSucio(){catSucio=true; guardarEspejoCatalogo(); refrescarCatalogoPanel()}
+function marcarSucio(){catSucio=true; guardarEspejoCatalogo(); refrescarCatalogoPanel(); if(catSolapa==="sonadas") pintarSonadas()}
 
 /* iFrame de YouTube dedicado al banco, en la posición off-screen del HTML. */
 let bancoYt=null, bancoSonando=false;
@@ -1369,12 +1369,46 @@ function bancoBorrar(){
   bancoEl("bancoAviso").textContent=`✓ Borrada: ${c.label}.`+(esLaDeHoy?" Era la canción de hoy: los que ya la jugaron conservan su partida, los demás reciben otra.":"");
   rellenarSelCancion();
 }
+/* ---------- pestaña "Ya sonaron" ---------- */
+let catSolapa="editar";
+function catVerSolapa(v){
+  catSolapa=v;
+  bancoEl("catSolEditar").classList.toggle("activo",v==="editar");
+  bancoEl("catSolSonadas").classList.toggle("activo",v==="sonadas");
+  bancoEl("catTabEditar").hidden=v!=="editar";
+  bancoEl("catTabSonadas").hidden=v!=="sonadas";
+  if(v==="sonadas"){bancoParar(); pintarSonadas()}
+}
+function pintarSonadas(){
+  const est=bancoEl("sonadasEstado"), lista=bancoEl("sonadasLista"); if(!est) return;
+  const filas=CANCIONES.filter(c=>c.sonada).sort((a,b)=>b.sonada-a.sonada);
+  const apagadas=filas.filter(c=>c.activa===false).length;
+  est.textContent=filas.length
+    ? `${plural(filas.length,"canción","canciones")} · ${apagadas} fuera del sorteo · ${filas.length-apagadas} reactivadas.`
+    : "Todavía no sonó ninguna desde que el catálogo vive en la nube.";
+  lista.innerHTML=filas.map(c=>{
+    const off=c.activa===false;
+    return `<div class="vf${off?" apagada":""}"><span class="id">${fechaCorta(c.sonada)}</span>`+
+           `<div><div class="pedido">${escapar(c.label)}</div>`+
+           `<div class="estado${off?"":" ok"}">${off?"Fuera del sorteo":"En el sorteo"}</div></div>`+
+           `<button data-sonada="${c.id}" title="${off?"Volver al sorteo":"Sacar del sorteo"}">${off?"Activar":"Desactivar"}</button></div>`;
+  }).join("");
+}
+bancoEl("sonadasLista")?.addEventListener("click",e=>{
+  const b=e.target.closest("[data-sonada]"); if(!b) return;
+  const c=CANCIONES[+b.dataset.sonada]; if(!c) return;
+  c.activa=c.activa===false;
+  marcarSucio(); pintarSonadas(); rellenarBancoSel(true); rellenarSelCancion();
+});
+bancoEl("catSolEditar")?.addEventListener("click",()=>catVerSolapa("editar"));
+bancoEl("catSolSonadas")?.addEventListener("click",()=>catVerSolapa("sonadas"));
+
 function reactivarSonadas(){
   const n=CANCIONES.filter(c=>c.activa===false&&c.sonada).length;
   if(!n){bancoEl("bancoAviso").textContent="No hay canciones desactivadas por haber sonado.";return}
   if(!confirm(`¿Volver a poner en el sorteo las ${n} canciones que ya sonaron?`)) return;
   CANCIONES.forEach(c=>{if(c.activa===false&&c.sonada) c.activa=true});
-  marcarSucio(); rellenarBancoSel(true);
+  marcarSucio(); rellenarBancoSel(true); pintarSonadas();
   bancoEl("bancoAviso").textContent=`✓ ${plural(n,"canción reactivada","canciones reactivadas")}. Se publica con el botón Publicar.`;
   rellenarSelCancion();
 }
@@ -1396,7 +1430,7 @@ function publicarCatalogo(){
     store.set(CLAVE_CAT,catNube);
     olvidarBancoViejo();
     textoCat="Catálogo publicado para todos.";
-    rellenarBancoSel(true); rellenarSelCancion(); refrescarPanel();
+    rellenarBancoSel(true); rellenarSelCancion(); pintarSonadas(); refrescarPanel();
   }).catch(e=>{
     textoCat="No se pudo publicar: "+e.message;
     refrescarCatalogoPanel();
