@@ -38,8 +38,9 @@ js/config.example.js  plantilla de config.js
 js/nube-config.js     datos del proyecto de Firebase (públicos, sí se versionan)
 js/nube.js            conexión con Firestore (módulo)
 js/dia.js             respaldo de la configuración del día
-js/catalogo.js        lista de canciones
+js/catalogo.js        respaldo del catálogo de canciones
 js/juego.js           lógica del juego
+firestore.rules       reglas de Firestore (fuente de verdad; se pegan en la consola)
 ```
 
 ## Cómo correrlo
@@ -98,13 +99,50 @@ conviene copiarlo de vuelta ahí para que no se pierda.
 reemplaza todo lo anterior, así que hay que pegar el archivo entero y no un
 bloque suelto, o las colecciones que queden afuera dejan de funcionar.
 
-Cubren tres cosas: el documento `escuchadle/dia`, la colección `resultados` y
-la colección `sugerencias`. En las dos colecciones se puede crear y borrar pero
+Cubren cuatro cosas: los documentos `escuchadle/dia` y `escuchadle/catalogo`,
+la colección `resultados` y la colección `sugerencias`. En las dos colecciones se puede crear y borrar pero
 no modificar, y cada campo se valida por tipo y por largo. Como no hay login,
 el borrado queda abierto: cualquiera que sepa manejar la consola podría borrar
 filas. Entre compañeros de trabajo no es un problema; si algún día lo fuera, se
 cierra con Firebase Auth.
 
+
+## El catálogo en la nube
+
+Las canciones viven en el documento `escuchadle/catalogo`, con este formato
+por canción:
+
+```
+a        artista
+t        título
+yt       ID de YouTube
+g        género (primera pista)
+ini      segundos de silencio inicial a saltar (opcional)
+activa   false = fuera del sorteo del día; sigue en el buscador
+sonada   número de día en que fue canción del día (informativo)
+```
+
+Y además `hoy: {dia, cancion}`, el **pin del día**: la canción fijada para
+todos. La fija el primer jugador que entra cada día hábil, en una transacción
+(si dos entran a la vez, gana el primero y el segundo recibe la misma). Al
+fijarla, esa canción queda `activa:false` con su `sonada`: **las canciones que
+ya sonaron se desactivan solas** y no vuelven al sorteo hasta que se las
+reactive desde el panel. Los fines de semana no se fija nada.
+
+Como el pin manda, publicar cambios de catálogo en medio del día no le cambia
+la canción a nadie: lo nuevo entra al sorteo desde el día siguiente. El sorteo
+automático se hace entre las activas; si no quedara ninguna, se sortea entre
+todas antes que dejar el juego sin canción.
+
+El panel, sección **Catálogo**, permite probar (un segundo o la canción
+completa), corregir, agregar, desactivar/activar y borrar canciones. Nada
+llega a los jugadores hasta tocar **Publicar**, que sube el documento entero.
+*Reactivar las que sonaron* devuelve al sorteo todo lo que ya salió, para
+cuando la bolsa se achica. *Copiar respaldo* arma el bloque para
+`js/catalogo.js`, que se usa solo si la nube no carga.
+
+La primera vez, el documento no existe: el botón dice *Publicar por primera
+vez* y sube lo que tenga `js/catalogo.js`.
 
 ## El ranking
 
@@ -124,6 +162,11 @@ contenido. Tiene dos vistas:
 - **Histórico** — acumulado de siempre, sin reinicio.
 
 **Sin nombre no se puntúa.** Las filas anónimas no entran en ninguna vista.
+
+Arriba de todo, en color `--sol`, va la leyenda de quien ganó la semana
+anterior: *"Felicitaciones a X por ganar la semana del dd-mm al dd-mm"*, con el
+lunes y el viernes de esa semana. Se completa sola con los datos de la nube;
+si nadie sumó puntos, no aparece.
 
 El título de la canción **nunca** se muestra en estas tablas: sería regalarle
 la respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking*
@@ -165,21 +208,11 @@ pruebas, Catálogo, Partida y resultados— con la lista a la izquierda y el
 contenido a la derecha. En pantallas angostas esa lista se convierte en un
 cajón que se abre con el botón ☰.
 
-## Cargar el catálogo
+## Cargar canciones
 
-Con la clave puesta, abrí **Verificar catálogo** (link al pie de la página).
-El juego recorre todas las canciones, muestra qué video eligió cada una y
-permite abrirlo en YouTube para confirmar. Después, *Copiar catálogo con IDs*
-te da el array completo ya fijado: pegalo sobre `CANCIONES` en `js/catalogo.js`.
-
-Para agregar canciones, sumá una línea a ese array:
-
-```js
-{a:"Artista", t:"Título", yt:"ID_DE_YOUTUBE"}
-```
-
-El `yt` es lo que va después de `watch?v=` en la URL. Es opcional; sin él, el
-juego busca el video solo.
+Todo se hace desde el panel, sección **Catálogo** (ver *El catálogo en la
+nube*). Pegás el ID o la URL de YouTube, escuchás, guardás y publicás. El
+`yt` es lo que va después de `watch?v=` en la URL.
 
 ## La tarjeta para compartir
 

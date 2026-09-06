@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=18">
+  <link rel="stylesheet" href="css/estilos.css?v=19">
 </head>
 <body>
 <!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
@@ -383,10 +383,12 @@
       <section class="panel-sec" data-sec="catalogo" hidden>
         <h3 class="panel-sec-titulo">Catálogo</h3>
 
-  <!-- 17 + 38: banco de pruebas y edición del catálogo -->
+  <!-- Catálogo: vive en Firestore (escuchadle/catalogo). Se edita acá y
+       se publica con un botón; js/catalogo.js quedó como respaldo. -->
   <div class="panel-bloque">
-    <div class="panel-titulo">Canciones: probar, corregir y agregar</div>
-    <p class="panel-ayuda">Elegí una canción para corregirla, o la primera opción para cargar una nueva. Escuchá el primer segundo antes de guardar. Lo guardado vale ya en este navegador; para publicarlo a todos, exportá el catálogo y reemplazá <code>js/catalogo.js</code>.</p>
+    <div class="panel-titulo">Canciones: probar, corregir, agregar y dar de baja</div>
+    <div class="verif-cab"><span id="catEstado"></span></div>
+    <p class="panel-ayuda">Elegí una canción para corregirla, o la primera opción para cargar una nueva. Escuchá el primer segundo (o la canción completa) antes de guardar. Las que ya sonaron como canción del día se desactivan solas y quedan fuera del sorteo hasta que las vuelvas a activar; siguen apareciendo en el buscador, así que no regalan nada. Nada llega a los jugadores hasta que toques <b>Publicar</b>, más abajo.</p>
     <div class="verif-cab">
       <select id="bancoSel" class="banco-campo" style="flex:1"></select>
     </div>
@@ -399,29 +401,39 @@
       <input id="bancoGeneroOtro" class="banco-campo" type="text" placeholder="Género nuevo" autocomplete="off" style="flex:1;min-width:140px" hidden>
     </div>
     <div class="banco-fila">
-      <input id="bancoId" class="banco-campo" type="text" placeholder="ID de YouTube (watch?v=…)" autocomplete="off" style="flex:1;min-width:180px">
-      <button class="btn btn-sec" id="bancoEscuchar" style="padding:9px 14px;font-size:13px">▶ 1 seg</button>
+      <input id="bancoId" class="banco-campo" type="text" placeholder="ID o URL de YouTube (watch?v=…)" autocomplete="off" style="flex:1;min-width:180px">
+      <button class="btn btn-sec" id="bancoEscuchar" style="padding:9px 14px;font-size:13px" title="Escuchar el primer segundo, como en el juego">▶ 1 seg</button>
+      <button class="btn btn-sec" id="bancoCompleta" style="padding:9px 14px;font-size:13px" title="Escuchar la canción entera desde el silencio inicial">▶ Completa</button>
       <button class="btn btn-ok"  id="bancoGuardar"  style="padding:9px 14px;font-size:13px">Guardar</button>
     </div>
-    <!-- 18: campo ini -->
+    <!-- campo ini -->
     <div class="banco-fila" style="align-items:center">
       <label style="font-size:12px;color:var(--gris);white-space:nowrap">Silencio inicial (s):</label>
       <input id="bancoIni" class="banco-campo" type="number" min="0" max="30" step="0.5" placeholder="0" style="width:80px">
       <span class="panel-ayuda" style="flex:1;margin:0">Segundos a saltar al reproducir (campo <code>ini</code>). Dejalo en 0 si el video arranca directo.</span>
+    </div>
+    <!-- acciones sobre la canción elegida (no aparecen al agregar una nueva) -->
+    <div class="banco-fila banco-acciones" id="bancoAcciones" style="align-items:center" hidden>
+      <span class="panel-ayuda" id="bancoEstadoCancion" style="flex:1;margin:0"></span>
+      <button class="btn btn-sec" id="bancoActivar" style="padding:9px 14px;font-size:13px">Desactivar</button>
+      <button class="btn btn-sec peligro" id="bancoBorrar" style="padding:9px 14px;font-size:13px">Borrar</button>
     </div>
     <div id="bancoAviso" style="font-size:12px;color:var(--gris);min-height:16px"></div>
     <div id="bancoPlayer" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"></div>
   </div>
 
   <div class="panel-bloque" style="border-top:1px solid var(--borde);padding-top:14px">
-    <div class="panel-titulo">Exportar catálogo</div>
+    <div class="panel-titulo">Publicar el catálogo</div>
     <div class="verif-cab">
-      <span id="verifEstado"></span>
-      <button class="btn btn-sec" id="btnCatalogo">Copiar catálogo con IDs</button>
+      <span id="catPublicarEstado"></span>
+      <button class="btn btn-sec" id="btnReactivar" title="Vuelve al sorteo todas las que se desactivaron por haber sonado">Reactivar las que sonaron</button>
+      <button class="btn btn-sec" id="btnCopiarCat" title="Bloque para pegar en js/catalogo.js">Copiar respaldo</button>
+      <button class="btn btn-ok" id="btnPublicarCat">Publicar</button>
     </div>
-    <p class="panel-ayuda">"Copiar catálogo" te da el array entero con todas las correcciones, los <code>ini</code> y las canciones nuevas que cargaste acá, listo para reemplazar en <code>js/catalogo.js</code>. Hasta que lo publiques, las canciones nuevas existen solo en este navegador y <b>no entran</b> en el sorteo del día, para no desincronizar a los jugadores.</p>
+    <p class="panel-ayuda"><b>Publicar</b> sube el catálogo entero a la nube y le llega en el acto a cualquiera que tenga el juego abierto. La canción de hoy ya está fijada para todos, así que publicar en medio del día no le cambia la canción a nadie: lo nuevo entra al sorteo desde mañana.<br><br>
+    <b>Reactivar las que sonaron</b> es para cuando el sorteo se queda corto: vuelve a poner en juego todo lo que ya salió (se publica con el botón).<br><br>
+    <b>Copiar respaldo</b> arma el bloque para <code>js/catalogo.js</code>, que se usa solo si la nube no carga. Conviene pegarlo de vez en cuando para que no envejezca.</p>
   </div>
-      </section>
       <section class="panel-sec" data-sec="datos" hidden>
         <h3 class="panel-sec-titulo">Partida y resultados</h3>
   <div class="panel-bloque">
@@ -448,17 +460,17 @@
   </div>
 </div>
 
-<script src="js/nube-config.js?v=18"></script>
-<script src="js/config.js?v=18"></script>
-<script src="js/dia.js?v=18"></script>
-<script src="js/catalogo.js?v=18"></script>
-<script src="js/juego.js?v=18"></script>
+<script src="js/nube-config.js?v=19"></script>
+<script src="js/config.js?v=19"></script>
+<script src="js/dia.js?v=19"></script>
+<script src="js/catalogo.js?v=19"></script>
+<script src="js/juego.js?v=19"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=18"></script>
+<script type="module" src="js/nube.js?v=19"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
-  if(typeof YT_API_KEY==="undefined"||!YT_API_KEY) document.getElementById("ayudaClave").hidden=false;
+  if(typeof YT_API_KEY==="undefined"||!YT_API_KEY){const a=document.getElementById("ayudaClave"); if(a) a.hidden=false;}
 </script>
 </body>
 </html>
