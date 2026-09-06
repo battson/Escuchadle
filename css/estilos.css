@@ -363,6 +363,9 @@
   #rankLista .vf button{color:var(--rojo);line-height:1}
   #rankLista .vf button:disabled{opacity:.4;cursor:default}
   .verif-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .verif-cab span.sin-publicar{color:var(--sol)}
+  .btn-sec.peligro{border-color:var(--rojo);color:var(--rojo)}
+  .banco-acciones{border-top:1px dashed var(--borde);padding-top:8px}
   .verif-cab span{color:var(--gris);font-size:12px;flex:1;min-width:120px}
   .verif-cab .btn{padding:8px 12px;font-size:12px}
   .vf{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--borde);font-size:12px}
