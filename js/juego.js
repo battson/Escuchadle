@@ -186,8 +186,11 @@ function guardarEspejoCatalogo(){
   catNube=c; store.set(CLAVE_CAT,c);
 }
 const porLabel=l=>CANCIONES.find(x=>x.label===l);
+/* Marca la canción del día como sonada y la saca del sorteo. Si ya
+   tenía la fecha anotada, no se la vuelve a apagar: puede ser que el
+   panel la haya reactivado a propósito. */
 function marcarSonada(label,d){
-  const c=porLabel(label); if(!c) return;
+  const c=porLabel(label); if(!c||c.sonada===d) return;
   c.activa=false; c.sonada=d;
 }
 function tomarHoy(cat){   /* copia el pin de la nube y su marca en el catálogo local */
@@ -1381,23 +1384,24 @@ function catVerSolapa(v){
 }
 function pintarSonadas(){
   const est=bancoEl("sonadasEstado"), lista=bancoEl("sonadasLista"); if(!est) return;
-  const filas=CANCIONES.filter(c=>c.sonada).sort((a,b)=>b.sonada-a.sonada);
-  const apagadas=filas.filter(c=>c.activa===false).length;
+  /* Solo las que siguen fuera del sorteo: al activar una, desaparece
+     de acá (y vuelve a verse su fecha en la solapa Editar). */
+  const filas=CANCIONES.filter(c=>c.sonada&&c.activa===false).sort((a,b)=>b.sonada-a.sonada);
+  const reactivadas=CANCIONES.filter(c=>c.sonada&&c.activa!==false).length;
   est.textContent=filas.length
-    ? `${plural(filas.length,"canción","canciones")} · ${apagadas} fuera del sorteo · ${filas.length-apagadas} reactivadas.`
-    : "Todavía no sonó ninguna desde que el catálogo vive en la nube.";
-  lista.innerHTML=filas.map(c=>{
-    const off=c.activa===false;
-    return `<div class="vf${off?" apagada":""}"><span class="id">${fechaCorta(c.sonada)}</span>`+
-           `<div><div class="pedido">${escapar(c.label)}</div>`+
-           `<div class="estado${off?"":" ok"}">${off?"Fuera del sorteo":"En el sorteo"}</div></div>`+
-           `<button data-sonada="${c.id}" title="${off?"Volver al sorteo":"Sacar del sorteo"}">${off?"Activar":"Desactivar"}</button></div>`;
-  }).join("");
+    ? `${plural(filas.length,"canción","canciones")} fuera del sorteo`+(reactivadas?` · ${reactivadas} ya reactivadas.`:".")
+    : reactivadas?"Todas las que sonaron ya están de vuelta en el sorteo.":"Todavía no sonó ninguna desde que el catálogo vive en la nube.";
+  lista.innerHTML=filas.map(c=>
+    `<div class="vf apagada"><span class="id">${fechaCorta(c.sonada)}</span>`+
+    `<div><div class="pedido">${escapar(c.label)}</div>`+
+    `<div class="estado">Fuera del sorteo</div></div>`+
+    `<button data-sonada="${c.id}" title="Volver al sorteo">Activar</button></div>`
+  ).join("");
 }
 bancoEl("sonadasLista")?.addEventListener("click",e=>{
   const b=e.target.closest("[data-sonada]"); if(!b) return;
   const c=CANCIONES[+b.dataset.sonada]; if(!c) return;
-  c.activa=c.activa===false;
+  c.activa=true;
   marcarSucio(); pintarSonadas(); rellenarBancoSel(true); rellenarSelCancion();
 });
 bancoEl("catSolEditar")?.addEventListener("click",()=>catVerSolapa("editar"));
