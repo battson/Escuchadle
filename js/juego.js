@@ -1,5 +1,7 @@
 /* Escuchadle Argento - logica del juego.
    Depende de: config.js (YT_API_KEY), dia.js (DIA) y catalogo.js (CANCIONES).
+   Tanto DIA como CANCIONES son respaldos: si la nube carga, lo que manda
+   es lo publicado en Firestore (escuchadle/dia y escuchadle/catalogo).
    Se apoya, si cargó, en nube.js (window.Nube + eventos "nube:dia" y
    "nube:estado"). Todo lo que toca la nube va con guarda: si Firebase
    no está, el juego funciona igual con lo que dice js/dia.js. */
@@ -54,7 +56,7 @@ function abrirModal(id){
 function cerrarModal(id){
   const m=$("#"+id); if(!m) return;
   m.hidden=true;
-  if(id==="modalPanel"){try{sessionStorage.removeItem("ea_panel")}catch{}}
+  if(id==="modalPanel"){try{sessionStorage.removeItem("ea_panel")}catch{} bancoParar()}
   if(!document.querySelector(".modal:not([hidden])")) document.documentElement.style.overflow="";
 }
 function modalAbierto(){return document.querySelector(".modal:not([hidden])")}
@@ -137,21 +139,150 @@ window.addEventListener("nube:dia",e=>{
 });
 window.addEventListener("nube:estado",e=>{textoNube=e.detail.texto; refrescarPanel()});
 
+/* ---------- catálogo en la nube ----------
+   CANCIONES arranca con lo que trae js/catalogo.js (respaldo). Si hay un
+   espejo guardado de la última vez que llegó la nube, se aplica ya; y
+   cuando Firestore avisa, se reemplaza el array en el lugar, así todo lo
+   que apunta a CANCIONES sigue valiendo.
+
+   Cada canción lleva:
+     activa   false = fuera del sorteo (a mano, o porque ya sonó)
+     sonada   día (número, como diaHoy()) en que fue canción del día
+   El buscador y el modo libre usan el catálogo entero: desactivar una
+   canción la saca del sorteo, no de las respuestas posibles.
+
+   catNube.hoy = {dia, cancion} es el pin del día: la canción fijada para
+   todos. La fija el primero que entra en el día (ver nuevaPartida) y a la
+   vez se desactiva, así no se repite hasta que se la reactive desde el
+   panel. Como el pin manda, publicar cambios de catálogo en medio del
+   día no le cambia la canción a nadie. */
+const CLAVE_CAT="ea_nube_catalogo";
+let catNube=store.get(CLAVE_CAT,null);   /* {canciones, hoy, actualizado} */
+let catEnNube=false;                     /* la nube confirmó que el documento existe */
+let catSucio=false;                      /* hay cambios del panel sin publicar */
+let textoCat="Esperando a la nube…";     /* estado para el panel */
+
+function normalizarCatalogo(){
+  CANCIONES.forEach((c,i)=>{
+    c.id=i; c.label=`${c.a} — ${c.t}`;
+    if(c.activa===undefined) c.activa=true;
+    delete c.nueva;
+  });
+}
+function aplicarCatalogo(cat){
+  CANCIONES.length=0;
+  cat.canciones.forEach(c=>CANCIONES.push(Object.assign({},c)));
+  normalizarCatalogo();
+}
+/* El espejo local se arma desde CANCIONES: es lo que hay que recordar. */
+function guardarEspejoCatalogo(){
+  const c={canciones:CANCIONES.map(x=>{
+            const o={a:x.a,t:x.t,yt:x.yt||"",activa:x.activa!==false};
+            if(x.g) o.g=x.g; if(x.ini) o.ini=x.ini; if(x.sonada) o.sonada=x.sonada;
+            return o;}),
+           hoy:(catNube&&catNube.hoy)||null,
+           actualizado:(catNube&&catNube.actualizado)||null,
+           sucio:true};   /* al recargar, los cambios siguen sin publicar */
+  catNube=c; store.set(CLAVE_CAT,c);
+}
+const porLabel=l=>CANCIONES.find(x=>x.label===l);
+function marcarSonada(label,d){
+  const c=porLabel(label); if(!c) return;
+  c.activa=false; c.sonada=d;
+}
+function tomarHoy(cat){   /* copia el pin de la nube y su marca en el catálogo local */
+  if(!cat) return;
+  catNube=catNube||{canciones:[],hoy:null,actualizado:null};
+  catNube.hoy=cat.hoy||null; catNube.actualizado=cat.actualizado||null;
+  if(cat.hoy&&cat.hoy.dia===diaHoy()) marcarSonada(cat.hoy.cancion,cat.hoy.dia);
+  store.set(CLAVE_CAT,catNube);
+}
+
+/* Migración del banco viejo (localStorage): las canciones nuevas que
+   hubieran quedado sin publicar se suman al catálogo y quedan marcadas
+   para publicar. Las correcciones por índice solo valen sobre el
+   respaldo, antes de que exista el catálogo en la nube. */
+(function(){
+  const cambios=store.get("ea_banco",{}), nuevas=store.get("ea_banco_nuevas",[]);
+  if(catNube){
+    aplicarCatalogo(catNube);
+    catSucio=!!catNube.sucio;
+  }else{
+    for(const k in cambios){
+      const c=CANCIONES[+k]; if(!c) continue; const o=cambios[k];
+      if(o.a) c.a=o.a; if(o.t) c.t=o.t; if(o.g) c.g=o.g; if(o.yt) c.yt=o.yt;
+      if(o.ini) c.ini=o.ini; else delete c.ini;
+    }
+    if(Object.keys(cambios).length) catSucio=true;
+  }
+  normalizarCatalogo();
+  (Array.isArray(nuevas)?nuevas:[]).forEach(n=>{
+    if(!n||!n.a||!n.t||CANCIONES.some(c=>c.a===n.a&&c.t===n.t)) return;
+    CANCIONES.push({a:n.a,t:n.t,yt:n.yt||"",g:n.g,ini:n.ini,activa:true}); catSucio=true;
+  });
+  normalizarCatalogo();
+})();
+const olvidarBancoViejo=()=>{store.del("ea_banco"); store.del("ea_banco_nuevas")};
+
+window.addEventListener("nube:catalogo",e=>{
+  const cat=e.detail;
+  if(!cat||cat.existe===false){
+    catEnNube=false;
+    textoCat="El catálogo todavía no está en la nube: el juego usa js/catalogo.js.";
+    refrescarPanel(); return;
+  }
+  catEnNube=true;
+  if(catSucio){
+    /* No se pisan los cambios sin publicar; solo se toma el pin del día. */
+    tomarHoy(cat);
+    textoCat="La nube cambió mientras tanto: se tomó la canción del día.";
+    if(modo==="diario"&&actual&&cancionDelDia().label!==actual.label){nuevaPartida();return}
+  }else{
+    const antes=actual?actual.label:null;
+    aplicarCatalogo(cat);
+    catNube={canciones:cat.canciones,hoy:cat.hoy,actualizado:cat.actualizado};
+    store.set(CLAVE_CAT,catNube);
+    textoCat="Catálogo publicado en la nube.";
+    if(modo==="diario"&&antes&&cancionDelDia().label!==antes){nuevaPartida();return}
+  }
+  /* Recién ahora se sabe que el catálogo está en la nube: si hoy todavía
+     no tiene canción fijada, se fija la que está sonando. */
+  if(modo==="diario"&&actual) fijarHoyEnNube(actual.label,false);
+  rellenarSelCancion(); rellenarBancoSel(true); refrescarPanel();
+});
+
 /* ---------- elección de canción ---------- */
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
-function ordenDiario(){const r=rng(20260101),a=CANCIONES.filter(c=>!c.nueva).map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function diaHoy(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)}
+/* Las que entran al sorteo. Si no queda ninguna activa, se sortea
+   entre todas antes que dejar el juego sin canción. */
+function bolsa(){const a=CANCIONES.filter(c=>c.activa!==false); return a.length?a:CANCIONES}
+function ordenDiario(){const r=rng(20260101),a=bolsa().map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function sorteo(salto){const o=ordenDiario(), n=o.length; return CANCIONES[o[(((diaHoy()+salto)%n)+n)%n]]}   /* módulo siempre positivo */
+function pinHoy(){const h=catNube&&catNube.hoy; return (h&&h.dia===diaHoy()&&h.cancion)?h:null}
 function cancionDelDia(){
   const d=dia();
   if(d.modo==="manual"&&d.cancion){
-    const c=CANCIONES.find(x=>x.label===d.cancion);
+    const c=porLabel(d.cancion);
     if(c) return c;      /* si el label ya no existe, se cae al automático */
   }
-  const o=ordenDiario(), n=o.length;
-  return CANCIONES[o[(((diaHoy()+d.salto)%n)+n)%n]];   /* módulo siempre positivo */
+  const p=pinHoy();
+  if(p){const c=porLabel(p.cancion); if(c) return c}
+  return sorteo(d.salto);
 }
 function elegir(){
   return modo==="diario"?cancionDelDia():CANCIONES[Math.floor(Math.random()*CANCIONES.length)];
+}
+/* Deja fijada en la nube la canción de hoy. Sin forzar, es lo que hace
+   cada jugador al entrar: si ya hay pin, no pasa nada. Con forzar es el
+   panel cambiando la canción del día a propósito. Los fines de semana
+   no se fija nada: no hay canción del día que gastar. */
+function fijarHoyEnNube(label,forzar){
+  if(!hayNube()||!catEnNube||esFinde()||!label) return;
+  if(!forzar&&pinHoy()) return;
+  const d=diaHoy();
+  if(catNube){catNube.hoy={dia:d,cancion:label}; store.set(CLAVE_CAT,catNube)}   /* optimista */
+  window.Nube.fijarHoy({dia:d,cancion:label,forzar:!!forzar}).catch(()=>{});
 }
 
 /* ---------- partida guardada ----------
@@ -291,6 +422,7 @@ async function nuevaPartida(){
   }
 
   actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null; diaPartida=diaHoy();
+  if(modo==="diario") fijarHoyEnNube(actual.label,false);
   zonaJuego.style.display="flex"; zonaCerrada.hidden=true;
   input.value=""; btnEnviar.disabled=true; btnPlay.disabled=true; btnSaltar.disabled=false;
   estado.textContent="Cargando canción…";
@@ -400,7 +532,7 @@ function registrar(tipo,texto){
 function enviar(){
   const c=CANCIONES.find(x=>x.label===input.value.trim()); if(!c) return;
   input.value=""; btnEnviar.disabled=true; cerrarLista();
-  if(c.id===actual.id) registrar("bien",c.label);
+  if(c.label===actual.label) registrar("bien",c.label);
   else if(c.a===actual.a) registrar("artista",c.label);
   else registrar("mal",c.label);
 }
@@ -681,7 +813,11 @@ function mostrarGanador(){
       return f>=+lunesPasado&&f<+esteLunes&&esHabil(r.fecha);
     }));
     if(g.length&&g[0].puntos>0){
-      el.innerHTML=`Felicitaciones a <b>${escapar(g[0].nombre)}</b> por ser el ganador de la semana`;
+      /* Redacción neutra: gane quien gane, "por ganar la semana". El
+         rango va del lunes al viernes de la semana que cerró, en dd-mm. */
+      const viernesPasado=new Date(lunesPasado); viernesPasado.setDate(viernesPasado.getDate()+4);
+      const ddmm=x=>`${String(x.getDate()).padStart(2,"0")}-${String(x.getMonth()+1).padStart(2,"0")}`;
+      el.innerHTML=`Felicitaciones a <b>${escapar(g[0].nombre)}</b> por ganar la semana del ${ddmm(lunesPasado)} al ${ddmm(viernesPasado)}`;
       el.hidden=false;
     }
   }).catch(()=>{});
@@ -884,7 +1020,7 @@ function irASeccion(id){
   cajon(false);
   if(id==="ranking") cargarRanking();
   if(id==="sugerencias") cargarSugerencias();
-  if(id==="catalogo") rellenarBancoSel();
+  if(id==="catalogo") rellenarBancoSel(true); else bancoParar();
 }
 function cajon(abrir){
   $("#panelNav").classList.toggle("abierto",abrir);
@@ -902,7 +1038,12 @@ $("#swFinde").onchange=e=>{local.saltearFinde=e.target.checked; guardarLocal(); 
 
 /* ---------- panel: canción del día ---------- */
 const selCancion=$("#selCancion");
-selCancion.innerHTML=CANCIONES.map(c=>`<option value="${c.label.replace(/"/g,"&quot;")}">${c.label}</option>`).join("");
+function rellenarSelCancion(){
+  const v=selCancion.value;
+  selCancion.innerHTML=CANCIONES.map(c=>`<option value="${c.label.replace(/"/g,"&quot;")}">${c.label}${c.activa===false?" (desactivada)":""}</option>`).join("");
+  if(v&&porLabel(v)) selCancion.value=v;
+}
+rellenarSelCancion();
 
 /* Publica la configuración nueva. Se aplica acá en el acto para no
    quedar esperando a la red, y en paralelo sale para todos. Firestore
@@ -915,6 +1056,11 @@ function ajustarDia(cambios){
              salto:d.modo==="manual"?0:d.salto,
              reinicio:d.reinicio};
   diaNube=cfg; store.set(CLAVE_NUBE,cfg);
+  /* Si cambió qué canción toca hoy, el pin de la nube tiene que seguirla. */
+  if(["modo","cancion","salto"].some(k=>k in cambios)){
+    const objetivo=cfg.modo==="manual"?porLabel(cfg.cancion):sorteo(cfg.salto);
+    if(objetivo) fijarHoyEnNube(objetivo.label,true);
+  }
   if(hayNube()){
     textoNube="Publicando…";
     window.Nube.publicarDia(cfg)
@@ -928,19 +1074,15 @@ function ajustarDia(cambios){
 $("#diaAuto").onclick=()=>ajustarDia({modo:"auto"});
 /* Sortea un corrimiento nuevo hasta que hoy caiga otra canción. */
 $("#btnSortear").onclick=()=>{
-  const n=CANCIONES.length;
+  const n=bolsa().length;
   if(n<2) return;
   const actualLabel=cancionDelDia().label;
   const base=dia().salto;
   let salto=base;
-  for(let i=0;i<40&&(salto===base||nombreConSalto(salto)===actualLabel);i++)
+  for(let i=0;i<40&&(salto===base||sorteo(salto).label===actualLabel);i++)
     salto=Math.floor(Math.random()*n);
   ajustarDia({modo:"auto",salto});
 };
-function nombreConSalto(salto){
-  const o=ordenDiario(), n=o.length;
-  return CANCIONES[o[(((diaHoy()+salto)%n)+n)%n]].label;
-}
 $("#diaManual").onclick=()=>ajustarDia({modo:"manual",cancion:selCancion.value||CANCIONES[0].label});
 selCancion.onchange=()=>ajustarDia({modo:"manual",cancion:selCancion.value});
 $("#btnReiniciar").onclick=()=>{
@@ -1037,8 +1179,11 @@ function refrescarPanel(){
   else if(actual&&modo==="diario") selCancion.value=actual.label;
   $("#estadoNube").textContent=textoNube;
   $("#estadoNube").className="nube-estado"+(hayNube()?" ok":"");
+  const pin=pinHoy();
   $("#estadoDia").textContent=
-    `salto ${d.salto} · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`;
+    `salto ${d.salto} · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`+
+    (pin?" (fijada para todos)":"")+` · catálogo: ${catEnNube?"nube":"respaldo"}`;
+  refrescarCatalogoPanel();
   $("#vistaDia").textContent=textoDia();
 
   const g=partidaGuardada();
@@ -1059,157 +1204,240 @@ function refrescarPanel(){
    el título cinco veces después de cada recarga. */
 try{if(sessionStorage.getItem("ea_panel")&&admin()) abrirPanel()}catch{}
 
-/* ---------- banco de pruebas y edición del catálogo (17, 18, 38) ----------
-   Todo lo guardado acá vive en localStorage: correcciones de canciones
-   existentes en ea_banco (por id) y canciones nuevas en ea_banco_nuevas.
-   Al cargar la página se aplican sobre CANCIONES, así valen ya en este
-   navegador. Las nuevas quedan fuera del sorteo del día (nueva:true)
-   hasta que se publiquen en js/catalogo.js: si entraran antes, este
-   navegador vería una canción del día distinta a la de los jugadores. */
-const bancoStore="ea_banco", bancoNuevasStore="ea_banco_nuevas";
-let bancoCambios=store.get(bancoStore,{});
-let bancoNuevas=store.get(bancoNuevasStore,[]);
-const guardarBanco=()=>{store.set(bancoStore,bancoCambios); store.set(bancoNuevasStore,bancoNuevas)};
-
-/* Aplicar lo guardado sobre el catálogo en memoria, antes de que
-   arranque la primera partida. */
-(function(){
-  for(const k in bancoCambios){
-    const c=CANCIONES[+k]; if(!c) continue; const o=bancoCambios[k];
-    if(o.a) c.a=o.a; if(o.t) c.t=o.t; if(o.g) c.g=o.g;
-    if(o.yt) c.yt=o.yt;
-    if(o.ini) c.ini=o.ini; else delete c.ini;
-    c.label=`${c.a} — ${c.t}`;
-  }
-  bancoNuevas.forEach(n=>{
-    const c=Object.assign({},n,{nueva:true});
-    c.id=CANCIONES.length; c.label=`${c.a} — ${c.t}`;
-    CANCIONES.push(c);
-  });
-})();
+/* ---------- panel: catálogo ----------
+   Probar, corregir, agregar, desactivar y borrar canciones. Todo se
+   edita sobre CANCIONES en memoria y queda marcado como "sin publicar"
+   hasta tocar Publicar, que sube el documento entero a Firestore y se
+   lo hace llegar a todos en el acto. La canción de hoy ya está fijada
+   por el pin, así que publicar en medio del día no le cambia la
+   canción a nadie. "Copiar respaldo" arma el bloque para js/catalogo.js. */
+const bancoEl=id=>document.getElementById(id);
+const fechaCorta=n=>{const d=new Date(n*864e5);return `${String(d.getUTCDate()).padStart(2,"0")}/${String(d.getUTCMonth()+1).padStart(2,"0")}`};
+function marcarSucio(){catSucio=true; guardarEspejoCatalogo(); refrescarCatalogoPanel()}
 
 /* iFrame de YouTube dedicado al banco, en la posición off-screen del HTML. */
-let bancoYt=null;
+let bancoYt=null, bancoSonando=false;
 const bancoYtListo=new Promise(r=>{
   const orig=window.onYouTubeIframeAPIReady;
   window.onYouTubeIframeAPIReady=()=>{
     if(orig) orig();
-    const div=document.getElementById("bancoPlayer");
+    const div=bancoEl("bancoPlayer");
     if(!div){r();return}
     bancoYt=new YT.Player("bancoPlayer",{width:1,height:1,
       playerVars:{autoplay:0,controls:0,disablekb:1,playsinline:1},
-      events:{onReady:()=>r()}
+      events:{onReady:()=>r(),onStateChange:e=>{if(e.data===YT.PlayerState.ENDED) bancoParar()}}
     });
   };
   if(window.YT&&YT.Player){window.onYouTubeIframeAPIReady();}
 });
+function bancoParar(){
+  bancoSonando=false;
+  try{if(bancoYt&&bancoYt.stopVideo) bancoYt.stopVideo()}catch(err){}
+  const b=bancoEl("bancoCompleta"); if(b) b.textContent="▶ Completa";
+}
 
 const OTRO_GENERO="__otro__";
 function generosDelCatalogo(){
   return [...new Set(CANCIONES.map(c=>c.g).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
 }
-function rellenarBancoSel(){
-  const sel=document.getElementById("bancoSel"); if(!sel) return;
+function estadoCancion(c){
+  if(!c) return "";
+  if(c.activa===false) return c.sonada?`⏸ sonó el ${fechaCorta(c.sonada)}`:"⏸ desactivada";
+  return c.sonada?`sonó el ${fechaCorta(c.sonada)} · reactivada`:"";
+}
+/* mantener=true conserva la canción elegida (para no saltar al agregar
+   una nueva cuando llega un cambio de la nube). */
+function rellenarBancoSel(mantener){
+  const sel=bancoEl("bancoSel"); if(!sel) return;
+  const antes=mantener?sel.value:"-1";
   sel.innerHTML='<option value="-1">➕ Agregar canción nueva…</option>'+
     CANCIONES.map((c,i)=>{
-      const marca=c.nueva?" 🆕":(bancoCambios[c.id]?" ✎":"");
+      const marca=c.activa===false?" ⏸":"";
       return `<option value="${i}">${c.label}${c.yt?"":" ⚠"}${marca}</option>`;
     }).join("");
-  const gen=document.getElementById("bancoGenero");
+  const gen=bancoEl("bancoGenero");
   gen.innerHTML=generosDelCatalogo().map(g=>`<option value="${g}">${g}</option>`).join("")+
     `<option value="${OTRO_GENERO}">Otro género…</option>`;
-  sel.value="-1"; bancoSelCambiar();
+  sel.value=(+antes>=0&&+antes<CANCIONES.length)?antes:"-1";
+  bancoSelCambiar();
+}
+function bancoSeleccionada(){
+  const sel=bancoEl("bancoSel"); if(!sel) return null;
+  const i=+sel.value; return i>=0?CANCIONES[i]:null;
 }
 function bancoSelCambiar(){
-  const sel=document.getElementById("bancoSel"); if(!sel) return;
-  const i=+sel.value, c=i>=0?CANCIONES[i]:null;
-  document.getElementById("bancoArtista").value=c?c.a:"";
-  document.getElementById("bancoTitulo").value=c?c.t:"";
-  document.getElementById("bancoId").value=c?(c.yt||""):"";
-  document.getElementById("bancoIni").value=c?(c.ini||0):0;
-  const gen=document.getElementById("bancoGenero"), otro=document.getElementById("bancoGeneroOtro");
+  const c=bancoSeleccionada();
+  bancoParar();
+  bancoEl("bancoArtista").value=c?c.a:"";
+  bancoEl("bancoTitulo").value=c?c.t:"";
+  bancoEl("bancoId").value=c?(c.yt||""):"";
+  bancoEl("bancoIni").value=c?(c.ini||0):0;
+  const gen=bancoEl("bancoGenero"), otro=bancoEl("bancoGeneroOtro");
   if(c&&c.g&&[...gen.options].some(o=>o.value===c.g)) gen.value=c.g;
   else gen.selectedIndex=0;
   otro.hidden=true; otro.value="";
-  document.getElementById("bancoAviso").textContent=c?"":"Completá los campos y guardá para sumarla al catálogo.";
+  bancoEl("bancoAcciones").hidden=!c;
+  if(c){
+    bancoEl("bancoActivar").textContent=c.activa===false?"Activar":"Desactivar";
+    bancoEl("bancoEstadoCancion").textContent=estadoCancion(c)||"En el sorteo.";
+  }
+  bancoEl("bancoAviso").textContent=c?"":"Completá los campos y guardá para sumarla al catálogo.";
 }
 function bancoGenero(){
-  const gen=document.getElementById("bancoGenero"), otro=document.getElementById("bancoGeneroOtro");
+  const gen=bancoEl("bancoGenero"), otro=bancoEl("bancoGeneroOtro");
   if(gen.value===OTRO_GENERO) return otro.value.trim();
   return gen.value;
 }
 function bancoIdLimpio(){
-  return document.getElementById("bancoId").value.trim().replace(/.*[?&]v=([^&]+).*/,"$1").trim();
+  return bancoEl("bancoId").value.trim().replace(/.*[?&]v=([^&]+).*/,"$1").replace(/.*youtu\.be\/([^?&]+).*/,"$1").trim();
 }
 async function bancoEscuchar(){
   const id=bancoIdLimpio();
-  if(!id){document.getElementById("bancoAviso").textContent="Pegá un ID o URL de YouTube primero.";return}
-  const ini=parseFloat(document.getElementById("bancoIni").value)||0;
-  document.getElementById("bancoAviso").textContent="Cargando…";
+  if(!id){bancoEl("bancoAviso").textContent="Pegá un ID o URL de YouTube primero.";return}
+  const ini=parseFloat(bancoEl("bancoIni").value)||0;
+  bancoParar();
+  bancoEl("bancoAviso").textContent="Cargando…";
   await bancoYtListo;
   bancoYt.loadVideoById({videoId:id,startSeconds:ini});
-  setTimeout(()=>{try{bancoYt.stopVideo()}catch(err){}document.getElementById("bancoAviso").textContent="";},1200);
+  setTimeout(()=>{try{bancoYt.stopVideo()}catch(err){}bancoEl("bancoAviso").textContent="";},1200);
+}
+/* La canción entera, desde el campo ini. El mismo botón la para. */
+async function bancoCompleta(){
+  if(bancoSonando){bancoParar();return}
+  const id=bancoIdLimpio();
+  if(!id){bancoEl("bancoAviso").textContent="Pegá un ID o URL de YouTube primero.";return}
+  const ini=parseFloat(bancoEl("bancoIni").value)||0;
+  bancoEl("bancoAviso").textContent="Cargando…";
+  await bancoYtListo;
+  bancoSonando=true;
+  bancoEl("bancoCompleta").textContent="■ Parar";
+  bancoYt.loadVideoById({videoId:id,startSeconds:ini});
+  setTimeout(()=>{if(bancoSonando) bancoEl("bancoAviso").textContent="Sonando la canción completa…"},800);
 }
 function bancoGuardar(){
-  const sel=document.getElementById("bancoSel");
+  const sel=bancoEl("bancoSel");
   const i=+sel.value;
-  const a=document.getElementById("bancoArtista").value.trim();
-  const t=document.getElementById("bancoTitulo").value.trim();
+  const a=bancoEl("bancoArtista").value.trim();
+  const t=bancoEl("bancoTitulo").value.trim();
   const g=bancoGenero();
   const id=bancoIdLimpio();
-  const ini=parseFloat(document.getElementById("bancoIni").value)||0;
-  const aviso=document.getElementById("bancoAviso");
+  const ini=parseFloat(bancoEl("bancoIni").value)||0;
+  const aviso=bancoEl("bancoAviso");
   if(!a||!t){aviso.textContent="Faltan el artista o la canción.";return}
   if(!id){aviso.textContent="El ID no puede estar vacío.";return}
 
-  let quedarEn;
+  let quedarEn, msg;
   if(i<0){   /* canción nueva */
     if(CANCIONES.some(c=>c.a===a&&c.t===t)){aviso.textContent="Esa canción ya está en el catálogo.";return}
-    const n={a,t,yt:id}; if(g) n.g=g; if(ini) n.ini=ini;
-    bancoNuevas.push(n);
-    const c=Object.assign({},n,{nueva:true,id:CANCIONES.length,label:`${a} — ${t}`});
-    CANCIONES.push(c);
+    const c={a,t,yt:id,activa:true}; if(g) c.g=g; if(ini) c.ini=ini;
+    CANCIONES.push(c); normalizarCatalogo();
     quedarEn=c.id;
-    aviso.textContent=`✓ Agregada: ${c.label}. Entra al sorteo cuando publiques el catálogo.`;
+    msg=`✓ Agregada: ${c.label}. Entra al sorteo cuando publiques.`;
   }else{     /* corregir existente */
     const c=CANCIONES[i]; quedarEn=i;
-    if(c.nueva){   /* las nuevas se editan en su propia lista */
-      const idx=CANCIONES.filter(x=>x.nueva).indexOf(c);
-      const n=bancoNuevas[idx];
-      if(n){n.a=a;n.t=t;n.yt=id; if(g)n.g=g; else delete n.g; if(ini)n.ini=ini; else delete n.ini;}
-    }else{
-      const o=bancoCambios[c.id]||{};
-      o.a=a; o.t=t; o.yt=id;
-      if(g) o.g=g; else delete o.g;
-      if(ini) o.ini=ini; else delete o.ini;
-      bancoCambios[c.id]=o;
+    if(CANCIONES.some(x=>x!==c&&x.a===a&&x.t===t)){aviso.textContent="Ya hay otra canción con ese artista y título.";return}
+    /* Si cambia el nombre de la canción del día, el pin y el modo manual
+       la siguen por label: se actualizan en el acto. */
+    const labelViejo=c.label;
+    c.a=a; c.t=t; c.yt=id; if(g) c.g=g; else delete c.g; if(ini) c.ini=ini; else delete c.ini;
+    normalizarCatalogo();
+    if(labelViejo!==c.label){
+      if(catNube&&catNube.hoy&&catNube.hoy.cancion===labelViejo) catNube.hoy.cancion=c.label;
+      if(actual&&actual.label===labelViejo) actual=c;
     }
-    c.a=a;c.t=t; if(g)c.g=g; c.yt=id; if(ini)c.ini=ini; else delete c.ini;
-    c.label=`${a} — ${t}`;
-    aviso.textContent=`✓ Guardado: ${c.label}`;
+    msg=`✓ Guardado: ${c.label}. Se publica con el botón Publicar.`;
   }
-  guardarBanco();
-  const msg=aviso.textContent;
-  rellenarBancoSel();
+  marcarSucio();
+  rellenarBancoSel(false);
   sel.value=String(quedarEn); bancoSelCambiar();
   aviso.textContent=msg;
+  rellenarSelCancion();
 }
-document.getElementById("bancoSel")?.addEventListener("change",bancoSelCambiar);
-document.getElementById("bancoGenero")?.addEventListener("change",()=>{
-  const otro=document.getElementById("bancoGeneroOtro");
-  otro.hidden=document.getElementById("bancoGenero").value!==OTRO_GENERO;
+function bancoActivar(){
+  const c=bancoSeleccionada(); if(!c) return;
+  c.activa=c.activa===false;
+  marcarSucio(); rellenarBancoSel(true);
+  bancoEl("bancoAviso").textContent=c.activa?`✓ ${c.label} vuelve al sorteo al publicar.`:`✓ ${c.label} queda fuera del sorteo al publicar.`;
+  rellenarSelCancion();
+}
+function bancoBorrar(){
+  const c=bancoSeleccionada(); if(!c) return;
+  if(!confirm(`¿Borrar "${c.label}" del catálogo? Se publica al tocar Publicar.`)) return;
+  const esLaDeHoy=modo==="diario"&&actual&&actual.label===c.label;
+  CANCIONES.splice(c.id,1); normalizarCatalogo();
+  marcarSucio(); rellenarBancoSel(false);
+  bancoEl("bancoAviso").textContent=`✓ Borrada: ${c.label}.`+(esLaDeHoy?" Era la canción de hoy: los que ya la jugaron conservan su partida, los demás reciben otra.":"");
+  rellenarSelCancion();
+}
+function reactivarSonadas(){
+  const n=CANCIONES.filter(c=>c.activa===false&&c.sonada).length;
+  if(!n){bancoEl("bancoAviso").textContent="No hay canciones desactivadas por haber sonado.";return}
+  if(!confirm(`¿Volver a poner en el sorteo las ${n} canciones que ya sonaron?`)) return;
+  CANCIONES.forEach(c=>{if(c.activa===false&&c.sonada) c.activa=true});
+  marcarSucio(); rellenarBancoSel(true);
+  bancoEl("bancoAviso").textContent=`✓ ${plural(n,"canción reactivada","canciones reactivadas")}. Se publica con el botón Publicar.`;
+  rellenarSelCancion();
+}
+
+/* Publicar: sube el catálogo entero. La canción de hoy se manda fijada
+   para que el sorteo nuevo no le cambie la canción a nadie a mitad del
+   día. Si es fin de semana no se fija nada: el lunes se sortea con el
+   catálogo nuevo. */
+function publicarCatalogo(){
+  const btn=bancoEl("btnPublicarCat");
+  if(!hayNube()){textoCat="Sin conexión con la nube: no se puede publicar.";refrescarCatalogoPanel();return}
+  bancoParar();
+  const hoy=esFinde()?null:{dia:diaHoy(),cancion:(modo==="diario"&&actual?actual:cancionDelDia()).label};
+  if(hoy) marcarSonada(hoy.cancion,hoy.dia);
+  btn.disabled=true; textoCat="Publicando…"; refrescarCatalogoPanel();
+  window.Nube.publicarCatalogo(CANCIONES,hoy).then(cat=>{
+    catSucio=false; catEnNube=true;
+    catNube={canciones:cat.canciones,hoy:cat.hoy,actualizado:cat.actualizado};
+    store.set(CLAVE_CAT,catNube);
+    olvidarBancoViejo();
+    textoCat="Catálogo publicado para todos.";
+    rellenarBancoSel(true); rellenarSelCancion(); refrescarPanel();
+  }).catch(e=>{
+    textoCat="No se pudo publicar: "+e.message;
+    refrescarCatalogoPanel();
+  });
+}
+function textoCatalogo(){
+  return "const CANCIONES = [\n"+CANCIONES.map(c=>
+    `  {a:${JSON.stringify(c.a)}, t:${JSON.stringify(c.t)}`+
+    `${c.yt?`, yt:${JSON.stringify(c.yt)}`:""}${c.ini?`, ini:${JSON.stringify(c.ini)}`:""}${c.g?`, g:${JSON.stringify(c.g)}`:""}`+
+    `${c.activa===false?", activa:false":""}${c.sonada?`, sonada:${c.sonada}`:""}},`
+  ).join("\n")+"\n];";
+}
+function refrescarCatalogoPanel(){
+  const est=bancoEl("catEstado"), pub=bancoEl("catPublicarEstado"), btn=bancoEl("btnPublicarCat");
+  if(!est) return;
+  const total=CANCIONES.length, activas=bolsa().length, apagadas=CANCIONES.filter(c=>c.activa===false).length,
+        sonadas=CANCIONES.filter(c=>c.activa===false&&c.sonada).length;
+  const pocas=activas<5&&total>=5?" · ¡quedan pocas en el sorteo!":"";
+  est.textContent=`${plural(total,"canción","canciones")} · ${activas} en el sorteo · ${apagadas} desactivadas`+
+    (sonadas?` (${sonadas} por haber sonado)`:"")+pocas;
+  pub.textContent=!catSucio?textoCat
+    :/^(No se pudo|Publicando|Sin conexión)/.test(textoCat)?`Hay cambios sin publicar. ${textoCat}`
+    :"Hay cambios sin publicar: tocá Publicar para que lleguen a todos.";
+  pub.className=catSucio?"sin-publicar":"";
+  btn.disabled=!hayNube()||(!catSucio&&catEnNube);
+  btn.textContent=catEnNube?"Publicar":"Publicar por primera vez";
+}
+bancoEl("bancoSel")?.addEventListener("change",bancoSelCambiar);
+bancoEl("bancoGenero")?.addEventListener("change",()=>{
+  const otro=bancoEl("bancoGeneroOtro");
+  otro.hidden=bancoEl("bancoGenero").value!==OTRO_GENERO;
   if(!otro.hidden) otro.focus();
 });
-document.getElementById("bancoEscuchar")?.addEventListener("click",bancoEscuchar);
-document.getElementById("bancoGuardar")?.addEventListener("click",bancoGuardar);
-document.getElementById("bancoId")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();bancoEscuchar()}});
-
-$("#btnCatalogo")?.addEventListener("click",()=>{
-  const txt="const CANCIONES = [\n"+CANCIONES.map(c=>
-    `  {a:${JSON.stringify(c.a)}, t:${JSON.stringify(c.t)}`+
-    `${c.yt?`, yt:${JSON.stringify(c.yt)}`:""}${c.ini?`, ini:${JSON.stringify(c.ini)}`:""}${c.g?`, g:${JSON.stringify(c.g)}`:""}},`
-  ).join("\n")+"\n];";
-  alPortapapeles(txt,$("#btnCatalogo"),"Copiar catálogo con IDs");
-});
+bancoEl("bancoEscuchar")?.addEventListener("click",bancoEscuchar);
+bancoEl("bancoCompleta")?.addEventListener("click",bancoCompleta);
+bancoEl("bancoGuardar")?.addEventListener("click",bancoGuardar);
+bancoEl("bancoActivar")?.addEventListener("click",bancoActivar);
+bancoEl("bancoBorrar")?.addEventListener("click",bancoBorrar);
+bancoEl("btnReactivar")?.addEventListener("click",reactivarSonadas);
+bancoEl("btnPublicarCat")?.addEventListener("click",publicarCatalogo);
+bancoEl("bancoId")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();bancoEscuchar()}});
+$("#btnCopiarCat")?.addEventListener("click",()=>alPortapapeles(textoCatalogo(),$("#btnCopiarCat"),"Copiar respaldo"));
 
 nuevaPartida();

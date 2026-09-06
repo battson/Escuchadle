@@ -6,10 +6,13 @@
    diseño y va versionada en el repositorio sin problema.
 
    Lo que protege la base son las reglas de Firestore, no esta
-   clave. Las reglas publicadas permiten:
-     - leer y escribir SOLO el documento escuchadle/dia, y solo
-       con los campos modo, cancion, salto, reinicio, actualizado;
-     - crear, leer y borrar en resultados, sin poder modificar.
+   clave. Las reglas (ver firestore.rules en la raíz) permiten:
+     - leer y escribir el documento escuchadle/dia, solo con los
+       campos modo, cancion, salto, reinicio, actualizado;
+     - leer y escribir el documento escuchadle/catalogo, solo con
+       los campos canciones, hoy, actualizado;
+     - crear, leer y borrar en resultados y sugerencias, sin poder
+       modificar.
    Si alguna vez querés cerrar la escritura, el camino es Firebase
    Auth con un usuario administrador, no esconder esto.
    ========================================================= */
@@ -28,6 +31,7 @@ window.NUBE_CONFIG = {
 window.NUBE_RUTAS = {
   coleccionConfig: "escuchadle",
   documentoDia: "dia",
+  documentoCatalogo: "catalogo",
   coleccionResultados: "resultados",
   coleccionSugerencias: "sugerencias"
 };

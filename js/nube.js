@@ -9,8 +9,9 @@
 
    Cómo habla con el resto del juego: por eventos en window, así
    juego.js no depende de que este archivo haya cargado.
-     window "nube:dia"     detail = {modo, cancion, salto, reinicio}
-     window "nube:estado"  detail = {ok, texto}
+     window "nube:dia"      detail = {modo, cancion, salto, reinicio}
+     window "nube:catalogo" detail = {existe, canciones, hoy, actualizado}
+     window "nube:estado"   detail = {ok, texto}
    Y al revés, juego.js llama a window.Nube.*, siempre con guarda:
    si este módulo no cargó, el juego sigue andando con js/dia.js.
 
@@ -22,14 +23,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/fireba
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentSingleTabManager,
   doc, setDoc, onSnapshot, collection, addDoc, deleteDoc, getDocs,
-  query, where, orderBy, limit, writeBatch
+  query, where, orderBy, limit, writeBatch, runTransaction
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 const CFG = window.NUBE_CONFIG || null;
-const RUTAS = window.NUBE_RUTAS || {
-  coleccionConfig: "escuchadle", documentoDia: "dia",
+const RUTAS = Object.assign({
+  coleccionConfig: "escuchadle", documentoDia: "dia", documentoCatalogo: "catalogo",
   coleccionResultados: "resultados", coleccionSugerencias: "sugerencias"
-};
+}, window.NUBE_RUTAS || {});
 
 function avisar(tipo, detalle){
   window.dispatchEvent(new CustomEvent(tipo, {detail: detalle}));
@@ -62,11 +63,59 @@ function sanear(d){
   };
 }
 
+/* ---------- catálogo ----------
+   Un documento único con el array entero de canciones más el pin del
+   día. Cada canción: {a, t, yt, g, ini, activa, sonada}.
+     activa   false = fuera del sorteo (a mano o porque ya sonó)
+     sonada   número de día (como diaHoy() del juego) en que fue la
+              canción del día; solo informativo
+   hoy: {dia, cancion} es la canción fijada para ese día. La fija el
+   primer jugador que entra (ver fijarHoy) y desde ahí todos la ven
+   igual, aunque el catálogo cambie durante el día. */
+const etiqueta = c => `${c.a} — ${c.t}`;
+function sanearCancion(c){
+  c = c || {};
+  const a = typeof c.a === "string" ? c.a.trim().slice(0,80) : "";
+  const t = typeof c.t === "string" ? c.t.trim().slice(0,80) : "";
+  if(!a || !t) return null;
+  const x = {a, t};
+  x.yt = typeof c.yt === "string" ? c.yt.trim().slice(0,20) : "";
+  if(typeof c.g === "string" && c.g.trim()) x.g = c.g.trim().slice(0,40);
+  if(Number.isFinite(+c.ini) && +c.ini > 0) x.ini = Math.min(600, +c.ini);
+  x.activa = c.activa !== false;
+  if(Number.isFinite(+c.sonada) && +c.sonada > 0) x.sonada = Math.trunc(+c.sonada);
+  return x;
+}
+function sanearCatalogo(d){
+  d = d || {};
+  const lista = Array.isArray(d.canciones) ? d.canciones.slice(0,600) : [];
+  const canciones = lista.map(sanearCancion).filter(Boolean);
+  const h = d.hoy && typeof d.hoy === "object" ? d.hoy : null;
+  const hoy = h && Number.isFinite(+h.dia) && typeof h.cancion === "string" && h.cancion
+    ? {dia: Math.trunc(+h.dia), cancion: h.cancion.slice(0,200)} : null;
+  return {
+    existe: true, canciones, hoy,
+    actualizado: Number.isFinite(+d.actualizado) ? +d.actualizado : null
+  };
+}
+/* Lo que se escribe: solo los campos con valor, sin undefined (Firestore
+   los rechaza) y sin campos de trabajo del juego (id, label). */
+function cancionADoc(c){
+  const x = sanearCancion(c); if(!x) return null;
+  const o = {a: x.a, t: x.t, yt: x.yt, activa: x.activa};
+  if(x.g) o.g = x.g;
+  if(x.ini) o.ini = x.ini;
+  if(x.sonada) o.sonada = x.sonada;
+  return o;
+}
+
 const Nube = {
   disponible: false,     /* el módulo cargó y Firebase arrancó */
   conectada: false,      /* además, la última operación anduvo */
   ultimoEstado: "Conectando…",
   publicarDia(){ return Promise.reject(new Error("La nube no está lista.")); },
+  publicarCatalogo(){ return Promise.reject(new Error("La nube no está lista.")); },
+  fijarHoy(){ return Promise.reject(new Error("La nube no está lista.")); },
   guardarSugerencia(){ return Promise.reject(new Error("La nube no está lista.")); },
   listarSugerencias(){ return Promise.reject(new Error("La nube no está lista.")); },
   borrarSugerencia(){ return Promise.reject(new Error("La nube no está lista.")); },
@@ -98,6 +147,7 @@ if(!CFG || !CFG.projectId){
     }
 
     const refDia = doc(db, RUTAS.coleccionConfig, RUTAS.documentoDia);
+    const refCatalogo = doc(db, RUTAS.coleccionConfig, RUTAS.documentoCatalogo);
     const refResultados = collection(db, RUTAS.coleccionResultados);
     const refSugerencias = collection(db, RUTAS.coleccionSugerencias);
 
@@ -116,6 +166,16 @@ if(!CFG || !CFG.projectId){
       estado(false, motivo(e));
     });
 
+    /* El catálogo también se escucha en vivo. Si el documento no existe
+       todavía (primera vez), se avisa igual: el juego sigue con
+       js/catalogo.js y el panel ofrece publicarlo. */
+    onSnapshot(refCatalogo, snap => {
+      if(!snap.exists()){ avisar("nube:catalogo", {existe: false}); return; }
+      avisar("nube:catalogo", sanearCatalogo(snap.data()));
+    }, e => {
+      estado(false, motivo(e));
+    });
+
     /* ---------- configuración del día ---------- */
     Nube.publicarDia = (d) => {
       const limpio = sanear(d);
@@ -125,6 +185,57 @@ if(!CFG || !CFG.projectId){
         salto: limpio.modo === "manual" ? 0 : limpio.salto,
         reinicio: limpio.reinicio,
         actualizado: Date.now()
+      }).catch(e => { throw new Error(motivo(e)); });
+    };
+
+    /* ---------- catálogo ---------- */
+    /* Reemplaza el documento entero. hoy puede venir null: entonces se
+       conserva el pin que ya estuviera publicado (si es de hoy). */
+    Nube.publicarCatalogo = (canciones, hoy) => {
+      const lista = (Array.isArray(canciones) ? canciones : []).map(cancionADoc).filter(Boolean);
+      if(!lista.length) return Promise.reject(new Error("El catálogo está vacío."));
+      return runTransaction(db, async tx => {
+        const snap = await tx.get(refCatalogo);
+        const previo = snap.exists() ? sanearCatalogo(snap.data()).hoy : null;
+        const pin = (hoy && Number.isFinite(+hoy.dia) && hoy.cancion)
+          ? {dia: Math.trunc(+hoy.dia), cancion: String(hoy.cancion).slice(0,200)}
+          : previo;
+        const nuevo = {canciones: lista, actualizado: Date.now()};
+        if(pin) nuevo.hoy = pin;
+        tx.set(refCatalogo, nuevo);
+        return sanearCatalogo(nuevo);
+      }).catch(e => { throw new Error(motivo(e)); });
+    };
+
+    /* Fija la canción de un día y la marca como sonada (activa:false).
+       Va en transacción para que dos jugadores que entran a la vez no se
+       pisen: gana el primero y el segundo recibe lo que ya estaba. Con
+       forzar (desde el panel) se reemplaza el pin del día y, si la
+       canción que se destrona se había desactivado por ese mismo pin, se
+       vuelve a activar: nadie llegó a jugarla entera.
+       Las transacciones no corren sin conexión, así que un navegador sin
+       señal nunca pisa el pin con datos viejos. Devuelve null si el
+       catálogo todavía no está en la nube. */
+    Nube.fijarHoy = ({dia, cancion, forzar = false}) => {
+      dia = Math.trunc(+dia); cancion = String(cancion || "").slice(0,200);
+      if(!Number.isFinite(dia) || !cancion) return Promise.reject(new Error("Faltan datos para fijar el día."));
+      return runTransaction(db, async tx => {
+        const snap = await tx.get(refCatalogo);
+        if(!snap.exists()) return null;
+        const cat = sanearCatalogo(snap.data());
+        const previo = cat.hoy;
+        if(previo && previo.dia === dia && (!forzar || previo.cancion === cancion)) return cat;
+        const canciones = cat.canciones.map(c => {
+          const x = Object.assign({}, c);
+          if(forzar && previo && previo.dia === dia && etiqueta(x) === previo.cancion && x.sonada === dia){
+            x.activa = true; delete x.sonada;
+          }
+          if(etiqueta(x) === cancion){ x.activa = false; x.sonada = dia; }
+          return x;
+        });
+        const nuevo = {canciones: canciones.map(cancionADoc).filter(Boolean), hoy: {dia, cancion}, actualizado: Date.now()};
+        tx.set(refCatalogo, nuevo);
+        return sanearCatalogo(nuevo);
       }).catch(e => { throw new Error(motivo(e)); });
     };
 
