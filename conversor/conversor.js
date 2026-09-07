@@ -1,29 +1,49 @@
 /* =========================================================
    Conversor de clips — Escuchadle Argento.
 
-   Panel local (no vive en GitHub Pages: ver README.md de esta carpeta)
-   que corta un fragmento corto de cada canción del catálogo con
-   yt-dlp + ffmpeg, a través de generate.php.
+   100% en el navegador, sin servidor: no hay PHP ni yt-dlp/ffmpeg.
+   No se descarga nada de YouTube (bajar el audio directo del CDN de
+   Google es imposible desde el navegador: las URLs vienen firmadas y
+   el propio servidor bloquea el fetch por CORS). En cambio:
+
+     1. Se reproduce la canción con el reproductor OFICIAL embebido de
+        YouTube (la misma IFrame API que usa el juego), arrancando en
+        el segundo `ini`.
+     2. Se graba el audio de ESTA PESTAÑA con getDisplayMedia +
+        MediaRecorder mientras suena (por eso tarda lo mismo que dura
+        el clip: no hay forma de acelerarlo).
+     3. El resultado (.webm/opus) se guarda con la File System Access
+        API directo en la carpeta que elijas, o se descarga si el
+        navegador no la soporta.
+
+   Solo anda en Chrome/Edge: Firefox y Safari no tienen ni
+   getDisplayMedia con audio de pestaña ni File System Access API.
 
    El catálogo se carga solo, igual que el juego: primero intenta la
    nube (Firestore, mismo documento escuchadle/catalogo) y si no hay
    conexión cae al respaldo js/catalogo.js.
 
-   Los clips se guardan como "Artista - Título.mp3": nombreClip() acá
-   tiene que dar exactamente el mismo resultado que nombre_clip() en
-   generate.php, porque el cliente arma la URL del audio con eso.
+   Los clips se guardan como "Artista - Título.webm".
    ========================================================= */
 
-// Deben coincidir con config.php.
-const CLIP_DURATION = 20;
-const CLIP_FORMAT = 'mp3';
+const CLIP_DURATION = 20; // segundos grabados por clip
+const CLIP_FORMAT = 'webm';
 
 const tabla = document.querySelector('#tabla tbody');
 const resumen = document.getElementById('resumen');
 const estadoCatalogo = document.getElementById('estadoCatalogo');
 const btnLote = document.getElementById('btnLote');
 const progreso = document.getElementById('progreso');
+const btnCarpeta = document.getElementById('btnCarpeta');
+const estadoCarpeta = document.getElementById('estadoCarpeta');
+const btnCaptura = document.getElementById('btnCaptura');
+const estadoCaptura = document.getElementById('estadoCaptura');
 document.getElementById('notaDuracion').textContent = CLIP_DURATION;
+
+let player = null;
+let onEstadoCambio = null;
+let audioStream = null;
+let dirHandle = null;
 
 const CARACTERES_INVALIDOS = new RegExp('[' + ['/', '\\\\', ':', '\\*', '\\?', '"', '<', '>', '\\|'].join('') + ']', 'g');
 
@@ -35,6 +55,176 @@ function nombreClip(artista, titulo) {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
+
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/* ---------- reproductor de YouTube ---------- */
+
+function cargarYouTubeAPI() {
+  return new Promise((resolve, reject) => {
+    if (window.YT && window.YT.Player) return resolve();
+    const previo = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (previo) previo(); resolve(); };
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.onerror = () => reject(new Error('No se pudo cargar la API de YouTube.'));
+    document.head.appendChild(tag);
+  });
+}
+
+function crearPlayer() {
+  return new Promise((resolve, reject) => {
+    try {
+      player = new YT.Player('ytplayer', {
+        width: 220,
+        height: 124,
+        playerVars: { autoplay: 0, controls: 1, disablekb: 1, modestbranding: 1, rel: 0 },
+        events: {
+          onReady: () => resolve(),
+          onError: e => console.warn('YouTube player error', e.data),
+          onStateChange: e => { if (onEstadoCambio) onEstadoCambio(e); }
+        }
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/* ---------- paso 1: carpeta de destino ---------- */
+
+async function elegirCarpeta() {
+  if (!window.showDirectoryPicker) return { ok: false, motivo: 'no-soportado' };
+  try {
+    dirHandle = await window.showDirectoryPicker({ id: 'escuchadle-clips' });
+    return { ok: true };
+  } catch (e) {
+    if (e.name === 'AbortError') return { ok: false, motivo: 'cancelado' };
+    throw e;
+  }
+}
+
+btnCarpeta.addEventListener('click', async () => {
+  try {
+    const r = await elegirCarpeta();
+    if (r.ok) {
+      estadoCarpeta.textContent = 'Carpeta lista: los clips se guardan ahí directo.';
+      estadoCarpeta.className = 'estado-paso ok';
+    } else if (r.motivo === 'no-soportado') {
+      estadoCarpeta.textContent = 'Tu navegador no soporta esto: los clips se van a descargar a tu carpeta de Descargas.';
+      estadoCarpeta.className = 'estado-paso aviso';
+    } else {
+      estadoCarpeta.textContent = 'Cancelado: los clips se van a descargar a tu carpeta de Descargas si generás igual.';
+      estadoCarpeta.className = 'estado-paso aviso';
+    }
+  } catch (e) {
+    estadoCarpeta.textContent = 'Error: ' + e.message;
+    estadoCarpeta.className = 'estado-paso err';
+  }
+});
+
+async function guardarBlob(nombreArchivo, blob) {
+  if (dirHandle) {
+    const fileHandle = await dirHandle.getFileHandle(nombreArchivo, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    return 'carpeta';
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return 'descarga';
+}
+
+/* ---------- paso 2: captura de audio de la pestaña ---------- */
+
+async function habilitarCaptura() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    throw new Error('Tu navegador no soporta capturar audio de pestaña (usá Chrome o Edge).');
+  }
+  const captura = await navigator.mediaDevices.getDisplayMedia({
+    video: true, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include'
+  });
+  const pistaAudio = captura.getAudioTracks()[0];
+  if (!pistaAudio) {
+    captura.getTracks().forEach(t => t.stop());
+    throw new Error('Compartiste sin audio: repetí y tildá "Compartir audio de la pestaña".');
+  }
+  captura.getVideoTracks().forEach(t => t.stop());
+  pistaAudio.addEventListener('ended', () => {
+    audioStream = null;
+    estadoCaptura.textContent = 'Se cortó la captura: volvé a habilitarla.';
+    estadoCaptura.className = 'estado-paso err';
+  });
+  audioStream = new MediaStream([pistaAudio]);
+}
+
+btnCaptura.addEventListener('click', async () => {
+  try {
+    await habilitarCaptura();
+    estadoCaptura.textContent = 'Captura de audio lista.';
+    estadoCaptura.className = 'estado-paso ok';
+  } catch (e) {
+    estadoCaptura.textContent = 'Error: ' + e.message;
+    estadoCaptura.className = 'estado-paso err';
+  }
+});
+
+function elegirMimeType() {
+  const candidatos = ['audio/webm;codecs=opus', 'audio/webm'];
+  return candidatos.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+}
+
+/* ---------- grabar un clip ---------- */
+
+async function grabarClip(yt, ini) {
+  if (!audioStream) throw new Error('Primero tenés que habilitar la captura de audio (paso 2).');
+  if (!player) throw new Error('El reproductor de YouTube todavía no está listo.');
+
+  await new Promise((resolve, reject) => {
+    let listo = false;
+    const limite = setTimeout(() => {
+      if (!listo) { onEstadoCambio = null; reject(new Error('YouTube no empezó a reproducir a tiempo.')); }
+    }, 8000);
+    onEstadoCambio = e => {
+      if (e.data === YT.PlayerState.PLAYING && !listo) {
+        listo = true;
+        clearTimeout(limite);
+        onEstadoCambio = null;
+        resolve();
+      }
+    };
+    player.loadVideoById({ videoId: yt, startSeconds: ini });
+  });
+
+  // Margen chico para que el audio ya esté sonando de lleno al arrancar a grabar.
+  await esperar(300);
+
+  const mimeType = elegirMimeType();
+  const recorder = mimeType ? new MediaRecorder(audioStream, { mimeType }) : new MediaRecorder(audioStream);
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const detenido = new Promise(resolve => { recorder.onstop = resolve; });
+
+  recorder.start();
+  await esperar(CLIP_DURATION * 1000);
+  recorder.stop();
+  await detenido;
+
+  try { player.pauseVideo(); } catch { /* no importa si ya no había video cargado */ }
+
+  return new Blob(chunks, { type: 'audio/webm' });
+}
+
+/* ---------- catálogo ---------- */
 
 async function cargarCatalogoNube() {
   const cfg = window.NUBE_CONFIG;
@@ -95,6 +285,8 @@ async function cargarCatalogo() {
   }
 }
 
+/* ---------- tabla ---------- */
+
 async function existeClip(nombre) {
   try {
     const resp = await fetch(`clips/${encodeURIComponent(nombre)}.${CLIP_FORMAT}`, { method: 'HEAD', cache: 'no-store' });
@@ -134,42 +326,49 @@ function filaHTML(c, nombre, generado) {
 }
 
 async function generarClip(fila) {
-  const { yt, ini, artista, titulo, nombre } = fila.dataset;
+  const { yt, ini, nombre } = fila.dataset;
   const estado = fila.querySelector('.estado');
   const celdaAudio = fila.querySelector('.celda-audio');
   const boton = fila.querySelector('button.gen');
 
-  estado.textContent = 'Generando…';
+  estado.textContent = `Grabando ${CLIP_DURATION}s…`;
   estado.className = 'estado pend';
   boton.disabled = true;
 
   try {
-    const params = new URLSearchParams({ yt, ini, artista, titulo });
-    const resp = await fetch(`generate.php?${params}`);
-    const datos = await resp.json();
+    const blob = await grabarClip(yt, Number(ini) || 0);
+    const archivo = `${nombre}.${CLIP_FORMAT}`;
+    const destino = await guardarBlob(archivo, blob);
 
-    if (datos.ok) {
-      estado.textContent = 'Generado';
-      estado.className = 'estado ok';
+    estado.textContent = 'Generado';
+    estado.className = 'estado ok';
+    if (destino === 'carpeta') {
       celdaAudio.innerHTML = audioHTML(nombre, true);
-      boton.textContent = 'Regenerar';
     } else {
-      estado.textContent = 'Error';
-      estado.className = 'estado err';
-      estado.title = datos.detalle || datos.error || '';
-      console.error('Error generando', nombre, datos);
+      celdaAudio.textContent = 'Descargado ⤓';
+      estado.title = 'Se descargó a tu carpeta de Descargas: movelo a mano a conversor/clips/.';
     }
+    boton.textContent = 'Regenerar';
   } catch (e) {
-    estado.textContent = 'Error de red';
+    estado.textContent = 'Error';
     estado.className = 'estado err';
-    estado.title = 'No se pudo llamar a generate.php. ¿Está corriendo el servidor PHP local? Ver README.md.';
-    console.error(e);
+    estado.title = e.message;
+    console.error('Error generando', nombre, e);
   } finally {
     boton.disabled = false;
   }
 }
 
 async function iniciar() {
+  try {
+    await cargarYouTubeAPI();
+    await crearPlayer();
+  } catch (e) {
+    console.error(e);
+    estadoCatalogo.textContent = 'No se pudo cargar el reproductor de YouTube: ' + e.message;
+    estadoCatalogo.className = 'estado-catalogo err';
+  }
+
   const canciones = await cargarCatalogo();
   const conYt = canciones.filter(c => c.yt);
 

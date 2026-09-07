@@ -13,17 +13,32 @@
 
 <header>
   <h1 title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
-  <p class="sub">Conversor de clips — herramienta local</p>
+  <p class="sub">Conversor de clips — 100% en el navegador, sin servidor</p>
 </header>
 
 <main>
   <p class="nota">
-    Corta un fragmento de <strong id="notaDuracion">20</strong>s de cada canción del catálogo
-    (desde el segundo <code>ini</code>) usando yt-dlp + ffmpeg, para no depender de llamar a
-    YouTube en vivo. <strong>Necesita correr con un servidor PHP local</strong>
-    (<code>php -S localhost:8899</code> desde la raíz del repositorio) — no funciona abierto
-    como archivo suelto ni publicado en GitHub Pages. Ver <code>README.md</code> de esta carpeta.
+    Reproduce cada canción con el reproductor oficial de YouTube desde el segundo
+    <code>ini</code> y graba <strong id="notaDuracion">20</strong>s del audio de esta pestaña
+    para armar un clip corto, sin descargar nada de YouTube. Funciona en <strong>Chrome o
+    Edge</strong> (no en Firefox/Safari). Cada clip tarda lo mismo que dura la grabación: no es
+    instantáneo. Ver <code>README.md</code> de esta carpeta.
   </p>
+
+  <div class="pasos">
+    <div class="paso">
+      <button id="btnCarpeta" class="btn btn-sec" type="button">1. Elegir carpeta de clips</button>
+      <span id="estadoCarpeta" class="estado-paso">Sin elegir (se van a descargar a mano si no la elegís).</span>
+    </div>
+    <div class="paso">
+      <button id="btnCaptura" class="btn btn-sec" type="button">2. Habilitar captura de audio</button>
+      <span id="estadoCaptura" class="estado-paso">Sin habilitar.</span>
+    </div>
+    <div class="paso reproductor">
+      <div id="ytplayer"></div>
+      <span class="estado-paso">Reproductor (tiene que quedar visible y con volumen para poder grabarlo).</span>
+    </div>
+  </div>
 
   <p id="estadoCatalogo" class="estado-catalogo">Cargando catálogo…</p>
 
