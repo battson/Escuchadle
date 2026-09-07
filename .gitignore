@@ -1,1 +1,6 @@
 js/config.js
+
+# Conversor de clips: los .mp3 generados no se versionan (son grandes y
+# se pueden regenerar en cualquier momento con conversor/generate.php).
+conversor/clips/*
+!conversor/clips/.gitkeep

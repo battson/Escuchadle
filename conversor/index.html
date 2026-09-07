@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversor de clips — Escuchadle</title>
+<link rel="icon" href="../imgs/vinilo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="conversor.css">
+</head>
+<body>
+
+<header>
+  <h1 title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
+  <p class="sub">Conversor de clips — 100% en el navegador, sin servidor</p>
+</header>
+
+<main>
+  <p class="nota">
+    Reproduce cada canción con el reproductor oficial de YouTube desde el segundo
+    <code>ini</code> y graba <strong id="notaDuracion">20</strong>s del audio de esta pestaña
+    para armar un clip corto, sin descargar nada de YouTube. Funciona en <strong>Chrome o
+    Edge</strong> (no en Firefox/Safari). Cada clip tarda lo mismo que dura la grabación: no es
+    instantáneo. Ver <code>README.md</code> de esta carpeta.
+  </p>
+
+  <div class="pasos">
+    <div class="paso">
+      <button id="btnCarpeta" class="btn btn-sec" type="button">1. Elegir carpeta de clips</button>
+      <span id="estadoCarpeta" class="estado-paso">Sin elegir (se van a descargar a mano si no la elegís).</span>
+    </div>
+    <div class="paso">
+      <button id="btnCaptura" class="btn btn-sec" type="button">2. Habilitar captura de audio</button>
+      <span id="estadoCaptura" class="estado-paso">Sin habilitar.</span>
+    </div>
+    <div class="paso reproductor">
+      <div id="ytplayer"></div>
+      <span class="estado-paso">Reproductor (tiene que quedar visible y con volumen para poder grabarlo).</span>
+    </div>
+  </div>
+
+  <p id="estadoCatalogo" class="estado-catalogo">Cargando catálogo…</p>
+
+  <div class="barra">
+    <button id="btnLote" class="btn btn-play" type="button">Generar todos los pendientes</button>
+    <span id="progreso" class="progreso"></span>
+  </div>
+
+  <p id="resumen" class="resumen"></p>
+
+  <div class="tabla-wrap">
+    <table id="tabla">
+      <thead>
+        <tr><th>Artista</th><th>Título</th><th>Género</th><th>ini</th><th>Estado</th><th>Clip</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="../js/nube-config.js"></script>
+<script type="module" src="conversor.js"></script>
+</body>
+</html>
