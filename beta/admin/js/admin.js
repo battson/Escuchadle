@@ -19,29 +19,6 @@ const plural=(n,s,p)=>`${n} ${n===1?s:p}`;
 const hayNube=()=>!!(window.Nube&&window.Nube.disponible);
 const esFinde=()=>[0,6].includes(new Date().getDay());
 
-/* ---------- modo claro/oscuro ----------
-   Mismo esquema que el juego: oscuro por defecto (el script inline del
-   <head> ya aplicó data-tema antes de pintar si el navegador tenía
-   guardado "claro"). El botón vivía en el header, que se sacó del
-   panel; si en algún momento vuelve a haber un #btnTema acá, esto lo
-   engancha solo. */
-function temaActual(){return document.documentElement.dataset.tema==="claro"?"claro":"oscuro"}
-function pintarBtnTema(){
-  const btn=$("#btnTema"); if(!btn) return;
-  const claro=temaActual()==="claro";
-  const etiqueta=claro?"Cambiar a modo oscuro":"Cambiar a modo claro";
-  btn.textContent=claro?"☀":"🌙";
-  btn.title=etiqueta;
-  btn.setAttribute("aria-label",etiqueta);
-}
-if($("#btnTema")) $("#btnTema").onclick=()=>{
-  const nuevo=temaActual()==="claro"?"oscuro":"claro";
-  if(nuevo==="claro") document.documentElement.dataset.tema="claro";
-  else delete document.documentElement.dataset.tema;
-  try{localStorage.setItem("ea_tema",nuevo)}catch{}
-  pintarBtnTema();
-};
-pintarBtnTema();
 const aFila=r=>({fecha:r.fecha,nombre:r.nombre||"",cancion:r.cancion,
                  intentos:r.gano?(r.intentos||0):0,marcas:r.marcas||[]});
 

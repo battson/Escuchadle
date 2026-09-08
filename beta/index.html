@@ -46,20 +46,11 @@
     if(clasica) document.documentElement.dataset.vista="clasica";
     document.write('<link rel="stylesheet" id="hojaEstilos" href="css/'+(clasica?"clasico.css?v=1":"estilos.css?v=25")+'">');
   </script>
-  <script>
-    /* Oscuro es el predeterminado; solo se pasa a claro si el navegador
-       ya lo tenía guardado. Va acá, antes de pintar, para no parpadear
-       en oscuro un instante y después saltar a claro. No aplica en la
-       vista clásica: esa hoja no tiene modo claro. */
-    try{ if(!clasica&&localStorage.getItem("ea_tema")==="claro") document.documentElement.dataset.tema="claro"; }catch{}
-  </script>
 </head>
 <body class="pagina-juego">
 <!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
      tiene datos de la semana anterior; si no hubo ganador, no aparece. -->
 <div class="ganador" id="ganador" hidden></div>
-
-<button class="tema-toggle" id="btnTema" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">🌙</button>
 
 <header>
   <div class="titulo-tab">
