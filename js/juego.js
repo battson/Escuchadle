@@ -553,15 +553,24 @@ function fijarMediaSessionNeutra(){
 /* Los botones de play/pausa del widget del sistema (SMTC en Windows,
    notificación de Chrome, etc.) tocan el audio por fuera del juego: no
    pasan por reproducir()/detener() y por lo tanto ignoran el límite de
-   segundos del intento actual. Marcarlos como no soportados hace que el
-   navegador los oculte del widget, dejando solo el botón de la página
-   -que sí respeta el límite- como forma de escuchar. Se llama una sola
-   vez; algún navegador viejo puede no reconocer alguna acción, de ahí
-   el try/catch por acción. */
+   segundos del intento actual. "play" y "pause" son acciones que el
+   navegador siempre expone mientras haya un audio/video activo -pasarles
+   setActionHandler(...,null) no los oculta, solo deshace un handler
+   propio y el navegador vuelve a controlarlos él mismo-. Lo que sí evita
+   el navegador es su manejo por defecto en cuanto le pasás una función
+   real: acá se las deja sin efecto (no reanudan ni pausan nada), así el
+   botón sigue visible en el widget pero no sirve para seguir escuchando
+   fuera del límite del intento. Las demás acciones (seek, next, etc.) sí
+   se pueden ocultar con null. Se llama una sola vez; algún navegador
+   viejo puede no reconocer alguna acción, de ahí el try/catch. */
 function desactivarControlesMediaSession(){
   if(!("mediaSession" in navigator)) return;
-  ["play","pause","stop","seekbackward","seekforward","seekto","previoustrack","nexttrack"]
-    .forEach(accion=>{try{navigator.mediaSession.setActionHandler(accion,null)}catch{}});
+  ["play","pause","stop"].forEach(accion=>{
+    try{navigator.mediaSession.setActionHandler(accion,()=>{})}catch{}
+  });
+  ["seekbackward","seekforward","seekto","previoustrack","nexttrack"].forEach(accion=>{
+    try{navigator.mediaSession.setActionHandler(accion,null)}catch{}
+  });
 }
 desactivarControlesMediaSession();
 function fijarEstadoMediaSession(valor){
