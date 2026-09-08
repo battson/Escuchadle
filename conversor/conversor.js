@@ -98,7 +98,19 @@ function crearPlayer() {
 async function elegirCarpeta() {
   if (!window.showDirectoryPicker) return { ok: false, motivo: 'no-soportado' };
   try {
-    dirHandle = await window.showDirectoryPicker({ id: 'escuchadle-clips' });
+    // Sin mode:'readwrite' acá, el picker solo da permiso de lectura: al
+    // escribir el archivo bastante después (tras los 20s de grabación, ya
+    // sin "activación de usuario" reciente) el navegador rechaza pedir el
+    // permiso de escritura con un SecurityError. Pidiéndolo ahora, en el
+    // momento del clic, se evita ese problema.
+    dirHandle = await window.showDirectoryPicker({ id: 'escuchadle-clips', mode: 'readwrite' });
+    if ((await dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+      const permiso = await dirHandle.requestPermission({ mode: 'readwrite' });
+      if (permiso !== 'granted') {
+        dirHandle = null;
+        return { ok: false, motivo: 'sin-permiso' };
+      }
+    }
     return { ok: true };
   } catch (e) {
     if (e.name === 'AbortError') return { ok: false, motivo: 'cancelado' };
@@ -115,6 +127,9 @@ btnCarpeta.addEventListener('click', async () => {
     } else if (r.motivo === 'no-soportado') {
       estadoCarpeta.textContent = 'Tu navegador no soporta esto: los clips se van a descargar a tu carpeta de Descargas.';
       estadoCarpeta.className = 'estado-paso aviso';
+    } else if (r.motivo === 'sin-permiso') {
+      estadoCarpeta.textContent = 'No diste permiso de escritura: los clips se van a descargar a tu carpeta de Descargas.';
+      estadoCarpeta.className = 'estado-paso aviso';
     } else {
       estadoCarpeta.textContent = 'Cancelado: los clips se van a descargar a tu carpeta de Descargas si generás igual.';
       estadoCarpeta.className = 'estado-paso aviso';
@@ -127,11 +142,20 @@ btnCarpeta.addEventListener('click', async () => {
 
 async function guardarBlob(nombreArchivo, blob) {
   if (dirHandle) {
-    const fileHandle = await dirHandle.getFileHandle(nombreArchivo, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-    return 'carpeta';
+    try {
+      const fileHandle = await dirHandle.getFileHandle(nombreArchivo, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return 'carpeta';
+    } catch (e) {
+      // Si el permiso se perdió entre medio (el navegador puede revocarlo),
+      // no tirar todo abajo: caer a la descarga manual para este clip.
+      console.warn('No se pudo escribir en la carpeta elegida, se descarga en su lugar:', e);
+      dirHandle = null;
+      estadoCarpeta.textContent = 'Se perdió el permiso de la carpeta: volvé a elegirla. Mientras tanto, los clips se descargan.';
+      estadoCarpeta.className = 'estado-paso aviso';
+    }
   }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
