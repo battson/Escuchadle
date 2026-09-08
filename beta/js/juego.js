@@ -879,11 +879,10 @@ function pintarRanking(){
 }
 function verVista(v){vistaTabla=v; pintarRanking()}
 
-/* ---------- el ranking, plegado al costado ----------
-   Es la única tabla que hay: se encima sobre la página, no la
-   corre, y arranca cerrada en cada carga. Se abre con la lengüeta
-   del borde o con el trofeo de la cabecera, que hace de llave de
-   luz: si está abierta, la cierra. */
+/* ---------- el ranking, al costado ----------
+   Es la única tabla que hay: se encima sobre la página y arranca
+   abierta en cada carga. El link "Ranking" de la cabecera hace de
+   llave de luz: si está abierta, la cierra, y viceversa. */
 function verLateral(mostrar){
   const lat=$("#lateral");
   const plegar = mostrar===undefined ? !lat.classList.contains("plegado") : !mostrar;
@@ -1034,3 +1033,6 @@ $("#titulo").addEventListener("click",()=>{
 });
 
 nuevaPartida();
+/* El panel de ranking arranca visible (ver verLateral más arriba): trae
+   los datos ya de entrada, no recién cuando alguien lo abre. */
+traerRanking(false);

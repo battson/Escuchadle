@@ -154,7 +154,7 @@
     width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
     gap:10px;margin-bottom:38px
   }
-  .pagina-juego{
+  .pagina-juego .titulo-tab{
     background:var(--vidrio);border:1px solid var(--borde);border-top:0;
     border-radius:0 0 22px 22px;padding:14px 34px 12px;
     backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
@@ -264,13 +264,22 @@
   .intento .ic{width:10px;height:10px;border-radius:50%;flex:none;}
   .mal .ic{background:var(--rojo)} .artista .ic{background:var(--sol)} .bien .ic{background:var(--verde)} .salto .ic{background:var(--gris)}
 
-  /* ---------- buscador ---------- */
+  /* ---------- buscador ----------
+     #zonaJuego agrupa el buscador y las acciones (Saltar/Enviar) en un
+     único recuadro: cada franja se separa de la siguiente con un borde
+     fino, y overflow:hidden hace que el redondeado del contenedor recorte
+     las esquinas de la última franja (Enviar) sin que el botón tenga que
+     saber su propio radio. */
+  .zona-juego{
+    display:flex;flex-direction:column;
+    border:1px solid var(--borde);border-radius:var(--radio);overflow:hidden;
+    background:var(--pista);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+  }
   .buscador{position:relative}
   .buscador input{
-    width:100%;padding:14px 16px;border:none;border-bottom:1px solid var(--borde);
+    width:100%;padding:14px 16px;border:none;
     background:none;color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
   }
-  .buscador input:focus{border-color:var(--celeste)}
   .buscador input::placeholder{color:var(--gris)}
   .lista{
     position:absolute;left:0;right:0;bottom:calc(100% + 6px);max-height:240px;overflow:auto;
@@ -281,8 +290,11 @@
   .lista div{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--borde)}
   .lista div:last-child{border-bottom:0}
   .lista div:hover,.lista div.sel{background:var(--pista);color:var(--celeste)}
-  .acciones{display:flex;gap:10px}
-  .acciones .btn{flex:1}
+  .acciones{display:flex;flex-direction:column;gap:0}
+  .acciones .btn{
+    flex:1;width:100%;border-radius:0;border:0;border-top:1px solid var(--borde);
+    background:transparent
+  }
   .btn-ok{background:var(--sol);color:var(--noche)}
 
   /* ---------- resultado ---------- */

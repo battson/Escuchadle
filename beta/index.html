@@ -63,13 +63,13 @@
 
 <header>
   <div class="titulo-tab">
-    <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE ARGENTO</h1>
+    <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE ARGENTO <span>2</span></h1>
   </div>
   <div class="cabecera-der">
     <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
     <button class="link-min" id="btnAyuda" title="Cómo se juega">Ayuda</button>
     <button class="link-min" id="btnTabla" title="Ranking"
-            aria-expanded="false" aria-controls="lateral">Ranking</button>
+            aria-expanded="true" aria-controls="lateral">Ranking</button>
     <button class="btn-pildora" id="btnVista" hidden>Vista clásica</button>
   </div>
 </header>
@@ -246,7 +246,7 @@
 
 <!-- ---------- panel lateral de ranking (prueba, solo en este navegador) ----------
      Se enciende desde el panel de administración. No existe en celular. -->
-<aside class="lateral plegado" id="lateral">
+<aside class="lateral" id="lateral">
   <button class="lateral-lengueta" id="lateralLengueta" aria-expanded="false"
           aria-controls="lateralCuerpo" title="Plegar / desplegar">
     <span class="lateral-flecha" aria-hidden="true">›</span>
