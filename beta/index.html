@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escuchadle Argento — adiviná la canción</title>
+<meta name="description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta name="theme-color" content="#0E1524">
+<link rel="icon" href="imgs/vinilo.svg" type="image/svg+xml">
+<link rel="alternate icon" href="imgs/vinilo.png" type="image/png">
+<link rel="canonical" href="https://battson.github.io/Escuchadle/">
+
+<!-- ---------- tarjeta para compartir ----------
+     Lo que se ve cuando alguien pega el link en WhatsApp, Instagram
+     o Discord. La imagen VA CON URL ABSOLUTA: con ruta relativa
+     ninguna de esas apps la encuentra.
+
+     WhatsApp y Facebook guardan esta tarjeta en caché por mucho
+     tiempo. Si algún día cambiás la imagen, cambiale también el
+     ?v= del final para que la vuelvan a leer. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Escuchadle Argento">
+<meta property="og:title" content="Escuchadle Argento — adiviná la canción">
+<meta property="og:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta property="og:url" content="https://battson.github.io/Escuchadle/">
+<meta property="og:image" content="https://battson.github.io/Escuchadle/imgs/OpenGraph.jpg?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Escuchadle Argento">
+<meta property="og:locale" content="es_AR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Escuchadle Argento — adiviná la canción">
+<meta name="twitter:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta name="twitter:image" content="https://battson.github.io/Escuchadle/imgs/OpenGraph.jpg?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css?v=22">
+</head>
+<body>
+<!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
+     tiene datos de la semana anterior; si no hubo ganador, no aparece. -->
+<div class="ganador" id="ganador" hidden></div>
+<header>
+  <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br><span>ARGENTO</span></h1>
+  <div class="cabecera-der">
+    <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
+    <button class="btn-pildora" id="btnTabla" title="Ranking"
+            aria-expanded="false" aria-controls="lateral">
+      <img src="imgs/ranking.svg" alt="" class="ico"> Ranking
+    </button>
+    <button class="btn-pildora" id="btnSugerir">Dejar comentario</button>
+    <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
+  </div>
+</header>
+
+<main>
+  <section class="escenario">
+    <div class="tocadiscos">
+      <div id="ytplayer"></div>
+      <img class="vinilo" id="vinilo" src="imgs/vinilo.svg" alt="" aria-hidden="true" draggable="false">
+    </div>
+    <div class="controles">
+      <div class="barra" id="barra" aria-hidden="true">
+        <div class="desbloq" id="desbloq"></div>
+        <div class="progreso" id="progreso"></div>
+      </div>
+      <div class="tiempos"><span id="tActual">0:00</span><span id="tTotal">0:16</span></div>
+      <div class="play">
+        <button class="btn btn-play" id="btnPlay">▶ Escuchar</button>
+        <span class="estado" id="estado">Cargando canción…</span>
+      </div>
+      <div class="pauta" id="pauta" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="pistas" id="pistas" aria-live="polite" hidden></section>
+
+  <section class="intentos" id="intentos" aria-live="polite"></section>
+
+  <section id="zonaJuego" style="display:flex;flex-direction:column;gap:10px">
+    <div class="buscador">
+      <div class="lista" id="lista" role="listbox"></div>
+      <input id="busqueda" type="text" placeholder="Buscá artista o canción…" autocomplete="off" aria-label="Tu intento">
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" id="btnSaltar">Saltar (+1s)</button>
+      <button class="btn btn-ok" id="btnEnviar" disabled>Enviar</button>
+    </div>
+  </section>
+
+  <section class="zona-cerrada" id="zonaCerrada" hidden>
+    <button class="btn btn-ok" id="btnVerResultado">Ver resultado</button>
+  </section>
+
+  <!-- Fin de semana: reemplaza a todo el juego. El cartel es una
+       ilustración; debajo va la tabla de la semana que acaba de cerrar,
+       en solo lectura. -->
+  <section class="finde" id="finde" hidden>
+    <img class="finde-cartel" src="imgs/cartel.svg"
+         alt="Cerrado. Volvé el lunes para seguir jugando. ¡Muchas gracias!">
+    <div class="finde-ranking">
+      <div class="finde-leyenda">Te dejamos el ranking de esta semana</div>
+      <div class="tabla-estado" id="findeEstado"></div>
+      <div class="tabla" id="findeTabla"></div>
+    </div>
+    <div class="finde-acciones">
+      <button class="btn btn-sec" id="btnFindeSugerir">Dejar una sugerencia</button>
+    </div>
+  </section>
+</main>
+
+<!-- Marca de agua fija, decorativa: no captura clics. -->
+<img class="malvinas" src="imgs/malvinas.svg" alt="" aria-hidden="true" draggable="false">
+
+
+<!-- ---------- ventana de ayuda ---------- -->
+<div class="modal" id="modalAyuda" role="dialog" aria-modal="true" aria-labelledby="tituloAyuda" hidden>
+  <div class="modal-caja ayuda">
+    <div class="modal-cab">
+      <strong id="tituloAyuda">Cómo se juega</strong>
+      <button class="modal-x" data-cerrar="modalAyuda" aria-label="Cerrar">×</button>
+    </div>
+
+    <p>Suena un pedacito de una canción argentina y tenés <b>seis intentos</b> para
+    decir cuál es. Hay una sola por día y es la misma para todo el mundo.</p>
+
+    <ol class="ayuda-pasos">
+      <li><b>Escuchá.</b> Tocá <i>▶ Escuchar</i> (o apretá la barra espaciadora).
+      La primera vez suena <b>un segundo</b> nada más.</li>
+      <li><b>Tirá tu apuesta.</b> Escribí en el buscador: te va sugiriendo canciones
+      del catálogo. Elegí una de la lista y tocá <i>Enviar</i>.</li>
+      <li><b>Si errás, ganás tiempo.</b> Cada intento fallido alarga el fragmento:
+      <b>1 · 2 · 4 · 7 · 11 · 16</b> segundos.</li>
+      <li><b>¿No se te ocurre nada?</b> <i>Saltar</i> te gasta un intento, pero te
+      destraba los segundos siguientes sin arriesgar.</li>
+    </ol>
+
+    <details class="ayuda-bloque" name="ayuda">
+      <summary class="ayuda-titulo">Qué significa cada color</summary>
+      <div class="ayuda-cuerpo">
+      <ul class="leyenda">
+        <li><span class="pt verde"></span> Le pegaste: canción y artista.</li>
+        <li><span class="pt sol"></span> Acertaste el artista, pero no la canción.</li>
+        <li><span class="pt rojo"></span> Ni una cosa ni la otra.</li>
+        <li><span class="pt gris"></span> Intento salteado.</li>
+      </ul>
+      </div>
+    </details>
+
+    <details class="ayuda-bloque" name="ayuda">
+      <summary class="ayuda-titulo">Las pistas</summary>
+      <div class="ayuda-cuerpo">
+      <p>Son <b>tres</b> y aparecen recién sobre el final, una por intento, cuando
+      ya te quedan pocas balas:</p>
+      <ul class="leyenda">
+        <li><b>4.º intento</b> — el <b>género</b> de la canción.</li>
+        <li><b>5.º intento</b> — cuántas palabras y letras tiene el <b>título</b>.</li>
+        <li><b>6.º intento</b> — cuántas palabras y letras tiene el <b>artista</b>.</li>
+      </ul>
+      <p>Hasta entonces las vas a ver con candado 🔒, para que sepas qué se viene.</p>
+      </div>
+    </details>
+
+    <details class="ayuda-bloque" name="ayuda">
+      <summary class="ayuda-titulo">El ranking</summary>
+      <div class="ayuda-cuerpo">
+      <p>Cuanto antes la saques, más puntos:</p>
+      <ul class="leyenda puntos">
+        <li><b>6 pts</b> al 1.er intento</li>
+        <li><b>5 pts</b> al 2.º</li>
+        <li><b>4 pts</b> al 3.º</li>
+        <li><b>3 pts</b> al 4.º</li>
+        <li><b>2 pts</b> al 5.º</li>
+        <li><b>1 pt</b> al 6.º</li>
+      </ul>
+      <p>Si no la sacás, cero. La tabla es <b>semanal, de lunes a viernes</b>, y
+      arranca de nuevo cada lunes; el histórico, en cambio, no se borra nunca.</p>
+      <p><b>Ojo:</b> para figurar tenés que escribir tu nombre <b>y</b> tocar
+      <i>Enviar al ranking</i> al terminar. Sin eso tu partida queda guardada
+      pero no suma puntos.</p>
+      <p>La tabla vive plegada en el borde derecho: se abre con el botón <i>Ranking</i> de arriba
+      o tocando la lengüeta, y se cierra igual.</p>
+      </div>
+    </details>
+
+    <details class="ayuda-bloque" name="ayuda">
+      <summary class="ayuda-titulo">Días de juego</summary>
+      <div class="ayuda-cuerpo">
+      <p>De lunes a viernes, una canción por día. Los fines de semana el juego
+      cierra. Y si dejás una partida a medio jugar y se te pasa el día, la perdés:
+      no se puede retomar al otro día.</p>
+      </div>
+    </details>
+
+    <p class="modal-nota">El audio sale del reproductor oficial de YouTube. Si cerrás
+    la página, la partida del día te queda donde la dejaste.</p>
+  </div>
+</div>
+
+<!-- ---------- ventana de resultado ---------- -->
+<div class="modal" id="modalResultado" role="dialog" aria-modal="true" aria-labelledby="resTitulo" hidden>
+  <div class="modal-caja resultado">
+    <div class="modal-cab">
+      <span></span>
+      <button class="modal-x" data-cerrar="modalResultado" aria-label="Cerrar">×</button>
+    </div>
+    <div class="titulo" id="resTitulo"></div>
+    <div class="cancion" id="resCancion"></div>
+    <div class="emojis" id="resEmojis"></div>
+    <div class="stats">
+      <div><b id="stJugadas">0</b>jugadas</div>
+      <div><b id="stGanadas">0</b>ganadas</div>
+      <div><b id="stRacha">0</b>racha</div>
+    </div>
+    <div class="firma">
+      <label for="nombre">Tu nombre para el ranking</label>
+      <input id="nombre" type="text" maxlength="24" placeholder="Cómo querés figurar" autocomplete="nickname">
+      <span class="firma-aviso" id="firmaAviso"></span>
+      <span class="firma-regla">Sin nombre no suma puntos: hay que escribirlo <b>y</b> tocar Enviar para entrar en la tabla.</span>
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" id="btnCopiar">Copiar resultado</button>
+      <button class="btn btn-ok" id="btnEnviarRanking">Enviar al ranking</button>
+    </div>
+    <button class="btn btn-sec" id="btnVerTabla">Ver la tabla</button>
+    <button class="btn btn-sec" id="btnOtra" hidden>Otra canción</button>
+    <div class="nota-manana" id="notaManana" hidden>La del día ya está jugada. Volvé mañana por otra.</div>
+  </div>
+</div>
+
+<!-- ---------- panel lateral de ranking (prueba, solo en este navegador) ----------
+     Se enciende desde el panel de administración. No existe en celular. -->
+<aside class="lateral plegado" id="lateral">
+  <button class="lateral-lengueta" id="lateralLengueta" aria-expanded="false"
+          aria-controls="lateralCuerpo" title="Plegar / desplegar">
+    <span class="lateral-flecha" aria-hidden="true">›</span>
+    <span class="lateral-vertical">RANKING</span>
+  </button>
+  <div class="lateral-cuerpo" id="lateralCuerpo">
+    <div class="lateral-cab">
+      <strong><img src="imgs/ranking.svg" alt="" class="ico"> Ranking</strong>
+      <span id="lateralSemana"></span>
+    </div>
+    <div class="solapas chicas" role="tablist">
+      <button id="latSemana" class="activo" role="tab">Semana</button>
+      <button id="latTodo" role="tab">Histórico</button>
+    </div>
+    <div class="tabla-estado" id="latEstado"></div>
+    <div class="tabla" id="latTabla"></div>
+    <button class="btn btn-sec" id="latActualizar">Actualizar</button>
+  </div>
+</aside>
+
+<!-- ---------- sugerencias ---------- -->
+<div class="modal" id="modalSugerir" role="dialog" aria-modal="true" aria-labelledby="tituloSugerir" hidden>
+  <div class="modal-caja">
+    <div class="modal-cab">
+      <strong id="tituloSugerir">Comentarios y sugerencias</strong>
+      <button class="modal-x" data-cerrar="modalSugerir" aria-label="Cerrar">×</button>
+    </div>
+    <p>¿Falta una canción? ¿Algo no anda? ¿Se te ocurre algo mejor? Contame.</p>
+    <div class="campo">
+      <div class="opciones fila">
+        <label><input type="radio" name="firmaSug" id="sugFirmado" value="firmado" checked> Con mi nombre</label>
+        <label><input type="radio" name="firmaSug" id="sugAnonimo" value="anonimo"> Anónimo</label>
+      </div>
+      <input id="sugNombre" type="text" maxlength="24" placeholder="Tu nombre" autocomplete="nickname">
+      <textarea id="sugMensaje" maxlength="600" rows="5" placeholder="Escribí acá tu comentario o sugerencia…"></textarea>
+      <span class="firma-aviso" id="sugAviso"></span>
+    </div>
+    <button class="btn btn-ok" id="btnSugEnviar" disabled>Enviar</button>
+  </div>
+</div>
+
+<!-- ---------- clave del panel ---------- -->
+<div class="modal" id="modalClave" role="dialog" aria-modal="true" aria-labelledby="tituloClave" hidden>
+  <div class="modal-caja angosta">
+    <div class="modal-cab">
+      <strong id="tituloClave">Panel reservado</strong>
+      <button class="modal-x" data-cerrar="modalClave" aria-label="Cerrar">×</button>
+    </div>
+    <div class="campo">
+      <label for="claveEntrada">Contraseña</label>
+      <input id="claveEntrada" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
+      <span class="firma-aviso" id="claveAviso"></span>
+    </div>
+    <button class="btn btn-ok" id="btnClave">Entrar</button>
+  </div>
+</div>
+
+<!-- ---------- panel reservado ---------- -->
+<div class="modal" id="modalPanel" role="dialog" aria-modal="true" aria-labelledby="tituloPanel" hidden>
+  <div class="modal-caja panel" id="panel">
+    <div class="modal-cab panel-cab">
+      <button class="hamburguesa" id="panelMenu" aria-label="Secciones" aria-expanded="false">☰</button>
+      <strong id="tituloPanel">Panel reservado</strong>
+      <button class="modal-x" data-cerrar="modalPanel" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="panel-cuerpo">
+      <div class="panel-velo" id="panelVelo" hidden></div>
+      <nav class="panel-nav" id="panelNav" aria-label="Secciones del panel">
+        <button data-ir="dia" class="activo">Canción del día</button>
+        <button data-ir="juego">Modo de juego</button>
+        <button data-ir="ranking">Ranking</button>
+        <button data-ir="sugerencias">Sugerencias</button>
+        <button data-ir="vista">Vista y pruebas</button>
+        <button data-ir="catalogo">Catálogo / IDs</button>
+        <button data-ir="datos">Partida y resultados</button>
+        <a href="conversor/" target="_blank" rel="noopener" class="panel-nav-externo">Conversor de clips ↗</a>
+      </nav>
+
+      <div class="panel-cont" id="panelCont">
+      <section class="panel-sec" data-sec="dia" hidden>
+        <h3 class="panel-sec-titulo">Canción del día</h3>
+  <div class="panel-bloque">
+    <div class="panel-titulo">Canción del día</div>
+    <div class="opciones">
+      <label><input type="radio" name="modoDia" id="diaAuto" value="auto"> Automática, por fecha</label>
+      <label><input type="radio" name="modoDia" id="diaManual" value="manual"> A elección</label>
+    </div>
+    <select id="selCancion" aria-label="Canción del día"></select>
+    <div id="estadoNube" class="nube-estado">Conectando con la nube…</div>
+    <div class="verif-cab">
+      <span id="estadoDia"></span>
+      <button class="btn btn-sec" id="btnSortear">Sortear otra</button>
+      <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
+    </div>
+    <div class="publicar">
+      <div class="panel-titulo">Respaldo para <code>js/dia.js</code> — solo por si algún día la nube no carga</div>
+      <pre class="codigo" id="vistaDia"></pre>
+      <button class="btn btn-sec" id="btnCopiarDia">Copiar respaldo</button>
+    </div>
+    <p class="panel-ayuda"><b>Sortear otra</b> deja el modo automático como está pero corre el sorteo: hoy cae otra canción al azar y la secuencia sigue desde ahí. <b>A elección</b> es para fijar una canción puntual a mano.<br><br>
+    Lo que tocás acá se publica solo: le llega a cualquiera que tenga el juego abierto en el momento, sin que recargue nada. Ya no hay que subir <code>js/dia.js</code> al repositorio.<br><br>
+    <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
+  </div>
+      </section>
+      <section class="panel-sec" data-sec="juego" hidden>
+        <h3 class="panel-sec-titulo">Modo de juego</h3>
+  <div class="panel-bloque">
+    <div class="panel-titulo">Modo de juego</div>
+    <div class="modo" role="group" aria-label="Modo de juego">
+      <button id="modoDiario" class="activo">Del día</button>
+      <button id="modoLibre">Libre</button>
+    </div>
+    <p class="panel-ayuda">El modo libre saca una canción al azar, no guarda la partida y no cuenta para las estadísticas. Solo se puede entrar desde acá.</p>
+  </div>
+      </section>
+      <section class="panel-sec" data-sec="ranking" hidden>
+        <h3 class="panel-sec-titulo">Ranking</h3>
+  <div class="panel-bloque">
+    <div class="panel-titulo">Ranking en la nube</div>
+    <div class="verif-cab">
+      <span id="estadoRanking"></span>
+      <button class="btn btn-sec" id="btnRanking">Actualizar</button>
+      <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
+    </div>
+    <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el botón Ranking de la cabecera. La ✕ borra una fila suelta.</p>
+    <div id="rankLista"></div>
+  </div>
+      </section>
+      <section class="panel-sec" data-sec="sugerencias" hidden>
+        <h3 class="panel-sec-titulo">Sugerencias</h3>
+  <div class="panel-bloque">
+    <div class="panel-titulo">Lo que mandaron los jugadores</div>
+    <div class="verif-cab">
+      <span id="estadoSug"></span>
+      <button class="btn btn-sec" id="btnSugActualizar">Actualizar</button>
+    </div>
+    <p class="panel-ayuda">Comentarios y sugerencias enviados desde el pie del juego, los más nuevos primero. La ✕ borra uno. Si dice que las reglas rechazaron la operación, falta habilitar la colección <code>sugerencias</code> en Firestore.</p>
+    <div id="sugLista"></div>
+  </div>
+      </section>
+      <section class="panel-sec" data-sec="vista" hidden>
+        <h3 class="panel-sec-titulo">Vista y pruebas</h3>
+  <div class="panel-bloque">
+    <div class="panel-titulo">Fin de semana</div>
+    <label class="interruptor"><input type="checkbox" id="swFinde"> Dejarme jugar igual los sábados y domingos</label>
+    <p class="panel-ayuda">El juego cierra los fines de semana para todo el mundo. Esto saltea el cartel <b>solo en esta computadora</b>, para poder probar. El panel, en cambio, abre los siete días sin necesidad de tocar nada.</p>
+  </div>
+      </section>
+      <section class="panel-sec" data-sec="catalogo" hidden>
+        <h3 class="panel-sec-titulo">Catálogo</h3>
+
+  <!-- Catálogo: vive en Firestore (escuchadle/catalogo). Se edita acá y
+       se publica con un botón; js/catalogo.js quedó como respaldo. -->
+  <div class="panel-bloque">
+    <div class="verif-cab"><span id="catEstado"></span></div>
+    <div class="solapas chicas" role="tablist">
+      <button id="catSolEditar" class="activo" role="tab">Editar</button>
+      <button id="catSolSonadas" role="tab">Ya sonaron</button>
+    </div>
+  </div>
+
+  <div class="panel-bloque" id="catTabEditar">
+    <div class="panel-titulo">Canciones: probar, corregir, agregar y dar de baja</div>
+    <p class="panel-ayuda">Elegí una canción para corregirla, o la primera opción para cargar una nueva. Escuchá el primer segundo (o la canción completa) antes de guardar. Las que ya sonaron como canción del día se desactivan solas y quedan fuera del sorteo hasta que las vuelvas a activar; siguen apareciendo en el buscador, así que no regalan nada. Nada llega a los jugadores hasta que toques <b>Publicar</b>, más abajo.</p>
+    <div class="verif-cab">
+      <select id="bancoSel" class="banco-campo" style="flex:1"></select>
+    </div>
+    <div class="banco-fila">
+      <input id="bancoArtista" class="banco-campo" type="text" placeholder="Artista" autocomplete="off" style="flex:1;min-width:150px">
+      <input id="bancoTitulo"  class="banco-campo" type="text" placeholder="Canción" autocomplete="off" style="flex:1;min-width:150px">
+    </div>
+    <div class="banco-fila">
+      <select id="bancoGenero" class="banco-campo" style="flex:1;min-width:140px"></select>
+      <input id="bancoGeneroOtro" class="banco-campo" type="text" placeholder="Género nuevo" autocomplete="off" style="flex:1;min-width:140px" hidden>
+    </div>
+    <div class="banco-fila">
+      <input id="bancoId" class="banco-campo" type="text" placeholder="ID o URL de YouTube (watch?v=…)" autocomplete="off" style="flex:1;min-width:180px">
+      <button class="btn btn-sec" id="bancoEscuchar" style="padding:9px 14px;font-size:13px" title="Escuchar el primer segundo, como en el juego">▶ 1 seg</button>
+      <button class="btn btn-sec" id="bancoCompleta" style="padding:9px 14px;font-size:13px" title="Escuchar la canción entera desde el silencio inicial">▶ Completa</button>
+      <button class="btn btn-ok"  id="bancoGuardar"  style="padding:9px 14px;font-size:13px">Guardar</button>
+    </div>
+    <!-- campo ini -->
+    <div class="banco-fila" style="align-items:center">
+      <label style="font-size:12px;color:var(--gris);white-space:nowrap">Silencio inicial (s):</label>
+      <input id="bancoIni" class="banco-campo" type="number" min="0" max="30" step="0.5" placeholder="0" style="width:80px">
+      <span class="panel-ayuda" style="flex:1;margin:0">Segundos a saltar al reproducir (campo <code>ini</code>). Dejalo en 0 si el video arranca directo.</span>
+    </div>
+    <!-- acciones sobre la canción elegida (no aparecen al agregar una nueva) -->
+    <div class="banco-fila banco-acciones" id="bancoAcciones" style="align-items:center" hidden>
+      <span class="panel-ayuda" id="bancoEstadoCancion" style="flex:1;margin:0"></span>
+      <button class="btn btn-sec" id="bancoActivar" style="padding:9px 14px;font-size:13px">Desactivar</button>
+      <button class="btn btn-sec peligro" id="bancoBorrar" style="padding:9px 14px;font-size:13px">Borrar</button>
+    </div>
+    <div id="bancoAviso" style="font-size:12px;color:var(--gris);min-height:16px"></div>
+    <div id="bancoPlayer" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"></div>
+  </div>
+
+  <!-- Pestaña "Ya sonaron": las que fueron canción del día, con la fecha y
+       un interruptor por fila para devolverlas al sorteo o sacarlas. -->
+  <div class="panel-bloque" id="catTabSonadas" hidden>
+    <div class="panel-titulo">Canciones que ya sonaron</div>
+    <div class="verif-cab"><span id="sonadasEstado"></span></div>
+    <p class="panel-ayuda">Las que salieron como canción del día y siguen fuera del sorteo, las más recientes primero. <b>Activar</b> la devuelve al sorteo y la saca de esta lista; para volver a desactivarla está la solapa Editar. Los cambios se publican con el botón de abajo.</p>
+    <div id="sonadasLista"></div>
+  </div>
+
+  <div class="panel-bloque" style="border-top:1px solid var(--borde);padding-top:14px">
+    <div class="panel-titulo">Publicar el catálogo</div>
+    <div class="verif-cab">
+      <span id="catPublicarEstado"></span>
+      <button class="btn btn-sec" id="btnReactivar" title="Vuelve al sorteo todas las que se desactivaron por haber sonado">Reactivar las que sonaron</button>
+      <button class="btn btn-sec" id="btnCopiarCat" title="Bloque para pegar en js/catalogo.js">Copiar respaldo</button>
+      <button class="btn btn-ok" id="btnPublicarCat">Publicar</button>
+    </div>
+    <p class="panel-ayuda"><b>Publicar</b> sube el catálogo entero a la nube y le llega en el acto a cualquiera que tenga el juego abierto. La canción de hoy ya está fijada para todos, así que publicar en medio del día no le cambia la canción a nadie: lo nuevo entra al sorteo desde mañana.<br><br>
+    <b>Reactivar las que sonaron</b> es para cuando el sorteo se queda corto: vuelve a poner en juego todo lo que ya salió (se publica con el botón).<br><br>
+    <b>Copiar respaldo</b> arma el bloque para <code>js/catalogo.js</code>, que se usa solo si la nube no carga. Conviene pegarlo de vez en cuando para que no envejezca.</p>
+  </div>
+      <section class="panel-sec" data-sec="datos" hidden>
+        <h3 class="panel-sec-titulo">Partida y resultados</h3>
+  <div class="panel-bloque">
+    <div class="panel-titulo">Partida guardada</div>
+    <div class="verif-cab">
+      <span id="estadoPartida"></span>
+      <button class="btn btn-sec" id="btnBorrarPartida">Borrar partida de hoy</button>
+    </div>
+    <p class="panel-ayuda">Borra la partida solo en esta computadora, sin tocar las estadísticas ni a los demás jugadores.</p>
+  </div>
+
+  <div class="panel-bloque">
+    <div class="panel-titulo">Resultados guardados en este navegador</div>
+    <div class="verif-cab">
+      <span id="estadoResultados"></span>
+      <button class="btn btn-sec" id="btnSubirPendientes">Subir pendientes</button>
+      <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
+    </div>
+    <p class="panel-ayuda">Cada partida terminada se anota acá, pero ya no viaja sola: sube cuando el jugador toca <b>Enviar al ranking</b> en la ventana de resultado. <b>Subir pendientes</b> fuerza la subida de todo lo que haya quedado sin mandar, sirva por falta de señal o porque nadie apretó el botón.</p>
+  </div>
+      </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/nube-config.js?v=22"></script>
+<script src="js/config.js?v=22"></script>
+<script src="js/dia.js?v=22"></script>
+<script src="js/catalogo.js?v=22"></script>
+<script src="js/juego.js?v=22"></script>
+<!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
+     esperarlo y se corrige solo cuando llega la configuración de la nube. -->
+<script type="module" src="js/nube.js?v=22"></script>
+<script>
+  /* Las instrucciones de la clave solo aparecen si falta. */
+  if(typeof YT_API_KEY==="undefined"||!YT_API_KEY){const a=document.getElementById("ayudaClave"); if(a) a.hidden=false;}
+</script>
+</body>
+</html>

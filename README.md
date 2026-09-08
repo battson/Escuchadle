@@ -41,6 +41,7 @@ js/dia.js             respaldo de la configuración del día
 js/catalogo.js        respaldo del catálogo de canciones
 js/juego.js           lógica del juego
 firestore.rules       reglas de Firestore (fuente de verdad; se pegan en la consola)
+beta/                 sitio 2.0 en construcción, ver beta/README.md
 ```
 
 ## Cómo correrlo
