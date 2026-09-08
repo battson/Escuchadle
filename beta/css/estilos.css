@@ -34,33 +34,6 @@
     --seg:[1,2,4,7,11,16];
     --radio:16px;          /* esquinas de cajas, campos y botones */
   }
-  /* Modo claro: mismo esquema glassmorphism, vidrio blanco sobre fondo
-     pastel en vez de vidrio oscuro sobre fondo índigo. Se activa con
-     data-tema="claro" en <html> (ver el botón de la cabecera y el
-     script inline que lo aplica antes de pintar, para no parpadear). */
-  :root[data-tema="claro"]{
-    --fondo-a:#B7A0D8;
-    --fondo-b:#E3B6A6;
-    --fondo-c:#F6DCC8;
-    --blob-1:rgba(179,157,219,.4);
-    --blob-2:rgba(231,180,164,.4);
-    --blob-3:rgba(246,220,200,.5);
-
-    --pista:rgba(255,255,255,.55);
-    --vidrio:rgba(255,255,255,.5);
-    --vidrio-borde:rgba(20,15,53,.14);
-    --vidrio-input:rgba(255,255,255,.75);
-
-    --celeste:#1454BA;
-    --sol:#B8860B;
-    --crema:#1B1440;
-    --gris:#5A5F82;
-    /* --verde y --rojo del modo oscuro no llegan a 4.5:1 de contraste
-       sobre el vidrio claro (texto chico, como en la tabla del
-       ranking o "Borrar"); estas versiones más oscuras sí. */
-    --verde:#0E7C42;
-    --rojo:#C1272D;
-  }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   html{overflow-x:hidden}
@@ -69,10 +42,20 @@
     color:var(--crema);
     font-family:"Space Grotesk",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:20px 16px;
+    padding:16px;
     min-height:100%;
     overflow-x:hidden;
     transition:background-color .25s ease,color .25s ease;
+  }
+  /* En PC, sin scroll de ningún tipo: se recorta cualquier resto que no
+     entre en vez de dejarlo generar una barra. Los clamp() de más abajo
+     (cabecera, gaps) están para que en los hechos nunca haga falta
+     recortar nada; esto es el cinturón de seguridad. Abajo de 901px
+     queda afuera a propósito -el panel de ranking, fijo y abierto por
+     defecto, todavía tapa el juego en mobile- así que ahí se deja
+     scrollear en vez de recortar contenido. */
+  @media (min-width:901px){
+    html,body{height:100vh;overflow:hidden}
   }
   /* Degradé diagonal, de arriba a la izquierda a abajo a la derecha.
      Va en una capa fija propia y no en el body con attachment:fixed,
@@ -141,20 +124,10 @@
   /* ---------- juego (index.html): cabecera propia ----------
      Todo lo de acá abajo solo se aplica en la página del juego, que
      lleva <body class="pagina-juego">; así admin/ no se ve afectado. */
-  .pagina-juego .tema-toggle{
-    position:fixed;top:20px;left:20px;z-index:2;
-    width:34px;height:34px;flex:none;border-radius:50%;cursor:pointer;
-    background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
-    font:700 15px/1 "Space Grotesk",sans-serif;
-    display:grid;place-items:center;transition:color .15s,border-color .15s;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
-  }
-  .pagina-juego .tema-toggle:hover{color:var(--celeste);border-color:var(--celeste)}
-  .pagina-juego .tema-toggle:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .pagina-juego header{
     border-bottom:0;padding-bottom:0;
     width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
-    gap:10px;margin-bottom:clamp(16px,4vh,38px);
+    gap:10px;margin-bottom:clamp(10px,3.5vh,38px);
     /* z-index:20 en .cabecera-der no alcanza si header (su ancestro,
        contexto de apilamiento propio por position:relative) sigue con
        el z-index:1 genérico: todo ese contexto quedaría por debajo del
@@ -180,7 +153,7 @@
   }
   .link-min:hover,.link-min[aria-expanded="true"]{color:var(--celeste)}
   .link-min:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
-  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:clamp(12px,2.5vh,26px)}
+  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:clamp(6px,2vh,26px)}
 
   /* ---------- reproductor: la línea del medio ---------- */
   .reproductor{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -662,7 +635,6 @@
     .btn-pildora{padding:7px 9px;font-size:10px;gap:5px}
     .btn-pildora .ico{width:14px;height:14px}
     .pagina-juego .cabecera-der{gap:12px}
-    .pagina-juego .tema-toggle{top:14px;left:14px}
     .malvinas{width:96px;right:12px;bottom:10px;opacity:.4}
     .pagina-juego h1{font-size:24px}
   }
