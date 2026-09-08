@@ -1,6 +1,9 @@
 #zonaJuego{
   margin-bottom: 50px;
 }
+#btnSugerir{
+  display:none;
+}
 :root{
     /* paleta glassmorphism 2.0 — modo oscuro (predeterminado) */
     --fondo-a:#302577;     /* índigo profundo */
