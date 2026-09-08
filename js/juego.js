@@ -550,6 +550,20 @@ function fijarMediaSessionNeutra(){
     title:"Escuchadle",artist:"Adiviná la canción",album:"escuchadle.com.ar"
   });
 }
+/* Los botones de play/pausa del widget del sistema (SMTC en Windows,
+   notificación de Chrome, etc.) tocan el audio por fuera del juego: no
+   pasan por reproducir()/detener() y por lo tanto ignoran el límite de
+   segundos del intento actual. Marcarlos como no soportados hace que el
+   navegador los oculte del widget, dejando solo el botón de la página
+   -que sí respeta el límite- como forma de escuchar. Se llama una sola
+   vez; algún navegador viejo puede no reconocer alguna acción, de ahí
+   el try/catch por acción. */
+function desactivarControlesMediaSession(){
+  if(!("mediaSession" in navigator)) return;
+  ["play","pause","stop","seekbackward","seekforward","seekto","previoustrack","nexttrack"]
+    .forEach(accion=>{try{navigator.mediaSession.setActionHandler(accion,null)}catch{}});
+}
+desactivarControlesMediaSession();
 function fijarEstadoMediaSession(valor){
   if(!("mediaSession" in navigator)) return;
   navigator.mediaSession.playbackState=valor;
