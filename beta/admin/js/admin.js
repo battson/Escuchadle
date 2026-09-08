@@ -73,7 +73,6 @@ function irASeccion(id){
   $("#panelCont").scrollTop=0;
   cajon(false);
   if(id==="ranking") cargarRanking();
-  if(id==="sugerencias") cargarSugerencias();
   if(id==="catalogo") rellenarBancoSel(true); else bancoParar();
   if(id==="fusionar") fusRefrescarLista();
 }
@@ -311,31 +310,6 @@ async function subirPendientes(){
   refrescarPanel(); cargarRanking();
 }
 $("#btnSubirPendientes").onclick=subirPendientes;
-
-/* ---------- sugerencias recibidas ---------- */
-const sugLista=$("#sugLista"), estadoSug=$("#estadoSug");
-function cargarSugerencias(){
-  if(!hayNube()){estadoSug.textContent="Sin conexión con la nube.";return}
-  estadoSug.textContent="Cargando…";
-  window.Nube.listarSugerencias(100).then(ss=>{
-    estadoSug.textContent=ss.length?`${plural(ss.length,"mensaje","mensajes")}.`:"Todavía no hay mensajes.";
-    sugLista.innerHTML=ss.map(x=>{
-      const cuando=(x.fecha||"").slice(0,10).split("-").reverse().join("/");
-      return `<div class="vf"><span class="id">${escapar(cuando)}</span>`+
-             `<div><div class="pedido">${escapar(x.nombre)||"<i>anónimo</i>"}</div>`+
-             `<div class="hallado">${escapar(x.mensaje)}</div></div>`+
-             `<button data-sug="${escapar(x.id)}" title="Borrar este mensaje">✕</button></div>`;
-    }).join("");
-  }).catch(e=>{estadoSug.textContent=e.message});
-}
-$("#btnSugActualizar").onclick=cargarSugerencias;
-sugLista.addEventListener("click",e=>{
-  const b=e.target.closest("[data-sug]"); if(!b) return;
-  b.disabled=true;
-  window.Nube.borrarSugerencia(b.dataset.sug)
-    .then(()=>{b.closest(".vf").remove(); estadoSug.textContent="Mensaje borrado."})
-    .catch(err=>{b.disabled=false; estadoSug.textContent=err.message});
-});
 
 /* ---------- vista y pruebas ---------- */
 $("#swFinde").onchange=e=>{local.saltearFinde=e.target.checked; guardarLocal(); refrescarPanel()};

@@ -55,7 +55,6 @@
         <button data-ir="fusionar">Fusionar clips</button>
         <button data-ir="juego">Modo de juego</button>
         <button data-ir="ranking">Ranking</button>
-        <button data-ir="sugerencias">Sugerencias</button>
         <button data-ir="vista">Vista y pruebas</button>
         <button data-ir="datos">Partida y resultados</button>
       </nav>
@@ -209,19 +208,6 @@
           </div>
           <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el botón Ranking de la cabecera del juego. La ✕ borra una fila suelta.</p>
           <div id="rankLista"></div>
-        </div>
-      </section>
-
-      <section class="panel-sec" data-sec="sugerencias" hidden>
-        <h3 class="panel-sec-titulo">Sugerencias</h3>
-        <div class="panel-bloque">
-          <div class="panel-titulo">Lo que mandaron los jugadores</div>
-          <div class="verif-cab">
-            <span id="estadoSug"></span>
-            <button class="btn btn-sec" id="btnSugActualizar">Actualizar</button>
-          </div>
-          <p class="panel-ayuda">Comentarios y sugerencias enviados desde el pie del juego, los más nuevos primero. La ✕ borra uno. Si dice que las reglas rechazaron la operación, falta habilitar la colección <code>sugerencias</code> en Firestore.</p>
-          <div id="sugLista"></div>
         </div>
       </section>
 

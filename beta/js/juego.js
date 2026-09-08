@@ -915,53 +915,6 @@ $("#latActualizar").onclick=()=>traerRanking(true);
 $("#latSemana").onclick=()=>verVista("semana");
 $("#latTodo").onclick=()=>verVista("todo");
 
-/* ---------- sugerencias ---------- */
-const sugNombre=$("#sugNombre"), sugMensaje=$("#sugMensaje"),
-      btnSugEnviar=$("#btnSugEnviar"), sugAviso=$("#sugAviso");
-
-function abrirSugerir(){
-  sugAviso.textContent=""; sugMensaje.value="";
-  sugNombre.value=nombre; $("#sugFirmado").checked=true;
-  btnSugEnviar.textContent="Enviar";
-  refrescarSug(); abrirModal("modalSugerir");
-  setTimeout(()=>sugMensaje.focus(),60);
-}
-function refrescarSug(){
-  const anon=$("#sugAnonimo").checked;
-  sugNombre.disabled=anon;
-  sugNombre.placeholder=anon?"Va como anónimo":"Tu nombre";
-  const hay=sugMensaje.value.trim().length>1;
-  btnSugEnviar.disabled=!hay||(!anon&&!sugNombre.value.trim());
-  if(!hay) sugAviso.textContent="Escribí un mensaje.";
-  else if(!anon&&!sugNombre.value.trim()) sugAviso.textContent="Poné tu nombre, o elegí anónimo.";
-  else sugAviso.textContent=`Quedan ${600-sugMensaje.value.length} caracteres.`;
-}
-function enviarSugerencia(){
-  if(btnSugEnviar.disabled) return;
-  const anon=$("#sugAnonimo").checked;
-  if(!hayNube()){sugAviso.textContent="Sin conexión con la nube. Probá de nuevo en un rato.";return}
-  btnSugEnviar.disabled=true; btnSugEnviar.textContent="Enviando…";
-  window.Nube.guardarSugerencia({
-    fecha:new Date().toISOString(),
-    nombre:anon?"":sugNombre.value.trim(),
-    mensaje:sugMensaje.value.trim()
-  }).then(()=>{
-    btnSugEnviar.textContent="¡Gracias!";
-    sugAviso.textContent="Tu mensaje llegó.";
-    setTimeout(()=>cerrarModal("modalSugerir"),1200);
-  }).catch(e=>{
-    btnSugEnviar.disabled=false; btnSugEnviar.textContent="Enviar";
-    sugAviso.textContent="No se pudo enviar: "+e.message;
-  });
-}
-$("#btnSugerir").onclick=abrirSugerir;
-$("#btnFindeSugerir").onclick=abrirSugerir;
-$("#btnSugEnviar").onclick=enviarSugerencia;
-sugMensaje.addEventListener("input",refrescarSug);
-sugNombre.addEventListener("input",refrescarSug);
-$("#sugFirmado").onchange=refrescarSug;
-$("#sugAnonimo").onchange=refrescarSug;
-
 /* ---------- copiar y compartir ---------- */
 /* La fecha sale del día de la partida, no del reloj del momento: si
    alguien copia su resultado pasada la medianoche, tiene que seguir
