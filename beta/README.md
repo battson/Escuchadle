@@ -15,3 +15,17 @@ producción. Hasta que se decida lo contrario, cualquier prueba acá (fijar
 canción del día, mandar resultados al ranking, etc.) **escribe en los datos
 reales**. Para probar sin pisar nada, usar canciones/datos de prueba o pedir
 un proyecto de Firebase aparte para la beta.
+
+## Modo claro/oscuro
+
+El botón de la luna/sol en la cabecera alterna entre los dos modos del
+rediseño glassmorphism. Oscuro es el predeterminado; la elección queda en
+`localStorage` (`ea_tema`) y la respeta también `admin/`, aunque ahí no hay
+botón propio para cambiarla.
+
+## `css/clasico.css`
+
+Es el `css/estilos.css` de la raíz (la 1.0), copiado tal cual, sin ninguno de
+los cambios del rediseño. No se usa todavía: queda guardado para más
+adelante armar un botón "Vista clásica" que le permita a quien prefiera el
+look original volver a él.
