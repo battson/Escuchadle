@@ -474,6 +474,22 @@ function duracion(){
   const d=yt&&yt.getDuration?yt.getDuration():0;
   return Number.isFinite(d)&&d>0?d:0;
 }
+/* El iframe de YouTube publica su propio título/canal en los controles
+   multimedia del sistema (SMTC en Windows, etc.), lo cual revela la
+   canción antes de tiempo. No podemos tocar ese mediaSession porque el
+   iframe es de otro origen, pero sí podemos publicar el nuestro con
+   datos neutros: en varios navegadores (Edge/Chrome) la sesión del
+   frame principal termina ganándole a la del iframe. */
+function fijarMediaSessionNeutra(){
+  if(!("mediaSession" in navigator)) return;
+  navigator.mediaSession.metadata=new MediaMetadata({
+    title:"Escuchadle",artist:"Adiviná la canción",album:"escuchadle.com.ar"
+  });
+}
+function fijarEstadoMediaSession(valor){
+  if(!("mediaSession" in navigator)) return;
+  navigator.mediaSession.playbackState=valor;
+}
 function reproducir(){
   if(!audio||!yt) return;
   if(sonando){detener();return}
@@ -482,11 +498,15 @@ function reproducir(){
   sonando=true;
   const ini=actual?.ini||0;
   yt.seekTo(ini,true); yt.playVideo();
+  fijarMediaSessionNeutra(); fijarEstadoMediaSession("playing");
   vinilo.classList.add("gira"); btnPlay.textContent="■ Parar"; estado.textContent="Cargando…";
 }
 function onYtEstado(e){
   if(e.data===YT.PlayerState.PLAYING&&sonando){
     estado.textContent="";
+    /* El audio recién arranca de verdad acá: reafirmamos la sesión
+       propia para disputarle el "foco" al iframe de YouTube. */
+    fijarMediaSessionNeutra(); fijarEstadoMediaSession("playing");
     /* Recién ahora YouTube sabe cuánto dura: si es la canción entera,
        se corrige la escala con el dato real. */
     if(terminado){const d=duracion(); if(d&&Math.abs(d-limite)>1){limite=d; fijarEscala(d)}}
@@ -502,6 +522,7 @@ function onYtEstado(e){
 function detener(){
   clearTimeout(timer); cancelAnimationFrame(raf); sonando=false;
   if(yt&&yt.pauseVideo) yt.pauseVideo();
+  fijarEstadoMediaSession("paused");
   vinilo.classList.remove("gira"); btnPlay.textContent="▶ Escuchar";
   progreso.style.width="0"; tActual.textContent=reloj(0);
 }
