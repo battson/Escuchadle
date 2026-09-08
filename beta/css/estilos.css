@@ -1,14 +1,11 @@
 #zonaJuego{
   margin-bottom: 50px;
 }
-#btnSugerir{
-  display:none;
-}
 :root{
     /* paleta glassmorphism 2.0 — modo oscuro (predeterminado) */
-    --fondo-a:#302577;     /* índigo profundo */
-    --fondo-b:#1454BA;     /* azul cobalto */
-    --fondo-c:#3478F6;     /* azul eléctrico */
+    --fondo-a:#251e54;     /* índigo profundo */
+    --fondo-b:#122d58;     /* azul cobalto */
+    --fondo-c:#1d4898;     /* azul eléctrico */
     --hielo:#B8DCF3;       /* celeste hielo, mancha de luz del fondo */
     --pastel:#8EB9EE;      /* azul pastel, superficies y degradados */
     --lavanda:#B4A9E3;     /* lavanda suave, mancha onírica del fondo */
@@ -55,6 +52,11 @@
     --sol:#B8860B;
     --crema:#1B1440;
     --gris:#5A5F82;
+    /* --verde y --rojo del modo oscuro no llegan a 4.5:1 de contraste
+       sobre el vidrio claro (texto chico, como en la tabla del
+       ranking o "Borrar"); estas versiones más oscuras sí. */
+    --verde:#0E7C42;
+    --rojo:#C1272D;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}

@@ -35,12 +35,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=24">
+  <script>
+    /* Elige qué hoja de estilos pedir ANTES de que el navegador la
+       pida, así no hay parpadeo: la 2.0 (glassmorphism) por defecto,
+       o la 1.0 clásica si el navegador ya la tenía guardada. Por eso
+       va con document.write en vez de un <link> fijo: tiene que
+       terminar antes de que siga el parser. */
+    var clasica=false;
+    try{ clasica=localStorage.getItem("ea_vista")==="clasica"; }catch(e){}
+    if(clasica) document.documentElement.dataset.vista="clasica";
+    document.write('<link rel="stylesheet" id="hojaEstilos" href="css/'+(clasica?"clasico.css?v=1":"estilos.css?v=25")+'">');
+  </script>
   <script>
     /* Oscuro es el predeterminado; solo se pasa a claro si el navegador
        ya lo tenía guardado. Va acá, antes de pintar, para no parpadear
-       en oscuro un instante y después saltar a claro. */
-    try{ if(localStorage.getItem("ea_tema")==="claro") document.documentElement.dataset.tema="claro"; }catch{}
+       en oscuro un instante y después saltar a claro. No aplica en la
+       vista clásica: esa hoja no tiene modo claro. */
+    try{ if(!clasica&&localStorage.getItem("ea_tema")==="claro") document.documentElement.dataset.tema="claro"; }catch{}
   </script>
 </head>
 <body>
@@ -55,7 +66,7 @@
             aria-expanded="false" aria-controls="lateral">
       <img src="imgs/ranking.svg" alt="" class="ico"> Ranking
     </button>
-    <button class="btn-pildora" id="btnSugerir">Dejar comentario</button>
+    <button class="btn-pildora" id="btnVista">Vista clásica</button>
     <button class="ayuda-btn" id="btnTema" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">🌙</button>
     <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
   </div>
@@ -111,9 +122,6 @@
       <div class="finde-leyenda">Te dejamos el ranking de esta semana</div>
       <div class="tabla-estado" id="findeEstado"></div>
       <div class="tabla" id="findeTabla"></div>
-    </div>
-    <div class="finde-acciones">
-      <button class="btn btn-sec" id="btnFindeSugerir">Dejar una sugerencia</button>
     </div>
   </section>
 </main>
@@ -261,35 +269,14 @@
   </div>
 </aside>
 
-<!-- ---------- sugerencias ---------- -->
-<div class="modal" id="modalSugerir" role="dialog" aria-modal="true" aria-labelledby="tituloSugerir" hidden>
-  <div class="modal-caja">
-    <div class="modal-cab">
-      <strong id="tituloSugerir">Comentarios y sugerencias</strong>
-      <button class="modal-x" data-cerrar="modalSugerir" aria-label="Cerrar">×</button>
-    </div>
-    <p>¿Falta una canción? ¿Algo no anda? ¿Se te ocurre algo mejor? Contame.</p>
-    <div class="campo">
-      <div class="opciones fila">
-        <label><input type="radio" name="firmaSug" id="sugFirmado" value="firmado" checked> Con mi nombre</label>
-        <label><input type="radio" name="firmaSug" id="sugAnonimo" value="anonimo"> Anónimo</label>
-      </div>
-      <input id="sugNombre" type="text" maxlength="24" placeholder="Tu nombre" autocomplete="nickname">
-      <textarea id="sugMensaje" maxlength="600" rows="5" placeholder="Escribí acá tu comentario o sugerencia…"></textarea>
-      <span class="firma-aviso" id="sugAviso"></span>
-    </div>
-    <button class="btn btn-ok" id="btnSugEnviar" disabled>Enviar</button>
-  </div>
-</div>
-
-<script src="js/nube-config.js?v=22"></script>
-<script src="js/config.js?v=22"></script>
-<script src="js/dia.js?v=22"></script>
-<script src="js/catalogo.js?v=22"></script>
-<script src="js/juego.js?v=22"></script>
+<script src="js/nube-config.js?v=25"></script>
+<script src="js/config.js?v=25"></script>
+<script src="js/dia.js?v=25"></script>
+<script src="js/catalogo.js?v=25"></script>
+<script src="js/juego.js?v=25"></script>
 <!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
      esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=22"></script>
+<script type="module" src="js/nube.js?v=25"></script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY){const a=document.getElementById("ayudaClave"); if(a) a.hidden=false;}

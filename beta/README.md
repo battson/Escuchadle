@@ -18,14 +18,17 @@ un proyecto de Firebase aparte para la beta.
 
 ## Modo claro/oscuro
 
-El botón de la luna/sol en la cabecera alterna entre los dos modos del
-rediseño glassmorphism. Oscuro es el predeterminado; la elección queda en
-`localStorage` (`ea_tema`) y la respeta también `admin/`, aunque ahí no hay
-botón propio para cambiarla.
+El botón de la luna/sol de la cabecera alterna entre los dos modos del
+rediseño glassmorphism, tanto en el juego como en `admin/` (cada uno con su
+propio botón). Oscuro es el predeterminado; la elección queda en
+`localStorage` (`ea_tema`), así que es una sola por navegador, compartida
+entre las dos páginas.
 
-## `css/clasico.css`
+## `css/clasico.css` y "Vista clásica"
 
-Es el `css/estilos.css` de la raíz (la 1.0), copiado tal cual, sin ninguno de
-los cambios del rediseño. No se usa todavía: queda guardado para más
-adelante armar un botón "Vista clásica" que le permita a quien prefiera el
-look original volver a él.
+`css/clasico.css` es el `css/estilos.css` original de la raíz (la 1.0),
+copiado tal cual, sin ninguno de los cambios del rediseño. El botón "Vista
+clásica" de la cabecera del juego alterna entre esa hoja y la de la 2.0
+(`localStorage` `ea_vista`); no tiene modo claro/oscuro propio, así que ese
+botón se esconde mientras está puesta. Por ahora solo existe en el juego,
+no en `admin/`.
