@@ -1,0 +1,37 @@
+/* =========================================================
+   Escuchadle Argento — datos del proyecto de Firebase.
+
+   Esto NO es un secreto. La configuración web de Firebase viaja
+   en el navegador de cualquiera que abra el juego: es pública por
+   diseño y va versionada en el repositorio sin problema.
+
+   Lo que protege la base son las reglas de Firestore, no esta
+   clave. Las reglas (ver firestore.rules en la raíz) permiten:
+     - leer y escribir el documento escuchadle/dia, solo con los
+       campos modo, cancion, salto, reinicio, actualizado;
+     - leer y escribir el documento escuchadle/catalogo, solo con
+       los campos canciones, hoy, actualizado;
+     - crear, leer y borrar en resultados y sugerencias, sin poder
+       modificar.
+   Si alguna vez querés cerrar la escritura, el camino es Firebase
+   Auth con un usuario administrador, no esconder esto.
+   ========================================================= */
+window.NUBE_CONFIG = {
+  apiKey: "AIzaSyCCEy_4FQX5MdS5SfoZzr8ymYMYTgi4lkk",
+  authDomain: "escuchadle-4cae6.firebaseapp.com",
+  projectId: "escuchadle-4cae6",
+  storageBucket: "escuchadle-4cae6.firebasestorage.app",
+  messagingSenderId: "379218628804",
+  appId: "1:379218628804:web:5d007216848013372ff991"
+};
+
+/* Dónde vive cada cosa dentro de Firestore. Las colecciones no hay que
+   crearlas a mano: nacen solas con el primer documento que se les
+   escribe. Lo que sí hay que cargar en la consola son las reglas. */
+window.NUBE_RUTAS = {
+  coleccionConfig: "escuchadle",
+  documentoDia: "dia",
+  documentoCatalogo: "catalogo",
+  coleccionResultados: "resultados",
+  coleccionSugerencias: "sugerencias"
+};

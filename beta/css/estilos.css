@@ -1,0 +1,652 @@
+#zonaJuego{
+  margin-bottom: 50px;
+}
+#btnVista{
+  display: none;
+}
+:root{
+    /* paleta glassmorphism 2.0 — modo oscuro (predeterminado) */
+    --fondo-a:#251e54;     /* índigo profundo */
+    --fondo-b:#122d58;     /* azul cobalto */
+    --fondo-c:#1d4898;     /* azul eléctrico */
+    --hielo:#B8DCF3;       /* celeste hielo, mancha de luz del fondo */
+    --pastel:#8EB9EE;      /* azul pastel, superficies y degradados */
+    --lavanda:#B4A9E3;     /* lavanda suave, mancha onírica del fondo */
+    --blob-1:rgba(184,220,243,.45);
+    --blob-2:rgba(180,169,227,.4);
+    --blob-3:rgba(142,185,238,.35);
+
+    --noche:#140F35;       /* texto oscuro sobre botones/acentos claros */
+    --pista:rgba(48,37,119,.38);     /* superficie de vidrio (índigo translúcido) */
+    --vidrio:rgba(240,240,246,.10);  /* vidrio claro: botones y píldoras */
+    --vidrio-borde:rgba(240,240,246,.28);
+    --vidrio-input:rgba(20,15,53,.4);
+    --blur:18px;
+    --blur-chico:10px;
+
+    --borde:var(--vidrio-borde);
+    --celeste:#3478F6;    /* azul eléctrico: acento principal */
+    --sol:#FFE58A;        /* amarillo manteca: etiqueta del vinilo, acierto de artista */
+    --crema:#F0F0F6;      /* blanco perlado */
+    --gris:#A9B4E3;
+    --rojo:#E0565B;
+    --verde:#55C28B;
+    --seg:[1,2,4,7,11,16];
+    --radio:16px;          /* esquinas de cajas, campos y botones */
+  }
+  /* Modo claro: mismo esquema glassmorphism, vidrio blanco sobre fondo
+     pastel en vez de vidrio oscuro sobre fondo índigo. Se activa con
+     data-tema="claro" en <html> (ver el botón de la cabecera y el
+     script inline que lo aplica antes de pintar, para no parpadear). */
+  :root[data-tema="claro"]{
+    --fondo-a:#B7A0D8;
+    --fondo-b:#E3B6A6;
+    --fondo-c:#F6DCC8;
+    --blob-1:rgba(179,157,219,.4);
+    --blob-2:rgba(231,180,164,.4);
+    --blob-3:rgba(246,220,200,.5);
+
+    --pista:rgba(255,255,255,.55);
+    --vidrio:rgba(255,255,255,.5);
+    --vidrio-borde:rgba(20,15,53,.14);
+    --vidrio-input:rgba(255,255,255,.75);
+
+    --celeste:#1454BA;
+    --sol:#B8860B;
+    --crema:#1B1440;
+    --gris:#5A5F82;
+    /* --verde y --rojo del modo oscuro no llegan a 4.5:1 de contraste
+       sobre el vidrio claro (texto chico, como en la tabla del
+       ranking o "Borrar"); estas versiones más oscuras sí. */
+    --verde:#0E7C42;
+    --rojo:#C1272D;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--fondo-a);
+    color:var(--crema);
+    font-family:"Space Grotesk",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    padding:24px 16px 72px;
+    min-height:100%;
+    transition:background-color .25s ease,color .25s ease;
+  }
+  /* Degradé diagonal, de arriba a la izquierda a abajo a la derecha.
+     Va en una capa fija propia y no en el body con attachment:fixed,
+     porque Safari en iPhone ignora eso y estira el degradé al alto de
+     toda la página. Así no se mueve con el scroll ni se corta. */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    transition:background .25s ease;
+    background:
+      radial-gradient(circle at 18% 20%, var(--blob-1), transparent 55%),
+      radial-gradient(circle at 85% 12%, var(--blob-2), transparent 50%),
+      radial-gradient(circle at 70% 88%, var(--blob-3), transparent 55%),
+      linear-gradient(135deg,var(--fondo-a) 0%,var(--fondo-b) 55%,var(--fondo-c) 100%)
+  }
+  /* Malvinas: marca de agua fija abajo a la izquierda, debajo de todo
+     lo que se toca (panel lateral, ventanas). */
+  .malvinas{
+    position:fixed;left:22px;bottom:18px;width:150px;height:auto;
+    opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
+  }
+  header,main{position:relative;z-index:1}
+  /* 36: leyenda del ganador de la semana pasada */
+  .ganador{
+    width:100%;max-width:560px;text-align:center;color:var(--sol);
+    font:500 13px/1.5 "Space Grotesk",sans-serif;letter-spacing:.02em;
+    padding:2px 0 14px
+  }
+  .ganador[hidden]{display:none}
+  .ganador b{font-weight:700}
+
+  /* ---------- elemento visible solo para el audio, no a la vista ----------
+     #ytplayer y el vinilo siguen en el DOM (YouTube y la animación de giro
+     los necesitan), pero ya no son parte del diseño: minúsculos y fuera
+     de pantalla, en vez de display:none, para no arriesgar que algún
+     navegador pause el audio de un iframe que no ocupa lugar. */
+  .oculto-audible{
+    position:fixed!important;left:-9999px;top:-9999px;
+    width:1px!important;height:1px!important;opacity:0;pointer-events:none
+  }
+
+  /* ---------- cabecera / main genéricos ----------
+     Los usa también admin/index.html, que comparte esta hoja de estilos
+     y no lleva la clase .pagina-juego. Quedan como estaban. */
+  header{width:100%;max-width:560px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--borde);padding-bottom:12px}
+  h1{font-family:"Bebas Neue",Impact,sans-serif;font-size:44px;letter-spacing:.04em;line-height:.9;color:var(--crema);
+     cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  h1 span{color:var(--sol)}
+  .cabecera-der{display:flex;align-items:center;gap:10px}
+  .badge-libre{
+    border:1px solid var(--sol);color:var(--sol);border-radius:999px;padding:6px 12px;
+    font:500 11px/1 "Space Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
+    background:var(--vidrio);backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .ayuda-btn{
+    width:34px;height:34px;flex:none;border-radius:50%;cursor:pointer;
+    background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
+    font:700 16px/1 "Space Grotesk",sans-serif;
+    display:grid;place-items:center;transition:color .15s,border-color .15s;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .ayuda-btn:hover{color:var(--celeste);border-color:var(--celeste)}
+  .ayuda-btn[aria-expanded="true"]{color:var(--sol);border-color:var(--sol)}
+  .ayuda-btn:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+  main{width:100%;max-width:560px;display:flex;flex-direction:column;gap:18px}
+
+  /* ---------- juego (index.html): cabecera propia ----------
+     Todo lo de acá abajo solo se aplica en la página del juego, que
+     lleva <body class="pagina-juego">; así admin/ no se ve afectado. */
+  .pagina-juego .tema-toggle{
+    position:fixed;top:20px;left:20px;z-index:2;
+    width:34px;height:34px;flex:none;border-radius:50%;cursor:pointer;
+    background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
+    font:700 15px/1 "Space Grotesk",sans-serif;
+    display:grid;place-items:center;transition:color .15s,border-color .15s;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .pagina-juego .tema-toggle:hover{color:var(--celeste);border-color:var(--celeste)}
+  .pagina-juego .tema-toggle:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+  .pagina-juego header{
+    border-bottom:0;padding-bottom:0;
+    width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
+    gap:10px;margin-bottom:38px
+  }
+  .pagina-juego .titulo-tab{
+    background:var(--vidrio);border:1px solid var(--borde);border-top:0;
+    border-radius:0 0 22px 22px;padding:14px 34px 12px;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .pagina-juego h1{
+    font-family:"Bebas Neue",Impact,sans-serif;font-style:italic;font-size:28px;
+    letter-spacing:.1em;line-height:1;color:var(--crema);
+    cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent
+  }
+  .pagina-juego h1 span{color:var(--sol)}
+  .pagina-juego .cabecera-der{
+    position:fixed;top:24px;right:24px;z-index:2;
+    display:flex;align-items:center;gap:18px
+  }
+  .pagina-juego .badge-libre{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:5px 11px}
+  .link-min{
+    background:transparent;border:0;cursor:pointer;color:var(--gris);
+    font:500 12px "Space Grotesk",sans-serif;letter-spacing:.1em;text-transform:uppercase;
+    padding:2px 0;transition:color .15s
+  }
+  .link-min:hover,.link-min[aria-expanded="true"]{color:var(--celeste)}
+  .link-min:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
+  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:26px;margin-top:2vh}
+
+  /* ---------- reproductor: la línea del medio ---------- */
+  .reproductor{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .vinilo.gira{animation:girar 1.8s linear infinite}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.vinilo.gira{animation:none}}
+  .barra{
+    position:relative;width:100%;height:2px;border-radius:2px;
+    background:var(--vidrio-borde);overflow:visible
+  }
+  .barra .desbloq{position:absolute;inset:0;width:0;height:100%;border-radius:2px;background:var(--vidrio-input)}
+  .barra .progreso{position:absolute;inset:0;width:0;height:100%;border-radius:2px;background:var(--crema);transition:width .1s linear}
+  .barra .tick{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--vidrio-borde)}
+  .barra.entera .tick,.barra.entera .desbloq{display:none}
+  .tiempos{width:100%;display:flex;justify-content:space-between;font-size:11px;color:var(--gris);font-variant-numeric:tabular-nums}
+
+  .circulo{
+    width:56px;height:56px;flex:none;border-radius:50%;cursor:pointer;
+    background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
+    font-size:17px;line-height:1;display:grid;place-items:center;
+    transition:transform .08s ease,border-color .15s,color .15s;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .circulo:hover{border-color:var(--celeste);color:var(--celeste)}
+  .circulo:active{transform:scale(.94)}
+  .circulo:disabled{opacity:.4;cursor:not-allowed}
+  .circulo:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
+  .circulo-play{width:64px;height:64px;font-size:19px;margin-top:6px}
+  .circulo-play.gira{border-color:var(--celeste);color:var(--celeste)}
+  .estado{font-size:12px;color:var(--gris);min-height:16px;text-align:center}
+  .pauta{font-size:11px;color:var(--gris);letter-spacing:.02em;min-height:14px;text-align:center}
+
+  .btn{
+    border:0;border-radius:var(--radio);padding:12px 18px;cursor:pointer;
+    font:700 14px/1 "Space Grotesk",sans-serif;letter-spacing:.02em;
+    transition:transform .08s ease, opacity .2s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+  .btn-sec{
+    background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ---------- pistas: esquina inferior derecha ---------- */
+  .pistas-esquina{
+    position:fixed;right:20px;bottom:18px;z-index:2;width:min(220px,42vw);
+    align-items:flex-end
+  }
+  .pistas-esquina .pista{padding:6px 10px;font-size:11px}
+
+  /* ---------- pistas ---------- */
+  .pistas{display:flex;flex-direction:column;gap:8px}
+  .pistas[hidden]{display:none}   /* si no, el display:flex le gana al atributo */
+  .pistas-cab{
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);
+    display:flex;flex-wrap:wrap;gap:6px
+  }
+  .pistas-cab span{color:var(--gris);opacity:.85;text-transform:none;letter-spacing:.02em;font-size:11px}
+  .pistas-fila{display:flex;flex-wrap:wrap;gap:8px}
+  .pista{
+    display:flex;align-items:baseline;gap:8px;padding:8px 12px;border-radius:var(--radio);
+    border:1px solid var(--borde);background:var(--pista);font-size:13px;color:var(--crema);
+    animation:aparecer .35s ease both
+  }
+  .pista.cerrada{opacity:.45;border-style:dashed;animation:none}
+  .pista.cerrada .et{color:var(--gris)}
+  .pista .et{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sol)}
+  .pista .vl{font-variant-numeric:tabular-nums}
+  @keyframes aparecer{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.pista{animation:none}}
+
+  /* ---------- intentos ---------- */
+  .intentos{display:flex;flex-direction:column;gap:8px}
+  .intento{
+    display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radio);
+    border:1px solid var(--borde);background:var(--pista);font-size:14px;color:var(--gris);min-height:44px
+  }
+  .intento.salto{color:var(--gris);font-style:italic}
+  .intento.mal{border-color:var(--rojo);color:var(--crema)}
+  .intento.artista{border-color:var(--sol);color:var(--crema)}
+  .intento.bien{border-color:var(--verde);background:rgba(85,194,139,.12);color:var(--crema)}
+  .intento .ic{width:10px;height:10px;border-radius:50%;flex:none;background:var(--borde)}
+  .mal .ic{background:var(--rojo)} .artista .ic{background:var(--sol)} .bien .ic{background:var(--verde)} .salto .ic{background:var(--gris)}
+
+  /* ---------- buscador ---------- */
+  .buscador{position:relative}
+  .buscador input{
+    width:100%;padding:14px 16px;border-radius:var(--radio);border:1px solid var(--borde);
+    background:var(--pista);color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
+  }
+  .buscador input:focus{border-color:var(--celeste)}
+  .buscador input::placeholder{color:var(--gris)}
+  .lista{
+    position:absolute;left:0;right:0;bottom:calc(100% + 6px);max-height:240px;overflow:auto;
+    background:var(--vidrio-input);border:1px solid var(--borde);border-radius:var(--radio);display:none;z-index:5;
+    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+  }
+  .lista.abierta{display:block}
+  .lista div{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--borde)}
+  .lista div:last-child{border-bottom:0}
+  .lista div:hover,.lista div.sel{background:var(--pista);color:var(--celeste)}
+  .acciones{display:flex;gap:10px}
+  .acciones .btn{flex:1}
+  .btn-ok{background:var(--sol);color:var(--noche)}
+
+  /* ---------- resultado ---------- */
+  .zona-cerrada{display:flex}
+  .zona-cerrada[hidden]{display:none}
+  .zona-cerrada .btn{flex:1}
+
+  /* ---------- ventanas ---------- */
+  .modal{
+    position:fixed;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;
+    padding:16px;background:rgba(6,9,16,.72);backdrop-filter:blur(3px);
+    animation:fundido .18s ease both;overflow:auto
+  }
+  .modal[hidden]{display:none}
+  @keyframes fundido{from{opacity:0}to{opacity:1}}
+  .modal-caja{
+    width:100%;max-width:440px;margin:auto;background:var(--pista);border:1px solid var(--borde);
+    border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;
+    box-shadow:0 24px 60px rgba(20,15,53,.55);animation:subir .22s ease both;
+    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+  }
+  /* Normalmente .modal-caja vive adentro de .modal, que ya maneja el
+     hidden del wrapper. En admin/ va suelta (clave y panel, sin ventana
+     encima), así que necesita su propia regla: si no, el display:flex
+     de acá arriba le gana al atributo hidden y quedan las dos cajas
+     una debajo de la otra, visibles a la vez. */
+  .modal-caja[hidden]{display:none}
+  @keyframes subir{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.modal,.modal-caja{animation:none}}
+  .modal-caja p{font-size:14px;color:var(--crema);line-height:1.55}
+
+  /* ---------- ventana de ayuda ---------- */
+  .ayuda{gap:14px}
+  .ayuda-pasos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}
+  .ayuda-pasos li{font-size:14px;color:var(--crema);line-height:1.5}
+  .ayuda-pasos li::marker{color:var(--celeste);font-weight:700}
+  .ayuda-pasos i{color:var(--celeste);font-style:normal;font-weight:500}
+  /* Acordeones: <details> nativos, así el teclado y los lectores de
+     pantalla funcionan sin JavaScript. Abre uno por vez (ver juego.js). */
+  .ayuda-bloque{border-top:1px solid var(--borde);padding-top:12px}
+  .ayuda-bloque:last-of-type{border-bottom:1px solid var(--borde);padding-bottom:12px}
+  .ayuda-titulo{
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--sol);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    cursor:pointer;list-style:none;-webkit-user-select:none;user-select:none;
+    border-radius:var(--radio);transition:color .15s
+  }
+  .ayuda-titulo::-webkit-details-marker{display:none}
+  .ayuda-titulo::after{
+    content:"";width:7px;height:7px;flex:none;margin-right:4px;
+    border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(45deg);transition:transform .2s ease
+  }
+  .ayuda-bloque[open] .ayuda-titulo::after{transform:rotate(-135deg)}
+  .ayuda-titulo:hover{color:var(--celeste)}
+  .ayuda-titulo:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
+  .ayuda-cuerpo{display:flex;flex-direction:column;gap:8px;padding-top:10px;animation:aparecer .2s ease both}
+  @media (prefers-reduced-motion:reduce){.ayuda-cuerpo{animation:none}.ayuda-titulo::after{transition:none}}
+  .leyenda{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  .leyenda li{
+    display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--crema);line-height:1.45
+  }
+  .leyenda .pt{width:11px;height:11px;border-radius:50%;flex:none}
+  .leyenda .verde{background:var(--verde)} .leyenda .sol{background:var(--sol)}
+  .leyenda .rojo{background:var(--rojo)}  .leyenda .gris{background:var(--gris)}
+  .leyenda.puntos{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+  .leyenda.puntos b{color:var(--sol)}
+  .modal-nota{color:var(--gris)!important;font-size:13px!important}
+  .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
+  .modal-x{
+    background:transparent;border:0;color:var(--gris);font-size:24px;line-height:1;
+    cursor:pointer;padding:0 4px;border-radius:8px
+  }
+  .modal-x:hover{color:var(--crema)}
+  .modal-x:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+
+  .resultado{text-align:center}
+  .resultado .modal-cab{margin-bottom:-8px}
+  .resultado .titulo{font-family:"Bebas Neue",Impact,sans-serif;font-size:34px;letter-spacing:.03em;line-height:1}
+  .resultado .cancion{font-size:16px;color:var(--celeste)}
+  .resultado .emojis{font-size:22px;letter-spacing:4px}
+  .resultado .stats{display:flex;justify-content:center;gap:24px;font-size:13px;color:var(--gris)}
+  .resultado .firma{display:flex;flex-direction:column;gap:6px;text-align:left;
+    border-top:1px solid var(--borde);padding-top:14px}
+  .resultado .firma label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
+  .resultado .firma input{
+    width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--borde);
+    background:var(--vidrio-input);color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
+  }
+  .resultado .firma input:focus{border-color:var(--celeste)}
+  .resultado .firma input::placeholder{color:var(--gris)}
+  .firma-aviso{font-size:11px;color:var(--gris)}
+  .resultado .firma[hidden]{display:none}
+
+  /* ---------- banco de pruebas del panel ---------- */
+  .banco-fila{display:flex;gap:8px;flex-wrap:wrap}
+  .banco-campo{
+    padding:9px 11px;border-radius:var(--radio);border:1px solid var(--borde);
+    background:var(--vidrio-input);color:var(--crema);font:500 13px "Space Grotesk",sans-serif;outline:none
+  }
+  .banco-campo:focus{border-color:var(--celeste)}
+  .banco-campo::placeholder{color:var(--gris)}
+  select.banco-campo{cursor:pointer}
+
+  /* ---------- estados de error con ilustración ---------- */
+  .estado-error{
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+    padding:12px 0;text-align:center
+  }
+  .estado-error img{
+    width:90px;height:auto;opacity:.9;display:block
+  }
+  .estado-error.compact{
+    flex-direction:row;align-items:center;gap:8px;
+    padding:6px 0;text-align:left
+  }
+  .estado-error.compact img{
+    width:28px;height:28px;object-fit:contain;flex:none
+  }
+  .estado-error .est-txt{font-size:12px;color:var(--gris)}
+
+  /* ---------- tabla de ranking ---------- */
+  .solapas{display:flex;gap:6px}
+  .solapas button{
+    flex:1;background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
+    font:500 12px/1 "Space Grotesk",sans-serif;padding:9px 10px;border-radius:999px;
+    cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .solapas button.activo{border-color:var(--celeste);color:var(--celeste)}
+  .solapas button:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+  .tabla-estado{font-size:12px;color:var(--gris)}
+  .tabla{display:flex;flex-direction:column;max-height:46vh;overflow:auto}
+  .tabla .fila{
+    display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;
+    padding:9px 0;border-top:1px solid var(--borde)
+  }
+  .tabla .fila:first-child{border-top:0}
+  .tabla .pos{font-family:"Bebas Neue",Impact,sans-serif;font-size:19px;color:var(--gris);text-align:center}
+  .tabla .fila:nth-child(1) .pos{color:var(--sol)}
+  .tabla .fila:nth-child(1) .nom{color:var(--sol)}
+  .tabla .quien{min-width:0}
+  .tabla .nom{font-size:14px;color:var(--crema);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabla .tira{font-size:11px;letter-spacing:1px;line-height:1.6}
+  .tabla .detalle{font-size:11px;color:var(--gris)}
+  .tabla .marca{font-size:13px;font-variant-numeric:tabular-nums;color:var(--gris)}
+  .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
+  .resultado .nota-manana{font-size:12px;color:var(--gris)}
+  .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
+  /* ---------- panel reservado ----------
+     Secciones a la izquierda, contenido a la derecha. En pantallas
+     angostas la columna sale de la fila y se vuelve un cajón. */
+  .modal-caja.panel{max-width:940px;gap:0;border-color:var(--sol);padding:0;height:min(86vh,780px)}
+  .panel .panel-cab{border-bottom:1px solid var(--borde);padding:16px 18px}
+  .panel .panel-cab strong{color:var(--sol);flex:1}
+  .hamburguesa{
+    display:none;background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
+    border-radius:9px;font-size:15px;line-height:1;padding:6px 9px;cursor:pointer;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .panel-cuerpo{flex:1;display:flex;min-height:0;position:relative}
+  .panel-nav{
+    width:22%;min-width:170px;flex:none;display:flex;flex-direction:column;gap:2px;
+    padding:12px 10px;border-right:1px solid var(--borde);overflow:auto
+  }
+  .panel-nav button{
+    text-align:left;background:transparent;border:0;border-radius:10px;cursor:pointer;
+    color:var(--gris);font:500 13px/1.3 "Space Grotesk",sans-serif;padding:10px 12px
+  }
+  .panel-nav button:hover{background:var(--noche);color:var(--crema)}
+  .panel-nav button.activo{background:var(--noche);color:var(--sol)}
+  /* Link externo (no es una sección del panel: abre conversor/ aparte) */
+  .panel-nav-externo{
+    text-align:left;background:transparent;border:0;border-radius:10px;cursor:pointer;
+    color:var(--gris);font:500 13px/1.3 "Space Grotesk",sans-serif;padding:10px 12px;
+    text-decoration:none;margin-top:8px;padding-top:14px;border-top:1px solid var(--borde)
+  }
+  .panel-nav-externo:hover{background:var(--noche);color:var(--celeste)}
+  .panel-cont{flex:1;min-width:0;overflow:auto;padding:18px 20px}
+  .panel-sec{display:flex;flex-direction:column;gap:18px}
+  .panel-sec[hidden]{display:none}
+  .panel-sec-titulo{
+    font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.05em;
+    color:var(--crema);font-weight:400
+  }
+  .panel-velo{position:absolute;inset:0;background:rgba(6,9,16,.6);z-index:3}
+  .panel-velo[hidden]{display:none}
+  .interruptor{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--crema);cursor:pointer}
+  .interruptor input{accent-color:var(--celeste);cursor:pointer;width:16px;height:16px}
+  .panel-bloque{display:flex;flex-direction:column;gap:10px}
+  .panel-titulo{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
+  .panel-ayuda{font-size:12px;color:var(--gris);line-height:1.5}
+  .panel-ayuda code{color:var(--sol)}
+  .opciones{display:flex;gap:16px;flex-wrap:wrap}
+  .opciones label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--crema);cursor:pointer}
+  .opciones input{accent-color:var(--celeste);cursor:pointer}
+  .panel select{
+    width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--borde);
+    background:var(--vidrio-input);color:var(--crema);font:500 14px "Space Grotesk",sans-serif;cursor:pointer
+  }
+  .panel select:disabled{opacity:.45;cursor:not-allowed}
+  .publicar{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--borde);padding-top:12px}
+  .codigo{
+    background:var(--vidrio-input);border:1px solid var(--borde);border-radius:12px;padding:12px;
+    font:400 11px/1.5 monospace;color:var(--crema);white-space:pre;overflow-x:auto
+  }
+  /* estado de la conexión con Firestore */
+  .nube-estado{
+    font-size:12px;color:var(--gris);border:1px solid var(--borde);border-radius:10px;
+    padding:8px 10px;display:flex;align-items:center;gap:8px;
+    background:var(--vidrio);backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .nube-estado::before{
+    content:"";width:8px;height:8px;border-radius:50%;background:var(--rojo);flex:none
+  }
+  .nube-estado.ok{color:var(--crema)}
+  .nube-estado.ok::before{background:var(--verde)}
+  #rankLista{max-height:260px;overflow:auto}
+  #rankLista .vf button{color:var(--rojo);line-height:1}
+  #rankLista .vf button:disabled{opacity:.4;cursor:default}
+  .verif-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .verif-cab span.sin-publicar{color:var(--sol)}
+  .btn-sec.peligro{border-color:var(--rojo);color:var(--rojo)}
+  .banco-acciones{border-top:1px dashed var(--borde);padding-top:8px}
+  /* display:flex de estas clases le gana al hidden del navegador */
+  .panel-bloque[hidden],.banco-fila[hidden]{display:none}
+  #sonadasLista .vf.apagada .pedido{color:var(--gris)}
+  #sonadasLista .vf .estado{font-size:11px;color:var(--gris)}
+  #sonadasLista .vf .estado.ok{color:var(--verde)}
+  .verif-cab span{color:var(--gris);font-size:12px;flex:1;min-width:120px}
+  .verif-cab .btn{padding:8px 12px;font-size:12px}
+  .vf{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--borde);font-size:12px}
+  .vf .pedido{color:var(--crema)}
+  .vf .hallado{color:var(--gris)}
+  .vf.ok .hallado{color:var(--verde)} .vf.dudoso .hallado{color:var(--sol)} .vf.error .hallado{color:var(--rojo)}
+  .vf button{background:transparent;border:1px solid var(--borde);color:var(--crema);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:12px}
+  .vf .id{font-family:monospace;color:var(--gris)}
+
+  /* ---------- píldora de la cabecera ---------- */
+  .btn-pildora{
+    display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+    background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
+    border-radius:999px;padding:8px 14px;
+    font:500 12px/1 "Space Grotesk",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+    transition:color .15s,border-color .15s;
+    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+  }
+  .btn-pildora .ico{
+    width:16px;height:16px;flex:none;object-fit:contain;display:block;
+    opacity:.85;transition:opacity .15s
+  }
+  .btn-pildora:hover .ico{opacity:1}
+  .btn-pildora[aria-expanded="true"]{color:var(--sol);border-color:var(--sol)}
+  .btn-pildora:hover{color:var(--celeste);border-color:var(--celeste)}
+  .btn-pildora:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+
+  /* ---------- fin de semana ---------- */
+  body.cerrado .reproductor,body.cerrado .pistas,body.cerrado .intentos,
+  body.cerrado #zonaJuego,body.cerrado .zona-cerrada{display:none!important}
+  .finde{
+    display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
+    background:var(--pista);border:1px solid var(--borde);border-radius:var(--radio);padding:32px 22px;
+    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+  }
+  .finde[hidden]{display:none}
+  .finde-cartel{width:min(100%,400px);height:auto;display:block}
+  .finde-ranking{
+    width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;text-align:left;
+    border-top:1px solid var(--borde);padding-top:16px;margin-top:6px
+  }
+  .finde-leyenda{font-family:"Bebas Neue",Impact,sans-serif;font-size:22px;letter-spacing:.05em;color:var(--celeste);text-align:center}
+  .finde .tabla{max-height:none}
+  .finde-acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+
+  /* ---------- pie ---------- */
+  .pie{width:100%;max-width:560px;margin-top:22px;display:flex;justify-content:center}
+  .enlace{
+    background:transparent;border:0;cursor:pointer;color:var(--gris);
+    font:500 12px "Space Grotesk",sans-serif;text-decoration:underline;text-underline-offset:3px
+  }
+  .enlace:hover{color:var(--celeste)}
+
+  /* ---------- campos de formulario ---------- */
+  .campo{display:flex;flex-direction:column;gap:8px}
+  .campo label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
+  .campo input,.campo textarea{
+    width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--borde);
+    background:var(--vidrio-input);color:var(--crema);font:500 14px "Space Grotesk",sans-serif;outline:none
+  }
+  .campo textarea{resize:vertical;line-height:1.5;font-weight:400}
+  .campo input:focus,.campo textarea:focus{border-color:var(--celeste)}
+  .campo input:disabled{opacity:.45}
+  .campo input::placeholder,.campo textarea::placeholder{color:var(--gris)}
+  .opciones.fila{gap:18px}
+  .modal-caja.angosta{max-width:340px}
+  .firma-regla{font-size:11px;color:var(--sol);line-height:1.5}
+  .tabla .marca small{display:block;font-size:10px;color:var(--gris);font-weight:400}
+
+  /* ---------- panel lateral de ranking ---------- */
+  /* Va encimada sobre la página: como es position:fixed, no ocupa
+     lugar en el flujo y nada del contenido se mueve al abrirla.
+     Plegada deja a la vista solo la lengüeta. */
+  .lateral{
+    position:fixed;top:0;right:0;height:100vh;height:100dvh;z-index:15;
+    display:flex;align-items:stretch;transition:transform .25s ease;
+    filter:drop-shadow(-14px 0 34px rgba(0,0,0,.55))
+  }
+  .lateral.plegado{transform:translateX(100%)}
+  /* La lengüeta lateral queda del diseño anterior: ahora se abre y cierra
+     con el link "Ranking" de arriba a la derecha, así que se oculta para
+     no duplicar el control. */
+  .lateral-lengueta{
+    display:none!important;
+    width:34px;flex:none;background:var(--pista);border:1px solid var(--borde);border-right:0;
+    border-radius:14px 0 0 14px;color:var(--gris);cursor:pointer;
+    flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0;
+    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+  }
+  .lateral-lengueta:hover{color:var(--sol)}
+  .lateral-flecha{font-size:17px;line-height:1;transition:transform .25s ease}
+  .lateral.plegado .lateral-flecha{transform:rotate(180deg)}
+  .lateral-vertical{
+    writing-mode:vertical-rl;font:500 10px "Space Grotesk",sans-serif;
+    letter-spacing:.22em;text-transform:uppercase
+  }
+  .lateral-cuerpo{
+    width:min(300px,82vw);background:var(--pista);border-left:1px solid var(--borde);
+    padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto;
+    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+  }
+  .lateral-cab{display:flex;flex-direction:column;gap:2px}
+  .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste);display:flex;align-items:center;gap:8px}
+  .lateral-cab .ico{width:18px;height:18px;object-fit:contain;display:block}
+  .lateral-cab span{font-size:11px;color:var(--gris)}
+  .lateral .tabla{max-height:none}
+  .solapas.chicas button{padding:7px 6px;font-size:10px;letter-spacing:.04em}
+
+  /* ---------- pantallas angostas ---------- */
+  @media (max-width:900px){
+    .modal-caja.panel{height:min(90vh,780px)}
+    .hamburguesa{display:block}
+    .panel-nav{
+      position:absolute;top:0;bottom:0;left:0;z-index:4;width:74%;max-width:250px;
+      background:var(--pista);border-right:1px solid var(--borde);
+      transform:translateX(-100%);transition:transform .22s ease
+    }
+    .panel-nav.abierto{transform:none}
+  }
+  @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
+  /* Con la cabecera-der y las pistas fijas en las esquinas, en pantallas
+     angostas no queda margen: se devuelven al flujo normal, debajo del
+     título y del buscador respectivamente. */
+  @media (max-width:600px){
+    .pagina-juego .cabecera-der{position:static;justify-content:center;margin-top:6px}
+    .pagina-juego header{margin-bottom:26px}
+    .pistas-esquina{position:static;width:100%;align-items:stretch;margin-top:-4px}
+    .pistas-esquina .pistas-fila{justify-content:flex-start}
+  }
+  @media (max-width:420px){
+    .btn-pildora{padding:7px 9px;font-size:10px;gap:5px}
+    .btn-pildora .ico{width:14px;height:14px}
+    .pagina-juego .cabecera-der{gap:12px}
+    .pagina-juego .tema-toggle{top:14px;left:14px}
+    .malvinas{width:96px;right:12px;bottom:10px;opacity:.4}
+    .pagina-juego h1{font-size:24px}
+  }
