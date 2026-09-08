@@ -3,9 +3,9 @@
 }
 :root{
     /* paleta glassmorphism 2.0 — modo oscuro (predeterminado) */
-    --fondo-a:#302577;     /* índigo profundo */
-    --fondo-b:#1454BA;     /* azul cobalto */
-    --fondo-c:#3478F6;     /* azul eléctrico */
+    --fondo-a:#251e54;     /* índigo profundo */
+    --fondo-b:#122d58;     /* azul cobalto */
+    --fondo-c:#1d4898;     /* azul eléctrico */
     --hielo:#B8DCF3;       /* celeste hielo, mancha de luz del fondo */
     --pastel:#8EB9EE;      /* azul pastel, superficies y degradados */
     --lavanda:#B4A9E3;     /* lavanda suave, mancha onírica del fondo */
