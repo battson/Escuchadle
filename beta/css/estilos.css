@@ -68,7 +68,7 @@
   header{width:100%;max-width:560px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--borde);padding-bottom:12px}
   h1{font-family:"Bebas Neue",Impact,sans-serif;font-size:44px;letter-spacing:.04em;line-height:.9;color:var(--crema);
      cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-  h1 span{color:var(--celeste)}
+  h1 span{color:var(--sol)}
   .cabecera-der{display:flex;align-items:center;gap:10px}
   .badge-libre{
     border:1px solid var(--sol);color:var(--sol);border-radius:999px;padding:6px 12px;
