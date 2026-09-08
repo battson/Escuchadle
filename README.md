@@ -13,6 +13,18 @@ jugar igual el fin de semana mientras se prueba.
 Sitio estático, sin dependencias ni build: se abre con doble clic o se sube
 tal cual a GitHub Pages.
 
+## La fuente del audio
+
+Durante la partida, cada fragmento que se escucha (1·2·4·7·11·16s) se
+reproduce desde un clip `.webm` guardado en `conversor/clips/`, no desde el
+player de YouTube en vivo. Recién al terminar la partida (adivinada o
+perdida) se muestra y reproduce la canción completa con el reproductor
+oficial de YouTube, como "reveal" final. Esto saca la dependencia de
+streaming del núcleo de la mecánica y la deja solo para ese momento.
+
+Los clips se generan desde el panel de administración, sección **Catálogo**
+(ver *El conversor de clips*).
+
 ## Las pistas
 
 Son tres y salen sobre el final, una por intento, durante los últimos tres:
@@ -31,8 +43,9 @@ que además se abre sola la primera vez que alguien entra.
 ## Estructura
 
 ```
-index.html            marcado
-css/estilos.css       estilos
+index.html            marcado del juego
+css/estilos.css       estilos (rediseño glassmorphism)
+css/clasico.css       estilos originales de la 1.0, para el botón "Vista clásica"
 js/config.js          clave de la API de YouTube (no se versiona)
 js/config.example.js  plantilla de config.js
 js/nube-config.js     datos del proyecto de Firebase (públicos, sí se versionan)
@@ -40,9 +53,15 @@ js/nube.js            conexión con Firestore (módulo)
 js/dia.js             respaldo de la configuración del día
 js/catalogo.js        respaldo del catálogo de canciones
 js/juego.js           lógica del juego
+admin/                panel de administración, página aparte (ver más abajo)
+conversor/             conversor de audio a clips locales, ver conversor/README.md
+conversor/clips/       clips .webm que consume el juego durante la partida
 firestore.rules       reglas de Firestore (fuente de verdad; se pegan en la consola)
-beta/                 sitio 2.0 en construcción, ver beta/README.md
 ```
+
+Además, en el checkout local (no versionada: ver *La versión 1.0*) puede
+existir `archivo-1.0/`, una copia de respaldo del sitio anterior a este
+rediseño.
 
 ## Cómo correrlo
 
@@ -66,9 +85,9 @@ verificar el catálogo entero de una sentada.
 ## La configuración del día
 
 La canción del día vive en Firestore, en el documento `escuchadle/dia`. El
-panel reservado (cinco toques en el título) la publica y el cambio le llega en
-el acto a cualquiera que tenga el juego abierto: no hay que subir nada al
-repositorio ni esperar a que caduque un caché.
+panel la publica y el cambio le llega en el acto a cualquiera que tenga el
+juego abierto: no hay que subir nada al repositorio ni esperar a que caduque
+un caché.
 
 ```
 modo       "auto" (sale de la fecha) o "manual" (una elegida a mano)
@@ -101,12 +120,13 @@ reemplaza todo lo anterior, así que hay que pegar el archivo entero y no un
 bloque suelto, o las colecciones que queden afuera dejan de funcionar.
 
 Cubren cuatro cosas: los documentos `escuchadle/dia` y `escuchadle/catalogo`,
-la colección `resultados` y la colección `sugerencias`. En las dos colecciones se puede crear y borrar pero
-no modificar, y cada campo se valida por tipo y por largo. Como no hay login,
-el borrado queda abierto: cualquiera que sepa manejar la consola podría borrar
-filas. Entre compañeros de trabajo no es un problema; si algún día lo fuera, se
-cierra con Firebase Auth.
-
+la colección `resultados` y la colección `sugerencias` (esta última ya no se
+usa desde el panel, se dejó la regla por compatibilidad con datos viejos). En
+las colecciones se puede crear y borrar pero no modificar, y cada campo se
+valida por tipo y por largo. Como no hay login, el borrado queda abierto:
+cualquiera que sepa manejar la consola podría borrar filas. Entre compañeros
+de trabajo no es un problema; si algún día lo fuera, se cierra con Firebase
+Auth.
 
 ## El catálogo en la nube
 
@@ -145,6 +165,22 @@ cuando la bolsa se achica. *Copiar respaldo* arma el bloque para
 La primera vez, el documento no existe: el botón dice *Publicar por primera
 vez* y sube lo que tenga `js/catalogo.js`.
 
+## El conversor de clips
+
+Integrado en la sección **Catálogo** del panel: graba 20 segundos del audio
+de esa misma pestaña mientras suena la canción de arriba (con el ID y el
+silencio inicial ya cargados) y lo guarda como `<Artista> - <Título>.webm` en
+`conversor/clips/`. Solo anda en Chrome/Edge, y hay que guardar la canción
+antes (con artista y título completos) para poder nombrar el clip. También
+existe una versión standalone en `conversor/index.html` (ver
+`conversor/README.md`) con un modo por lotes para generar de una varias
+canciones pendientes.
+
+La solapa **Fusionar clips**, dentro de Catálogo, lee la carpeta de clips y
+cruza cada `.webm` contra el catálogo por nombre de archivo; para los que no
+coinciden con ninguna canción ofrece cargar el artista/título adivinado del
+nombre directo en el formulario de Catálogo → Editar.
+
 ## El ranking
 
 Se puntúa por rapidez: **6 puntos** si la sacás al primer intento y uno menos
@@ -171,7 +207,7 @@ si nadie sumó puntos, no aparece.
 
 El título de la canción **nunca** se muestra en estas tablas: sería regalarle
 la respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking*
-del panel reservado, que sigue siendo la vista cruda para corregir.
+del panel, que sigue siendo la vista cruda para corregir.
 
 ## Los resultados y el envío
 
@@ -190,30 +226,40 @@ Como no hay login, el nombre es a puro honor: nada impide que alguien se anote
 con el nombre de otro. Para un juego entre conocidos alcanza; si algún día hace
 falta, el camino es Firebase Auth.
 
-## Comentarios y sugerencias
-
-El botón *Dejar comentario* de la cabecera abre un formulario: nombre o
-anónimo, y un mensaje de hasta 600 caracteres. Va a la colección `sugerencias` y se lee desde el panel, en la
-sección del mismo nombre, donde también se borran de a uno.
-
 ## El panel de administración
 
-Cinco toques en el título y pide contraseña; hoy es `159357`, escrita en
-`js/juego.js`. **No es seguridad**: la clave viaja en el navegador y cualquiera
-que abra el código la ve. Es una tranquera para que un curioso no entre de
-casualidad. Lo que protege la base son las reglas de Firestore.
+Vive aparte, en `admin/` (mismo sitio, misma contraseña; hoy es `159357`,
+escrita en `admin/js/admin.js`). **No es seguridad**: la clave viaja en el
+navegador y cualquiera que abra el código la ve. Es una tranquera para que un
+curioso no entre de casualidad. Lo que protege la base son las reglas de
+Firestore.
 
-La sesión queda abierta mientras dure la pestaña. El panel está dividido en
-secciones —Canción del día, Modo de juego, Ranking, Sugerencias, Vista y
-pruebas, Catálogo, Partida y resultados— con la lista a la izquierda y el
-contenido a la derecha. En pantallas angostas esa lista se convierte en un
-cajón que se abre con el botón ☰.
+Cinco toques en el título del juego abren `admin/` en una pestaña nueva. La
+sesión queda abierta mientras dure esa pestaña. El panel está dividido en
+secciones —Canción del día, Catálogo, Modo de juego, Ranking, Vista y
+pruebas, Partida y resultados— con la lista a la izquierda y el contenido a
+la derecha. En pantallas angostas esa lista se convierte en un cajón que se
+abre con el botón ☰.
 
 ## Cargar canciones
 
 Todo se hace desde el panel, sección **Catálogo** (ver *El catálogo en la
 nube*). Pegás el ID o la URL de YouTube, escuchás, guardás y publicás. El
-`yt` es lo que va después de `watch?v=` en la URL.
+`yt` es lo que va después de `watch?v=` en la URL. Para que suene durante la
+partida también hace falta generarle el clip (ver *El conversor de clips*).
+
+## Modo claro/oscuro y vista clásica
+
+El botón de la luna/sol de la cabecera alterna entre modo claro y oscuro,
+tanto en el juego como en `admin/` (cada uno con su propio botón). Oscuro es
+el predeterminado; la elección queda en `localStorage` (`ea_tema`), compartida
+entre las dos páginas.
+
+El botón **"Vista clásica"** de la cabecera del juego alterna entre el
+rediseño actual y `css/clasico.css` —el `css/estilos.css` original de antes
+del rediseño, sin tocar— usando `localStorage` (`ea_vista`). Esa hoja no
+tiene modo claro/oscuro propio, así que el botón de tema se esconde mientras
+está puesta. Por ahora solo existe en el juego, no en `admin/`.
 
 ## La tarjeta para compartir
 
@@ -247,10 +293,6 @@ imgs/OpenGraph.jpg   tarjeta para compartir, 1200×630, menos de 300 KB
 Las esquinas de cajas, campos y botones salen de la variable `--radio`
 en `css/estilos.css` (hoy 5 px): se cambia en un solo lugar.
 
-Si alguna vez cambiás la tarjeta, subile el `?v=` del `og:image` en el
-`<head>`: WhatsApp y Facebook la guardan en caché por mucho tiempo y sin eso
-siguen mostrando la vieja.
-
 ## Publicar en GitHub Pages
 
 Settings → Pages → Source: `main`, carpeta `/ (root)`. Como `js/config.js` está
@@ -259,8 +301,21 @@ tienen su `yt` cargado. Si necesitás la búsqueda en producción, tendrás que
 versionar la clave y restringirla por dominio (HTTP referrers) desde Google
 Cloud.
 
+## La versión 1.0
+
+El diseño anterior a este rediseño (streaming en vivo de YouTube durante toda
+la partida, panel de administración embebido en el propio juego) quedó
+etiquetado en git como `v1.0` — `git checkout v1.0` lo trae de vuelta entero.
+Además, en este checkout puede existir localmente una copia sin versionar en
+`archivo-1.0/` (`index.html`, `css/`, `js/`, `imgs/`, el README de esa época),
+pensada para volver a mirarla rápido sin tocar git; al estar en `.gitignore`
+no viaja al repositorio ni a GitHub Pages, así que si armás un clone nuevo no
+va a estar ahí salvo que la copies vos mismo.
+
 ## Nota legal
 
-El audio se reproduce con el reproductor oficial embebido de YouTube. No se
-descarga ni se aloja música. Si el sitio va a ser público, dejá el reproductor
-visible: los términos de la API de YouTube no permiten ocultarlo.
+El audio de la partida se recorta de clips propios guardados en
+`conversor/clips/`; al terminar, la canción completa se reproduce con el
+reproductor oficial embebido de YouTube. No se aloja música completa. Si el
+sitio va a ser público, dejá el reproductor de YouTube visible en el reveal:
+los términos de la API de YouTube no permiten ocultarlo.
