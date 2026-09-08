@@ -63,13 +63,15 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
+  html{overflow-x:hidden}
   body{
     background:var(--fondo-a);
     color:var(--crema);
     font-family:"Space Grotesk",system-ui,sans-serif;
-    display:flex;flex-direction:column;align-items:center;
-    padding:24px 16px 72px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:20px 16px;
     min-height:100%;
+    overflow-x:hidden;
     transition:background-color .25s ease,color .25s ease;
   }
   /* Degradé diagonal, de arriba a la izquierda a abajo a la derecha.
@@ -152,7 +154,7 @@
   .pagina-juego header{
     border-bottom:0;padding-bottom:0;
     width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
-    gap:10px;margin-bottom:38px;
+    gap:10px;margin-bottom:clamp(16px,4vh,38px);
     /* z-index:20 en .cabecera-der no alcanza si header (su ancestro,
        contexto de apilamiento propio por position:relative) sigue con
        el z-index:1 genérico: todo ese contexto quedaría por debajo del
@@ -178,7 +180,7 @@
   }
   .link-min:hover,.link-min[aria-expanded="true"]{color:var(--celeste)}
   .link-min:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
-  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:26px;margin-top:2vh}
+  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:clamp(12px,2.5vh,26px)}
 
   /* ---------- reproductor: la línea del medio ---------- */
   .reproductor{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -452,6 +454,7 @@
      Secciones a la izquierda, contenido a la derecha. En pantallas
      angostas la columna sale de la fila y se vuelve un cajón. */
   .modal-caja.panel{max-width:940px;gap:0;border-color:var(--sol);padding:0;height:min(86vh,780px)}
+  #panel{border:0;border-radius:0}
   .panel .panel-cab{border-bottom:1px solid var(--borde);padding:16px 18px}
   .panel .panel-cab strong{color:var(--sol);flex:1}
   .hamburguesa{
