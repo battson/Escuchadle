@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escuchadle Argento — panel</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../imgs/vinilo.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../imgs/vinilo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/estilos.css">
+</head>
+<body>
+<header>
+  <h1 title="Escuchadle Argento"><a href="../" style="color:inherit;text-decoration:none">ESCUCHADLE<br><span>ARGENTO</span></a></h1>
+  <div class="cabecera-der">
+    <span class="badge-libre">Panel</span>
+  </div>
+</header>
+
+<main style="max-width:960px">
+  <!-- ---------- clave ---------- -->
+  <section class="modal-caja angosta" id="claveCard">
+    <div class="modal-cab">
+      <strong>Panel reservado</strong>
+    </div>
+    <div class="campo">
+      <label for="claveEntrada">Contraseña</label>
+      <input id="claveEntrada" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
+      <span class="firma-aviso" id="claveAviso"></span>
+    </div>
+    <button class="btn btn-ok" id="btnClave">Entrar</button>
+  </section>
+
+  <!-- ---------- panel ---------- -->
+  <div class="modal-caja panel" id="panel" hidden>
+    <div class="modal-cab panel-cab">
+      <button class="hamburguesa" id="panelMenu" aria-label="Secciones" aria-expanded="false">☰</button>
+      <strong>Panel reservado</strong>
+      <a href="../" class="btn btn-sec" style="padding:8px 12px;font-size:12px">← Volver al juego</a>
+    </div>
+
+    <div class="panel-cuerpo">
+      <div class="panel-velo" id="panelVelo" hidden></div>
+      <nav class="panel-nav" id="panelNav" aria-label="Secciones del panel">
+        <button data-ir="dia" class="activo">Canción del día</button>
+        <button data-ir="catalogo">Catálogo</button>
+        <button data-ir="fusionar">Fusionar clips</button>
+        <button data-ir="juego">Modo de juego</button>
+        <button data-ir="ranking">Ranking</button>
+        <button data-ir="sugerencias">Sugerencias</button>
+        <button data-ir="vista">Vista y pruebas</button>
+        <button data-ir="datos">Partida y resultados</button>
+      </nav>
+
+      <div class="panel-cont" id="panelCont">
+
+      <section class="panel-sec" data-sec="dia" hidden>
+        <h3 class="panel-sec-titulo">Canción del día</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Canción del día</div>
+          <div class="opciones">
+            <label><input type="radio" name="modoDia" id="diaAuto" value="auto"> Automática, por fecha</label>
+            <label><input type="radio" name="modoDia" id="diaManual" value="manual"> A elección</label>
+          </div>
+          <select id="selCancion" aria-label="Canción del día"></select>
+          <div id="estadoNube" class="nube-estado">Conectando con la nube…</div>
+          <div class="verif-cab">
+            <span id="estadoDia"></span>
+            <button class="btn btn-sec" id="btnSortear">Sortear otra</button>
+            <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
+          </div>
+          <div class="publicar">
+            <div class="panel-titulo">Respaldo para <code>js/dia.js</code> — solo por si algún día la nube no carga</div>
+            <pre class="codigo" id="vistaDia"></pre>
+            <button class="btn btn-sec" id="btnCopiarDia">Copiar respaldo</button>
+          </div>
+          <p class="panel-ayuda"><b>Sortear otra</b> deja el modo automático como está pero corre el sorteo: hoy cae otra canción al azar y la secuencia sigue desde ahí. <b>A elección</b> es para fijar una canción puntual a mano.<br><br>
+          Lo que tocás acá se publica solo: le llega a cualquiera que tenga el juego abierto en el momento, sin que recargue nada.<br><br>
+          <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="catalogo" hidden>
+        <h3 class="panel-sec-titulo">Catálogo</h3>
+
+        <div class="panel-bloque">
+          <div class="verif-cab"><span id="catEstado"></span></div>
+          <div class="solapas chicas" role="tablist">
+            <button id="catSolEditar" class="activo" role="tab">Editar</button>
+            <button id="catSolSonadas" role="tab">Ya sonaron</button>
+          </div>
+        </div>
+
+        <div class="panel-bloque" id="catTabEditar">
+          <div class="panel-titulo">Canciones: probar, corregir, agregar y dar de baja</div>
+          <p class="panel-ayuda">Elegí una canción para corregirla, o la primera opción para cargar una nueva. Escuchá el primer segundo (o la canción completa) antes de guardar. Las que ya sonaron como canción del día se desactivan solas y quedan fuera del sorteo hasta que las vuelvas a activar; siguen apareciendo en el buscador, así que no regalan nada. Nada llega a los jugadores hasta que toques <b>Publicar</b>, más abajo.</p>
+          <div class="verif-cab">
+            <select id="bancoSel" class="banco-campo" style="flex:1"></select>
+          </div>
+          <div class="banco-fila">
+            <input id="bancoArtista" class="banco-campo" type="text" placeholder="Artista" autocomplete="off" style="flex:1;min-width:150px">
+            <input id="bancoTitulo"  class="banco-campo" type="text" placeholder="Canción" autocomplete="off" style="flex:1;min-width:150px">
+          </div>
+          <div class="banco-fila">
+            <select id="bancoGenero" class="banco-campo" style="flex:1;min-width:140px"></select>
+            <input id="bancoGeneroOtro" class="banco-campo" type="text" placeholder="Género nuevo" autocomplete="off" style="flex:1;min-width:140px" hidden>
+          </div>
+          <div class="banco-fila">
+            <input id="bancoId" class="banco-campo" type="text" placeholder="ID o URL de YouTube (watch?v=…)" autocomplete="off" style="flex:1;min-width:180px">
+            <button class="btn btn-sec" id="bancoEscuchar" style="padding:9px 14px;font-size:13px" title="Escuchar el primer segundo, como en el juego">▶ 1 seg</button>
+            <button class="btn btn-sec" id="bancoCompleta" style="padding:9px 14px;font-size:13px" title="Escuchar la canción entera desde el silencio inicial">▶ Completa</button>
+            <button class="btn btn-ok"  id="bancoGuardar"  style="padding:9px 14px;font-size:13px">Guardar</button>
+          </div>
+          <div class="banco-fila" style="align-items:center">
+            <label style="font-size:12px;color:var(--gris);white-space:nowrap">Silencio inicial (s):</label>
+            <input id="bancoIni" class="banco-campo" type="number" min="0" max="30" step="0.5" placeholder="0" style="width:80px">
+            <span class="panel-ayuda" style="flex:1;margin:0">Segundos a saltar al reproducir (campo <code>ini</code>). Dejalo en 0 si el video arranca directo.</span>
+          </div>
+          <div class="banco-fila banco-acciones" id="bancoAcciones" style="align-items:center" hidden>
+            <span class="panel-ayuda" id="bancoEstadoCancion" style="flex:1;margin:0"></span>
+            <button class="btn btn-sec" id="bancoActivar" style="padding:9px 14px;font-size:13px">Desactivar</button>
+            <button class="btn btn-sec peligro" id="bancoBorrar" style="padding:9px 14px;font-size:13px">Borrar</button>
+          </div>
+          <div id="bancoAviso" style="font-size:12px;color:var(--gris);min-height:16px"></div>
+          <div id="bancoPlayer" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"></div>
+
+          <!-- 2.0: conversor de clips integrado acá mismo -->
+          <div class="panel-bloque banco-acciones" style="padding-top:12px">
+            <div class="panel-titulo">Generar clip de 20s (para la 2.0)</div>
+            <p class="panel-ayuda">Graba el audio de <b>esta pestaña</b> mientras suena la canción de arriba (con el ID y el silencio inicial ya cargados) y lo guarda como <code>&lt;Artista&gt; - &lt;Título&gt;.webm</code> en <code>conversor/clips/</code>. Solo anda en Chrome/Edge, y hay que <b>guardar la canción</b> antes (con artista y título completos) para poder nombrarle el clip.</p>
+            <div class="banco-fila">
+              <button class="btn btn-sec" id="clipCarpeta" type="button" style="padding:9px 14px;font-size:13px">1. Elegir carpeta de clips</button>
+              <span class="tabla-estado" id="clipEstadoCarpeta">Sin elegir (se va a descargar si no la elegís).</span>
+            </div>
+            <div class="banco-fila">
+              <button class="btn btn-sec" id="clipCaptura" type="button" style="padding:9px 14px;font-size:13px">2. Habilitar captura de audio</button>
+              <span class="tabla-estado" id="clipEstadoCaptura">Sin habilitar.</span>
+            </div>
+            <div class="banco-fila">
+              <button class="btn btn-ok" id="clipGrabar" type="button" style="padding:9px 14px;font-size:13px">3. Grabar 20s y guardar</button>
+              <span class="tabla-estado" id="clipEstado"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-bloque" id="catTabSonadas" hidden>
+          <div class="panel-titulo">Canciones que ya sonaron</div>
+          <div class="verif-cab"><span id="sonadasEstado"></span></div>
+          <p class="panel-ayuda">Las que salieron como canción del día y siguen fuera del sorteo, las más recientes primero. <b>Activar</b> la devuelve al sorteo y la saca de esta lista; para volver a desactivarla está la solapa Editar. Los cambios se publican con el botón de abajo.</p>
+          <div id="sonadasLista"></div>
+        </div>
+
+        <div class="panel-bloque" style="border-top:1px solid var(--borde);padding-top:14px">
+          <div class="panel-titulo">Publicar el catálogo</div>
+          <div class="verif-cab">
+            <span id="catPublicarEstado"></span>
+            <button class="btn btn-sec" id="btnReactivar" title="Vuelve al sorteo todas las que se desactivaron por haber sonado">Reactivar las que sonaron</button>
+            <button class="btn btn-sec" id="btnCopiarCat" title="Bloque para pegar en js/catalogo.js">Copiar respaldo</button>
+            <button class="btn btn-ok" id="btnPublicarCat">Publicar</button>
+          </div>
+          <p class="panel-ayuda"><b>Publicar</b> sube el catálogo entero a la nube y le llega en el acto a cualquiera que tenga el juego abierto. La canción de hoy ya está fijada para todos, así que publicar en medio del día no le cambia la canción a nadie: lo nuevo entra al sorteo desde mañana.<br><br>
+          <b>Reactivar las que sonaron</b> es para cuando el sorteo se queda corto: vuelve a poner en juego todo lo que ya salió (se publica con el botón).<br><br>
+          <b>Copiar respaldo</b> arma el bloque para <code>js/catalogo.js</code>, que se usa solo si la nube no carga. Conviene pegarlo de vez en cuando para que no envejezca.</p>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="fusionar" hidden>
+        <h3 class="panel-sec-titulo">Fusionar clips</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Clips sueltos en conversor/clips/</div>
+          <p class="panel-ayuda">Lee la carpeta de clips y la cruza con el catálogo actual por nombre de archivo. Los que ya coinciden con una canción del catálogo aparecen vinculados; los que no, muestran el artista y el título que se les puede adivinar del nombre, con un botón para cargarlos en la solapa <b>Catálogo → Editar</b> (falta pegarles el ID de YouTube y guardar).</p>
+          <div class="verif-cab">
+            <span id="fusEstado">Elegí la carpeta para empezar.</span>
+            <button class="btn btn-sec" id="fusCarpeta">Elegir carpeta de clips</button>
+            <button class="btn btn-sec" id="fusActualizar">Releer carpeta</button>
+          </div>
+          <div id="fusLista"></div>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="juego" hidden>
+        <h3 class="panel-sec-titulo">Modo de juego</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Probar el modo libre</div>
+          <div class="acciones">
+            <a class="btn btn-sec" href="../" target="_blank" rel="noopener">Abrir del día</a>
+            <a class="btn btn-sec" href="../?modo=libre" target="_blank" rel="noopener">Abrir en modo libre</a>
+          </div>
+          <p class="panel-ayuda">El modo libre saca una canción al azar, no guarda la partida y no cuenta para las estadísticas. Como el panel vive en otra página, entrar en modo libre abre el juego en una pestaña nueva con <code>?modo=libre</code> en la URL.</p>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="ranking" hidden>
+        <h3 class="panel-sec-titulo">Ranking</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Ranking en la nube</div>
+          <div class="verif-cab">
+            <span id="estadoRanking"></span>
+            <button class="btn btn-sec" id="btnRanking">Actualizar</button>
+            <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
+          </div>
+          <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el botón Ranking de la cabecera del juego. La ✕ borra una fila suelta.</p>
+          <div id="rankLista"></div>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="sugerencias" hidden>
+        <h3 class="panel-sec-titulo">Sugerencias</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Lo que mandaron los jugadores</div>
+          <div class="verif-cab">
+            <span id="estadoSug"></span>
+            <button class="btn btn-sec" id="btnSugActualizar">Actualizar</button>
+          </div>
+          <p class="panel-ayuda">Comentarios y sugerencias enviados desde el pie del juego, los más nuevos primero. La ✕ borra uno. Si dice que las reglas rechazaron la operación, falta habilitar la colección <code>sugerencias</code> en Firestore.</p>
+          <div id="sugLista"></div>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="vista" hidden>
+        <h3 class="panel-sec-titulo">Vista y pruebas</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Fin de semana</div>
+          <label class="interruptor"><input type="checkbox" id="swFinde"> Dejar jugar igual los sábados y domingos</label>
+          <p class="panel-ayuda">El juego cierra los fines de semana para todo el mundo. Esto saltea el cartel <b>solo en el navegador donde se toque</b>, para poder probar — se aplica la próxima vez que se cargue el juego en ese mismo navegador. El panel, en cambio, abre los siete días sin necesidad de tocar nada.</p>
+        </div>
+      </section>
+
+      <section class="panel-sec" data-sec="datos" hidden>
+        <h3 class="panel-sec-titulo">Partida y resultados</h3>
+        <div class="panel-bloque">
+          <div class="panel-titulo">Partida guardada (en este navegador)</div>
+          <div class="verif-cab">
+            <span id="estadoPartida"></span>
+            <button class="btn btn-sec" id="btnBorrarPartida">Borrar partida de hoy</button>
+          </div>
+          <p class="panel-ayuda">Borra la partida guardada en este navegador, sin tocar las estadísticas ni a los demás jugadores.</p>
+        </div>
+
+        <div class="panel-bloque">
+          <div class="panel-titulo">Resultados guardados en este navegador</div>
+          <div class="verif-cab">
+            <span id="estadoResultados"></span>
+            <button class="btn btn-sec" id="btnSubirPendientes">Subir pendientes</button>
+            <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
+          </div>
+          <p class="panel-ayuda">Cada partida terminada se anota en el navegador de quien jugó, pero ya no viaja sola: sube cuando el jugador toca <b>Enviar al ranking</b> en la ventana de resultado. <b>Subir pendientes</b> fuerza la subida de todo lo que haya quedado sin mandar en <i>este</i> navegador.</p>
+        </div>
+      </section>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/nube-config.js"></script>
+<script src="../js/dia.js"></script>
+<script src="../js/catalogo.js"></script>
+<script src="js/admin.js"></script>
+<script type="module" src="../js/nube.js"></script>
+</body>
+</html>
