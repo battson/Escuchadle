@@ -268,7 +268,7 @@
   .buscador{position:relative}
   .buscador input{
     width:100%;padding:14px 16px;border:none;border-bottom:1px solid var(--borde);
-    background:var(--pista);color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
+    background:none;color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
   }
   .buscador input:focus{border-color:var(--celeste)}
   .buscador input::placeholder{color:var(--gris)}
