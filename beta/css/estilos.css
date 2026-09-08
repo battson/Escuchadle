@@ -63,13 +63,15 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
+  html{overflow-x:hidden}
   body{
     background:var(--fondo-a);
     color:var(--crema);
     font-family:"Space Grotesk",system-ui,sans-serif;
-    display:flex;flex-direction:column;align-items:center;
-    padding:24px 16px 72px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:20px 16px;
     min-height:100%;
+    overflow-x:hidden;
     transition:background-color .25s ease,color .25s ease;
   }
   /* Degradé diagonal, de arriba a la izquierda a abajo a la derecha.
@@ -152,7 +154,7 @@
   .pagina-juego header{
     border-bottom:0;padding-bottom:0;
     width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
-    gap:10px;margin-bottom:38px;
+    gap:10px;margin-bottom:clamp(16px,4vh,38px);
     /* z-index:20 en .cabecera-der no alcanza si header (su ancestro,
        contexto de apilamiento propio por position:relative) sigue con
        el z-index:1 genérico: todo ese contexto quedaría por debajo del
@@ -178,7 +180,7 @@
   }
   .link-min:hover,.link-min[aria-expanded="true"]{color:var(--celeste)}
   .link-min:focus-visible{outline:2px solid var(--sol);outline-offset:3px}
-  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:26px;margin-top:2vh}
+  .pagina-juego main{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:stretch;gap:clamp(12px,2.5vh,26px)}
 
   /* ---------- reproductor: la línea del medio ---------- */
   .reproductor{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -228,23 +230,23 @@
   /* ---------- pistas ----------
      Iban ancladas fijas en la esquina inferior derecha, pero ahí se
      pisaban con la tabla de ranking (que puede crecer bastante de alto).
-     Pasan al flujo normal, debajo del recuadro de la apuesta. */
-  .pistas-esquina{width:100%}
-  .pistas-esquina .pista{padding:6px 10px;font-size:11px}
-
-  /* ---------- pistas ---------- */
+     Pasan al flujo normal, arriba del buscador, y en una sola línea:
+     la cabecera ("Pistas 0 de 3...") y los chips van todos en fila,
+     con wrap solo como salvavidas en pantallas muy angostas. */
   .pistas{display:flex;flex-direction:column;gap:8px}
   .pistas[hidden]{display:none}   /* si no, el display:flex le gana al atributo */
+  .pistas-linea{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 14px}
   .pistas-cab{
     font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);
     display:flex;flex-wrap:wrap;gap:6px
   }
   .pistas-cab span{color:var(--gris);opacity:.85;text-transform:none;letter-spacing:.02em;font-size:11px}
   .pistas-fila{display:flex;flex-wrap:wrap;gap:8px}
+  .pistas-linea .pistas-fila{flex-wrap:nowrap}
   .pista{
-    display:flex;align-items:baseline;gap:8px;padding:8px 12px;border-radius:var(--radio);
-    border:1px solid var(--borde);background:var(--pista);font-size:13px;color:var(--crema);
-    animation:aparecer .35s ease both
+    display:flex;align-items:baseline;gap:8px;padding:6px 10px;border-radius:var(--radio);
+    border:1px solid var(--borde);background:var(--pista);font-size:11px;color:var(--crema);
+    white-space:nowrap;animation:aparecer .35s ease both
   }
   .pista.cerrada{opacity:.45;border-style:dashed;animation:none}
   .pista.cerrada .et{color:var(--gris)}
@@ -254,7 +256,7 @@
   @media (prefers-reduced-motion:reduce){.pista{animation:none}}
 
   /* ---------- intentos ---------- */
-  .intentos{display:flex;flex-direction:column;gap:8px}
+  .intentos{gap:8px}
   .intento{
     display:flex;align-items:center;gap:10px;padding:11px 14px;margin-bottom:0;
     font-size:14px;color:var(--gris);min-height:44px
@@ -452,6 +454,7 @@
      Secciones a la izquierda, contenido a la derecha. En pantallas
      angostas la columna sale de la fila y se vuelve un cajón. */
   .modal-caja.panel{max-width:940px;gap:0;border-color:var(--sol);padding:0;height:min(86vh,780px)}
+  #panel{border:0;border-radius:0}
   .panel .panel-cab{border-bottom:1px solid var(--borde);padding:16px 18px}
   .panel .panel-cab strong{color:var(--sol);flex:1}
   .hamburguesa{
