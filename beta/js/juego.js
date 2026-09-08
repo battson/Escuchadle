@@ -93,13 +93,6 @@ $("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
    dejó aplicado data-tema si el navegador tenía guardado "claro"); acá
    solo hace falta alternarlo y guardar el que quede. */
 function temaActual(){return document.documentElement.dataset.tema==="claro"?"claro":"oscuro"}
-function pintarBtnTema(){
-  const claro=temaActual()==="claro";
-  const etiqueta=claro?"Cambiar a modo oscuro":"Cambiar a modo claro";
-  $("#btnTema").textContent=claro?"☀":"🌙";
-  $("#btnTema").title=etiqueta;
-  $("#btnTema").setAttribute("aria-label",etiqueta);
-}
 $("#btnTema").onclick=()=>{
   const nuevo=temaActual()==="claro"?"oscuro":"claro";
   if(nuevo==="claro") document.documentElement.dataset.tema="claro";
@@ -107,6 +100,33 @@ $("#btnTema").onclick=()=>{
   try{localStorage.setItem("ea_tema",nuevo)}catch{}
   pintarBtnTema();
 };
+
+/* ---------- vista clásica (1.0) / 2.0 ----------
+   Alterna qué hoja de estilos carga la página entera: la 2.0
+   (glassmorphism) o la 1.0 guardada tal cual en css/clasico.css. El
+   script inline del <head> ya la eligió antes de pintar según lo
+   guardado; acá solo hace falta poder cambiarla. La clásica no tiene
+   modo claro/oscuro, así que ese botón se esconde mientras esté puesta. */
+const HOJA_20="css/estilos.css?v=25", HOJA_CLASICA="css/clasico.css?v=1";
+function vistaActual(){return document.documentElement.dataset.vista==="clasica"?"clasica":"2.0"}
+function pintarBtnTema(){
+  const claro=temaActual()==="claro", esClasica=vistaActual()==="clasica";
+  $("#btnTema").hidden=esClasica;
+  const etiqueta=claro?"Cambiar a modo oscuro":"Cambiar a modo claro";
+  $("#btnTema").textContent=claro?"☀":"🌙";
+  $("#btnTema").title=etiqueta;
+  $("#btnTema").setAttribute("aria-label",etiqueta);
+}
+$("#btnVista").onclick=()=>{
+  const nuevo=vistaActual()==="clasica"?"2.0":"clasica";
+  if(nuevo==="clasica") document.documentElement.dataset.vista="clasica";
+  else delete document.documentElement.dataset.vista;
+  $("#hojaEstilos").href=nuevo==="clasica"?HOJA_CLASICA:HOJA_20;
+  try{localStorage.setItem("ea_vista",nuevo)}catch{}
+  $("#btnVista").textContent=nuevo==="clasica"?"Vista 2.0":"Vista clásica";
+  pintarBtnTema();
+};
+$("#btnVista").textContent=vistaActual()==="clasica"?"Vista 2.0":"Vista clásica";
 pintarBtnTema();
 
 /* La primera vez que alguien abre el juego, las reglas se muestran solas.
