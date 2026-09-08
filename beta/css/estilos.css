@@ -225,11 +225,11 @@
   .btn:disabled{opacity:.4;cursor:not-allowed}
   #latActualizar{background:none;border:0;border-bottom:1px solid var(--borde);border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none}
 
-  /* ---------- pistas: esquina inferior derecha ---------- */
-  .pistas-esquina{
-    position:fixed;right:20px;bottom:18px;z-index:2;width:min(220px,42vw);
-    align-items:flex-end
-  }
+  /* ---------- pistas ----------
+     Iban ancladas fijas en la esquina inferior derecha, pero ahí se
+     pisaban con la tabla de ranking (que puede crecer bastante de alto).
+     Pasan al flujo normal, debajo del recuadro de la apuesta. */
+  .pistas-esquina{width:100%}
   .pistas-esquina .pista{padding:6px 10px;font-size:11px}
 
   /* ---------- pistas ---------- */
@@ -256,7 +256,7 @@
   /* ---------- intentos ---------- */
   .intentos{display:flex;flex-direction:column;gap:8px}
   .intento{
-    display:flex;align-items:center;gap:10px;padding:11px 14px;
+    display:flex;align-items:center;gap:10px;padding:11px 14px;margin-bottom:0;
     font-size:14px;color:var(--gris);min-height:44px
   }
   .intento.salto{color:var(--gris);font-style:italic}
@@ -269,12 +269,14 @@
   /* ---------- buscador ----------
      #zonaJuego agrupa el buscador y las acciones (Saltar/Enviar) en un
      único recuadro: cada franja se separa de la siguiente con un borde
-     fino, y overflow:hidden hace que el redondeado del contenedor recorte
-     las esquinas de la última franja (Enviar) sin que el botón tenga que
-     saber su propio radio. */
+     fino. Nada de overflow:hidden acá: la lista de sugerencias (.lista)
+     aparece por encima del input con position:absolute, y un overflow
+     recortado en el contenedor se la comía entera. En cambio, Enviar
+     (la última franja) redondea sus propias esquinas de abajo para que
+     no le sobresalgan puntas cuadradas al recuadro redondeado. */
   .zona-juego{
     display:flex;flex-direction:column;
-    border:1px solid var(--borde);border-radius:var(--radio);overflow:hidden;
+    border:1px solid var(--borde);border-radius:var(--radio);
     background:var(--pista);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
   }
   .buscador{position:relative}
@@ -295,6 +297,7 @@
   .acciones{display:flex;flex-direction:column;gap:0}
   .acciones .btn{flex:1;width:100%;border-radius:0;border:0;border-top:1px solid var(--borde)}
   .acciones .btn-sec{background:transparent}
+  .acciones .btn:last-child{border-radius:0 0 var(--radio) var(--radio)}
   .btn-ok{background:var(--sol);color:var(--noche)}
 
   /* ---------- resultado ---------- */
@@ -627,7 +630,7 @@
        debajo de Ayuda/Ranking, que son position:fixed y quedan encima. */
     padding:64px 14px 16px;display:flex;flex-direction:column;gap:10px;overflow:auto
   }
-  .lateral-cab{display:flex;flex-direction:column;gap:2px}
+  .lateral-cab{display:none}
   .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste);display:flex;align-items:center;gap:8px}
   .lateral-cab .ico{width:18px;height:18px;object-fit:contain;display:block}
   .lateral-cab span{display:none}
@@ -646,14 +649,11 @@
     .panel-nav.abierto{transform:none}
   }
   @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
-  /* Con la cabecera-der y las pistas fijas en las esquinas, en pantallas
-     angostas no queda margen: se devuelven al flujo normal, debajo del
-     título y del buscador respectivamente. */
+  /* Con la cabecera-der fija en la esquina, en pantallas angostas no
+     queda margen: se devuelve al flujo normal, debajo del título. */
   @media (max-width:600px){
     .pagina-juego .cabecera-der{position:static;justify-content:center;margin-top:6px}
     .pagina-juego header{margin-bottom:26px}
-    .pistas-esquina{position:static;width:100%;align-items:stretch;margin-top:-4px}
-    .pistas-esquina .pistas-fila{justify-content:flex-start}
   }
   @media (max-width:420px){
     .btn-pildora{padding:7px 9px;font-size:10px;gap:5px}
