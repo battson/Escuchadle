@@ -52,6 +52,11 @@
     --sol:#B8860B;
     --crema:#1B1440;
     --gris:#5A5F82;
+    /* --verde y --rojo del modo oscuro no llegan a 4.5:1 de contraste
+       sobre el vidrio claro (texto chico, como en la tabla del
+       ranking o "Borrar"); estas versiones más oscuras sí. */
+    --verde:#0E7C42;
+    --rojo:#C1272D;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
