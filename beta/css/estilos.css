@@ -152,13 +152,14 @@
   .pagina-juego header{
     border-bottom:0;padding-bottom:0;
     width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
-    gap:10px;margin-bottom:38px
+    gap:10px;margin-bottom:38px;
+    /* z-index:20 en .cabecera-der no alcanza si header (su ancestro,
+       contexto de apilamiento propio por position:relative) sigue con
+       el z-index:1 genérico: todo ese contexto quedaría por debajo del
+       panel de ranking (.lateral, z-index:15) pase lo que pase adentro. */
+    position:relative;z-index:20
   }
-  .pagina-juego .titulo-tab{
-    background:var(--vidrio);border:1px solid var(--borde);border-top:0;
-    border-radius:0 0 22px 22px;padding:14px 34px 12px;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
-  }
+  .pagina-juego .titulo-tab{padding:14px 34px 12px}
   .pagina-juego h1{
     font-family:"Bebas Neue",Impact,sans-serif;font-style:italic;font-size:28px;
     letter-spacing:.1em;line-height:1;color:var(--crema);
@@ -166,7 +167,7 @@
   }
   .pagina-juego h1 span{color:var(--sol)}
   .pagina-juego .cabecera-der{
-    position:fixed;top:24px;right:24px;z-index:2;
+    position:fixed;top:24px;right:24px;z-index:20;
     display:flex;align-items:center;gap:18px
   }
   .pagina-juego .badge-libre{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:5px 11px}
@@ -222,6 +223,7 @@
     backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
   }
   .btn:disabled{opacity:.4;cursor:not-allowed}
+  #latActualizar{background:none;border:0;border-bottom:1px solid var(--borde);border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none}
 
   /* ---------- pistas: esquina inferior derecha ---------- */
   .pistas-esquina{
@@ -291,10 +293,8 @@
   .lista div:last-child{border-bottom:0}
   .lista div:hover,.lista div.sel{background:var(--pista);color:var(--celeste)}
   .acciones{display:flex;flex-direction:column;gap:0}
-  .acciones .btn{
-    flex:1;width:100%;border-radius:0;border:0;border-top:1px solid var(--borde);
-    background:transparent
-  }
+  .acciones .btn{flex:1;width:100%;border-radius:0;border:0;border-top:1px solid var(--borde)}
+  .acciones .btn-sec{background:transparent}
   .btn-ok{background:var(--sol);color:var(--noche)}
 
   /* ---------- resultado ---------- */
@@ -622,14 +622,15 @@
     letter-spacing:.22em;text-transform:uppercase
   }
   .lateral-cuerpo{
-    width:min(300px,82vw);background:var(--pista);border-left:1px solid var(--borde);
-    padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+    width:min(300px,82vw);
+    /* Espacio arriba para que las solapas Semana/Histórico no queden
+       debajo de Ayuda/Ranking, que son position:fixed y quedan encima. */
+    padding:64px 14px 16px;display:flex;flex-direction:column;gap:10px;overflow:auto
   }
   .lateral-cab{display:flex;flex-direction:column;gap:2px}
   .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste);display:flex;align-items:center;gap:8px}
   .lateral-cab .ico{width:18px;height:18px;object-fit:contain;display:block}
-  .lateral-cab span{font-size:11px;color:var(--gris)}
+  .lateral-cab span{display:none}
   .lateral .tabla{max-height:none}
   .solapas.chicas button{padding:7px 6px;font-size:10px;letter-spacing:.04em}
 
