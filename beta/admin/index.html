@@ -12,8 +12,8 @@
 <link rel="stylesheet" href="../css/estilos.css">
 <script>
   /* Mismo modo claro/oscuro que el juego (localStorage "ea_tema",
-     compartido por ser el mismo origen). El botón para cambiarlo vive
-     en la web del juego; acá solo se respeta lo que haya guardado. */
+     compartido por ser el mismo origen). Va acá, antes de pintar, para
+     no parpadear en oscuro un instante y después saltar a claro. */
   try{ if(localStorage.getItem("ea_tema")==="claro") document.documentElement.dataset.tema="claro"; }catch{}
 </script>
 </head>
@@ -22,6 +22,7 @@
   <h1 title="Escuchadle Argento"><a href="../" style="color:inherit;text-decoration:none">ESCUCHADLE<br><span>ARGENTO</span></a></h1>
   <div class="cabecera-der">
     <span class="badge-libre">Panel</span>
+    <button class="ayuda-btn" id="btnTema" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">🌙</button>
   </div>
 </header>
 
