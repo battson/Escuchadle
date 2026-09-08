@@ -19,7 +19,7 @@ const vinilo=$("#vinilo"), barra=$("#barra"), desbloq=$("#desbloq"), progreso=$(
       tActual=$("#tActual"), tTotal=$("#tTotal"), btnPlay=$("#btnPlay"), estado=$("#estado"), cont=$("#intentos"),
       input=$("#busqueda"), lista=$("#lista"), btnSaltar=$("#btnSaltar"), btnEnviar=$("#btnEnviar"),
       zonaJuego=$("#zonaJuego"), zonaCerrada=$("#zonaCerrada"), contPistas=$("#pistas"),
-      pauta=$("#pauta");
+      pauta=$("#pauta"), clipEl=$("#clipAudio");
 
 /* ticks de la barra */
 SEG.slice(0,-1).forEach(s=>{const t=document.createElement("div");t.className="tick";t.style.left=(s/16*100)+"%";barra.appendChild(t);});
@@ -353,6 +353,29 @@ let yt=null, ytListo=new Promise(r=>{window.onYouTubeIframeAPIReady=()=>{
 }});
 (function(){const s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";document.head.appendChild(s)})();
 
+/* ---------- clip local (2.0) ----------
+   Mientras se juega, el fragmento sale de un .webm corto en
+   conversor/clips/ (generado con el conversor), no del streaming en
+   vivo de YouTube: menos dependencia de la red de Google mientras se
+   arriesga el intento. YouTube sigue siendo la fuente de la canción
+   entera al terminar la partida (el "reveal"), y también el respaldo
+   durante la partida si todavía no existe el clip de esa canción.
+   El archivo ya arranca en el segundo `ini` (así lo graba el
+   conversor), así que acá no hace falta volver a saltarlo. */
+let clipOk=false, modoAudio="yt";
+const CARACTERES_INVALIDOS_CLIP=/[/\\:*?"<>|]/g;
+function nombreClip(a,t){
+  return ((a||"")+" - "+(t||"")).replace(CARACTERES_INVALIDOS_CLIP,"").replace(/\s+/g," ").trim();
+}
+function urlClip(c){return "../conversor/clips/"+encodeURIComponent(nombreClip(c.a,c.t))+".webm"}
+async function prepararClip(c){
+  clipOk=false; clipEl.removeAttribute("src");
+  try{
+    const r=await fetch(urlClip(c),{method:"HEAD",cache:"no-store"});
+    if(r.ok){clipEl.src=urlClip(c); clipOk=true}
+  }catch{}
+}
+
 const MALAS=/en vivo|live|unplugged|acustic|acústic|remix|cover|karaoke|instrumental|tributo|homenaje|sinf[oó]nic|reacci[oó]n|letra|lyric|tutorial|8d|slowed|nightcore/i;
 function puntuar(c,x){
   let p=0; const t=norm(x.snippet.title), ch=norm(x.snippet.channelTitle);
@@ -442,7 +465,7 @@ async function nuevaPartida(){
   if(terminado) mostrarResultado(intentos.some(i=>i.tipo==="bien"),$("#modalPanel").hidden);
 
   try{
-    const r=await resolver(actual);
+    const [r]=await Promise.all([resolver(actual),prepararClip(actual)]);
     await ytListo; yt.cueVideoById(r.yt); audio=r.yt;
     btnPlay.disabled=false;
     estado.textContent=terminado?"Ahora podés escuchar la canción completa."
@@ -490,37 +513,54 @@ function fijarEstadoMediaSession(valor){
   if(!("mediaSession" in navigator)) return;
   navigator.mediaSession.playbackState=valor;
 }
+/* Arranca el cronómetro y la barra: lo llama quien primero confirme
+   que el audio ya suena de verdad, sea el clip local o el iframe. */
+function arrancarCronometro(){
+  estado.textContent="";
+  fijarMediaSessionNeutra(); fijarEstadoMediaSession("playing");
+  if(modoAudio==="yt"&&terminado){
+    /* Recién ahora YouTube sabe cuánto dura: si es la canción entera,
+       se corrige la escala con el dato real. */
+    const d=duracion(); if(d&&Math.abs(d-limite)>1){limite=d; fijarEscala(d)}
+  }
+  clearTimeout(timer); timer=setTimeout(detener,limite*1000);
+  const t0=performance.now();
+  const tick=()=>{const t=Math.min((performance.now()-t0)/1000,limite);
+    progreso.style.width=(Math.min(t,escala)/escala*100)+"%"; tActual.textContent=reloj(t);
+    raf=requestAnimationFrame(tick)};
+  cancelAnimationFrame(raf); tick();
+}
 function reproducir(){
   if(!audio||!yt) return;
   if(sonando){detener();return}
   if(terminado){const d=duracion(); limite=d||600; fijarEscala(d||16)}
   else {limite=SEG[paso]; fijarEscala(16)}
   sonando=true;
-  const ini=actual?.ini||0;
-  yt.seekTo(ini,true); yt.playVideo();
-  fijarMediaSessionNeutra(); fijarEstadoMediaSession("playing");
+  /* Durante la partida, si hay clip local generado, se usa ese: no
+     depende del streaming en vivo de YouTube. Al terminar (o si el
+     clip no existe todavía) suena YouTube, como siempre. */
+  modoAudio=(!terminado&&clipOk)?"clip":"yt";
   vinilo.classList.add("gira"); btnPlay.textContent="■ Parar"; estado.textContent="Cargando…";
-}
-function onYtEstado(e){
-  if(e.data===YT.PlayerState.PLAYING&&sonando){
-    estado.textContent="";
-    /* El audio recién arranca de verdad acá: reafirmamos la sesión
-       propia para disputarle el "foco" al iframe de YouTube. */
-    fijarMediaSessionNeutra(); fijarEstadoMediaSession("playing");
-    /* Recién ahora YouTube sabe cuánto dura: si es la canción entera,
-       se corrige la escala con el dato real. */
-    if(terminado){const d=duracion(); if(d&&Math.abs(d-limite)>1){limite=d; fijarEscala(d)}}
-    clearTimeout(timer); timer=setTimeout(detener,limite*1000);
-    const t0=performance.now();
-    const tick=()=>{const t=Math.min((performance.now()-t0)/1000,limite);
-      progreso.style.width=(Math.min(t,escala)/escala*100)+"%"; tActual.textContent=reloj(t);
-      raf=requestAnimationFrame(tick)};
-    cancelAnimationFrame(raf); tick();
+  if(modoAudio==="clip"){
+    clipEl.currentTime=0;
+    const p=clipEl.play();
+    if(p&&p.catch) p.catch(()=>{clipOk=false;sonando=false;reproducir()});
+  }else{
+    const ini=actual?.ini||0;
+    yt.seekTo(ini,true); yt.playVideo();
   }
-  if(e.data===YT.PlayerState.ENDED) detener();
+}
+clipEl.addEventListener("playing",()=>{if(sonando&&modoAudio==="clip") arrancarCronometro()});
+clipEl.addEventListener("error",()=>{
+  if(sonando&&modoAudio==="clip"){clipOk=false;sonando=false;reproducir()}
+});
+function onYtEstado(e){
+  if(e.data===YT.PlayerState.PLAYING&&sonando&&modoAudio==="yt") arrancarCronometro();
+  if(e.data===YT.PlayerState.ENDED&&modoAudio==="yt") detener();
 }
 function detener(){
   clearTimeout(timer); cancelAnimationFrame(raf); sonando=false;
+  try{clipEl.pause()}catch{}
   if(yt&&yt.pauseVideo) yt.pauseVideo();
   fijarEstadoMediaSession("paused");
   vinilo.classList.remove("gira"); btnPlay.textContent="▶ Escuchar";
