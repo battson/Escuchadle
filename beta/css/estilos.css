@@ -254,20 +254,20 @@
   /* ---------- intentos ---------- */
   .intentos{display:flex;flex-direction:column;gap:8px}
   .intento{
-    display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radio);
-    border:1px solid var(--borde);background:var(--pista);font-size:14px;color:var(--gris);min-height:44px
+    display:flex;align-items:center;gap:10px;padding:11px 14px;
+    font-size:14px;color:var(--gris);min-height:44px
   }
   .intento.salto{color:var(--gris);font-style:italic}
-  .intento.mal{border-color:var(--rojo);color:var(--crema)}
-  .intento.artista{border-color:var(--sol);color:var(--crema)}
-  .intento.bien{border-color:var(--verde);background:rgba(85,194,139,.12);color:var(--crema)}
+  .intento.mal{border-color:var(--rojo);color:var(--rojo)}
+  .intento.artista{border-color:var(--sol);color:var(--sol)}
+  .intento.bien{border-color:var(--verde);background:rgba(85,194,139,.12);color:var(--verde)}
   .intento .ic{width:10px;height:10px;border-radius:50%;flex:none;background:var(--borde)}
   .mal .ic{background:var(--rojo)} .artista .ic{background:var(--sol)} .bien .ic{background:var(--verde)} .salto .ic{background:var(--gris)}
 
   /* ---------- buscador ---------- */
   .buscador{position:relative}
   .buscador input{
-    width:100%;padding:14px 16px;border-radius:var(--radio);border:1px solid var(--borde);
+    width:100%;padding:14px 16px;border:none;border-bottom:1px solid var(--borde);
     background:var(--pista);color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
   }
   .buscador input:focus{border-color:var(--celeste)}
