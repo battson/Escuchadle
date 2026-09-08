@@ -1034,7 +1034,7 @@ let clics=0, relojClics=null;
 $("#titulo").addEventListener("click",()=>{
   clearTimeout(relojClics);
   relojClics=setTimeout(()=>{clics=0},2000);
-  if(++clics>=5){clics=0;clearTimeout(relojClics);location.href="admin/"}
+  if(++clics>=5){clics=0;clearTimeout(relojClics);window.open("admin/","_blank","noopener")}
 });
 
 nuevaPartida();
