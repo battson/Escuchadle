@@ -36,6 +36,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/estilos.css?v=22">
+  <script>
+    /* Oscuro es el predeterminado; solo se pasa a claro si el navegador
+       ya lo tenía guardado. Va acá, antes de pintar, para no parpadear
+       en oscuro un instante y después saltar a claro. */
+    try{ if(localStorage.getItem("ea_tema")==="claro") document.documentElement.dataset.tema="claro"; }catch{}
+  </script>
 </head>
 <body>
 <!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
@@ -50,6 +56,7 @@
       <img src="imgs/ranking.svg" alt="" class="ico"> Ranking
     </button>
     <button class="btn-pildora" id="btnSugerir">Dejar comentario</button>
+    <button class="ayuda-btn" id="btnTema" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">🌙</button>
     <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
   </div>
 </header>

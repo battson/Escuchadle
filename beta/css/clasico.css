@@ -1,68 +1,38 @@
+/* =========================================================
+   Estilo clásico (1.0) — guardado tal cual estaba en css/estilos.css
+   de la raíz, sin ningún cambio del rediseño glassmorphism de la 2.0.
+
+   Por ahora no se usa: es la base para más adelante armar un botón
+   "Vista clásica" en el juego, para quien prefiera el look original.
+   Cuando se implemente, la idea es que alterne cuál de las dos hojas
+   de estilo carga la página (esta o css/estilos.css), separado del
+   interruptor de modo claro/oscuro de la 2.0.
+   ========================================================= */
 #zonaJuego{
   margin-bottom: 50px;
 }
 :root{
-    /* paleta glassmorphism 2.0 — modo oscuro (predeterminado) */
-    --fondo-a:#302577;     /* índigo profundo */
-    --fondo-b:#1454BA;     /* azul cobalto */
-    --fondo-c:#3478F6;     /* azul eléctrico */
-    --hielo:#B8DCF3;       /* celeste hielo, mancha de luz del fondo */
-    --pastel:#8EB9EE;      /* azul pastel, superficies y degradados */
-    --lavanda:#B4A9E3;     /* lavanda suave, mancha onírica del fondo */
-    --blob-1:rgba(184,220,243,.45);
-    --blob-2:rgba(180,169,227,.4);
-    --blob-3:rgba(142,185,238,.35);
-
-    --noche:#140F35;       /* texto oscuro sobre botones/acentos claros */
-    --pista:rgba(48,37,119,.38);     /* superficie de vidrio (índigo translúcido) */
-    --vidrio:rgba(240,240,246,.10);  /* vidrio claro: botones y píldoras */
-    --vidrio-borde:rgba(240,240,246,.28);
-    --vidrio-input:rgba(20,15,53,.4);
-    --blur:18px;
-    --blur-chico:10px;
-
-    --borde:var(--vidrio-borde);
-    --celeste:#3478F6;    /* azul eléctrico: acento principal */
-    --sol:#FFE58A;        /* amarillo manteca: etiqueta del vinilo, acierto de artista */
-    --crema:#F0F0F6;      /* blanco perlado */
-    --gris:#A9B4E3;
+    --noche:#0E1524;      /* fondo */
+    --pista:#182136;      /* superficies */
+    --borde:#26314A;
+    --celeste:#74B8E6;    /* acento principal */
+    --sol:#F0B84C;        /* etiqueta del vinilo, acierto de artista */
+    --crema:#F1EDE3;
+    --gris:#8F9BB3;
     --rojo:#E0565B;
     --verde:#55C28B;
     --seg:[1,2,4,7,11,16];
-    --radio:16px;          /* esquinas de cajas, campos y botones */
-  }
-  /* Modo claro: mismo esquema glassmorphism, vidrio blanco sobre fondo
-     pastel en vez de vidrio oscuro sobre fondo índigo. Se activa con
-     data-tema="claro" en <html> (ver el botón de la cabecera y el
-     script inline que lo aplica antes de pintar, para no parpadear). */
-  :root[data-tema="claro"]{
-    --fondo-a:#EAF2FD;
-    --fondo-b:#DCE9FB;
-    --fondo-c:#F3EFFB;
-    --blob-1:rgba(52,120,246,.14);
-    --blob-2:rgba(180,169,227,.22);
-    --blob-3:rgba(142,185,238,.3);
-
-    --pista:rgba(255,255,255,.55);
-    --vidrio:rgba(255,255,255,.5);
-    --vidrio-borde:rgba(20,15,53,.14);
-    --vidrio-input:rgba(255,255,255,.75);
-
-    --celeste:#1454BA;
-    --sol:#B8860B;
-    --crema:#1B1440;
-    --gris:#5A5F82;
+    --radio:5px;          /* esquinas de cajas, campos y botones */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
-    background:var(--fondo-a);
+    background:var(--noche);
     color:var(--crema);
     font-family:"Space Grotesk",system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;
     padding:24px 16px 72px;
     min-height:100%;
-    transition:background-color .25s ease,color .25s ease;
   }
   /* Degradé diagonal, de arriba a la izquierda a abajo a la derecha.
      Va en una capa fija propia y no en el body con attachment:fixed,
@@ -70,12 +40,7 @@
      toda la página. Así no se mueve con el scroll ni se corta. */
   body::before{
     content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-    transition:background .25s ease;
-    background:
-      radial-gradient(circle at 18% 20%, var(--blob-1), transparent 55%),
-      radial-gradient(circle at 85% 12%, var(--blob-2), transparent 50%),
-      radial-gradient(circle at 70% 88%, var(--blob-3), transparent 55%),
-      linear-gradient(135deg,var(--fondo-a) 0%,var(--fondo-b) 55%,var(--fondo-c) 100%)
+    background:linear-gradient(135deg,#0E1524 0%,#182136 100%)
   }
   /* Malvinas: marca de agua fija abajo a la izquierda, debajo de todo
      lo que se toca (panel lateral, ventanas). */
@@ -97,36 +62,24 @@
      cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
   h1 span{color:var(--celeste)}
   .cabecera-der{display:flex;align-items:center;gap:10px}
-  .badge-libre{
-    border:1px solid var(--sol);color:var(--sol);border-radius:999px;padding:6px 12px;
-    font:500 11px/1 "Space Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
-    background:var(--vidrio);backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
-  }
+  .badge-libre{border:1px solid var(--sol);color:var(--sol);border-radius:999px;padding:6px 12px;
+    font:500 11px/1 "Space Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
   .ayuda-btn{
     width:34px;height:34px;flex:none;border-radius:50%;cursor:pointer;
-    background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
+    background:transparent;border:1px solid var(--borde);color:var(--gris);
     font:700 16px/1 "Space Grotesk",sans-serif;
-    display:grid;place-items:center;transition:color .15s,border-color .15s;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+    display:grid;place-items:center;transition:color .15s,border-color .15s
   }
   .ayuda-btn:hover{color:var(--celeste);border-color:var(--celeste)}
   .ayuda-btn[aria-expanded="true"]{color:var(--sol);border-color:var(--sol)}
   .ayuda-btn:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .modo{display:flex;gap:6px}
-  .modo button{
-    background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);font:500 12px/1 "Space Grotesk",sans-serif;
-    padding:8px 10px;border-radius:999px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
-  }
+  .modo button{background:transparent;border:1px solid var(--borde);color:var(--gris);font:500 12px/1 "Space Grotesk",sans-serif;padding:8px 10px;border-radius:999px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
   .modo button.activo{border-color:var(--celeste);color:var(--celeste)}
   main{width:100%;max-width:560px;display:flex;flex-direction:column;gap:18px}
 
   /* ---------- vinilo ---------- */
-  .escenario{
-    display:flex;align-items:center;gap:20px;background:var(--pista);border:1px solid var(--borde);
-    border-radius:var(--radio);padding:18px;backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
-    box-shadow:0 8px 32px rgba(20,15,53,.25)
-  }
+  .escenario{display:flex;align-items:center;gap:20px;background:var(--pista);border:1px solid var(--borde);border-radius:var(--radio);padding:18px}
   .tocadiscos{position:relative;width:120px;height:120px;flex:none}
   #ytplayer{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;opacity:.06;pointer-events:none}
   /* El disco es imgs/vinilo.svg: el tablero es cuadrado y el disco
@@ -141,7 +94,7 @@
   @keyframes girar{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion:reduce){.vinilo.gira{animation:none}}
   .controles{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
-  .barra{position:relative;height:14px;border-radius:var(--radio);background:var(--vidrio-input);overflow:hidden;border:1px solid var(--borde)}
+  .barra{position:relative;height:14px;border-radius:var(--radio);background:#0b0f19;overflow:hidden;border:1px solid var(--borde)}
   .barra .desbloq{position:absolute;inset:0;width:0;background:#2a3856}
   .barra .progreso{position:absolute;inset:0;width:0;background:var(--celeste);transition:width .1s linear}
   .barra .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--noche)}
@@ -158,10 +111,7 @@
   .btn:active{transform:scale(.97)}
   .btn:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .btn-play{background:var(--celeste);color:var(--noche);min-width:110px}
-  .btn-sec{
-    background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
-  }
+  .btn-sec{background:transparent;border:1px solid var(--borde);color:var(--crema)}
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .estado{font-size:13px;color:var(--gris);min-height:18px}
   .pauta{font-size:12px;color:var(--gris);letter-spacing:.02em;min-height:16px}
@@ -210,8 +160,7 @@
   .buscador input::placeholder{color:var(--gris)}
   .lista{
     position:absolute;left:0;right:0;bottom:calc(100% + 6px);max-height:240px;overflow:auto;
-    background:var(--vidrio-input);border:1px solid var(--borde);border-radius:var(--radio);display:none;z-index:5;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+    background:#0b0f19;border:1px solid var(--borde);border-radius:var(--radio);display:none;z-index:5
   }
   .lista.abierta{display:block}
   .lista div{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--borde)}
@@ -237,8 +186,7 @@
   .modal-caja{
     width:100%;max-width:440px;margin:auto;background:var(--pista);border:1px solid var(--borde);
     border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;
-    box-shadow:0 24px 60px rgba(20,15,53,.55);animation:subir .22s ease both;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+    box-shadow:0 24px 60px rgba(0,0,0,.55);animation:subir .22s ease both
   }
   @keyframes subir{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.modal,.modal-caja{animation:none}}
@@ -301,7 +249,7 @@
   .resultado .firma label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
   .resultado .firma input{
     width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--borde);
-    background:var(--vidrio-input);color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
+    background:#0b0f19;color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
   }
   .resultado .firma input:focus{border-color:var(--celeste)}
   .resultado .firma input::placeholder{color:var(--gris)}
@@ -312,7 +260,7 @@
   .banco-fila{display:flex;gap:8px;flex-wrap:wrap}
   .banco-campo{
     padding:9px 11px;border-radius:var(--radio);border:1px solid var(--borde);
-    background:var(--vidrio-input);color:var(--crema);font:500 13px "Space Grotesk",sans-serif;outline:none
+    background:#0b0f19;color:var(--crema);font:500 13px "Space Grotesk",sans-serif;outline:none
   }
   .banco-campo:focus{border-color:var(--celeste)}
   .banco-campo::placeholder{color:var(--gris)}
@@ -338,10 +286,9 @@
   /* ---------- tabla de ranking ---------- */
   .solapas{display:flex;gap:6px}
   .solapas button{
-    flex:1;background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
+    flex:1;background:transparent;border:1px solid var(--borde);color:var(--gris);
     font:500 12px/1 "Space Grotesk",sans-serif;padding:9px 10px;border-radius:999px;
-    cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+    cursor:pointer;letter-spacing:.06em;text-transform:uppercase
   }
   .solapas button.activo{border-color:var(--celeste);color:var(--celeste)}
   .solapas button:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
@@ -370,9 +317,8 @@
   .panel .panel-cab{border-bottom:1px solid var(--borde);padding:16px 18px}
   .panel .panel-cab strong{color:var(--sol);flex:1}
   .hamburguesa{
-    display:none;background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
-    border-radius:9px;font-size:15px;line-height:1;padding:6px 9px;cursor:pointer;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+    display:none;background:transparent;border:1px solid var(--borde);color:var(--crema);
+    border-radius:9px;font-size:15px;line-height:1;padding:6px 9px;cursor:pointer
   }
   .panel-cuerpo{flex:1;display:flex;min-height:0;position:relative}
   .panel-nav{
@@ -412,19 +358,18 @@
   .opciones input{accent-color:var(--celeste);cursor:pointer}
   .panel select{
     width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--borde);
-    background:var(--vidrio-input);color:var(--crema);font:500 14px "Space Grotesk",sans-serif;cursor:pointer
+    background:#0b0f19;color:var(--crema);font:500 14px "Space Grotesk",sans-serif;cursor:pointer
   }
   .panel select:disabled{opacity:.45;cursor:not-allowed}
   .publicar{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--borde);padding-top:12px}
   .codigo{
-    background:var(--vidrio-input);border:1px solid var(--borde);border-radius:12px;padding:12px;
+    background:#0b0f19;border:1px solid var(--borde);border-radius:12px;padding:12px;
     font:400 11px/1.5 monospace;color:var(--crema);white-space:pre;overflow-x:auto
   }
   /* estado de la conexión con Firestore */
   .nube-estado{
     font-size:12px;color:var(--gris);border:1px solid var(--borde);border-radius:10px;
-    padding:8px 10px;display:flex;align-items:center;gap:8px;
-    background:var(--vidrio);backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+    padding:8px 10px;display:flex;align-items:center;gap:8px
   }
   .nube-estado::before{
     content:"";width:8px;height:8px;border-radius:50%;background:var(--rojo);flex:none
@@ -455,11 +400,10 @@
   /* ---------- píldora de la cabecera ---------- */
   .btn-pildora{
     display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
-    background:var(--vidrio);border:1px solid var(--borde);color:var(--crema);
+    background:transparent;border:1px solid var(--borde);color:var(--crema);
     border-radius:999px;padding:8px 14px;
     font:500 12px/1 "Space Grotesk",sans-serif;letter-spacing:.06em;text-transform:uppercase;
-    transition:color .15s,border-color .15s;
-    backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
+    transition:color .15s,border-color .15s
   }
   .btn-pildora .ico{
     width:16px;height:16px;flex:none;object-fit:contain;display:block;
@@ -475,8 +419,7 @@
   body.cerrado #zonaJuego,body.cerrado .zona-cerrada{display:none!important}
   .finde{
     display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
-    background:var(--pista);border:1px solid var(--borde);border-radius:var(--radio);padding:32px 22px;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+    background:var(--pista);border:1px solid var(--borde);border-radius:var(--radio);padding:32px 22px
   }
   .finde[hidden]{display:none}
   .finde-cartel{width:min(100%,400px);height:auto;display:block}
@@ -501,7 +444,7 @@
   .campo label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
   .campo input,.campo textarea{
     width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--borde);
-    background:var(--vidrio-input);color:var(--crema);font:500 14px "Space Grotesk",sans-serif;outline:none
+    background:#0b0f19;color:var(--crema);font:500 14px "Space Grotesk",sans-serif;outline:none
   }
   .campo textarea{resize:vertical;line-height:1.5;font-weight:400}
   .campo input:focus,.campo textarea:focus{border-color:var(--celeste)}
@@ -525,8 +468,7 @@
   .lateral-lengueta{
     width:34px;flex:none;background:var(--pista);border:1px solid var(--borde);border-right:0;
     border-radius:14px 0 0 14px;color:var(--gris);cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0
   }
   .lateral-lengueta:hover{color:var(--sol)}
   .lateral-flecha{font-size:17px;line-height:1;transition:transform .25s ease}
@@ -537,8 +479,7 @@
   }
   .lateral-cuerpo{
     width:min(300px,82vw);background:var(--pista);border-left:1px solid var(--borde);
-    padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
+    padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto
   }
   .lateral-cab{display:flex;flex-direction:column;gap:2px}
   .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste);display:flex;align-items:center;gap:8px}

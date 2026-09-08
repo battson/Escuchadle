@@ -88,6 +88,27 @@ document.querySelectorAll(".modal").forEach(m=>{
 });
 $("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
 
+/* ---------- modo claro/oscuro ----------
+   Oscuro es el predeterminado (ver el script inline del <head>, que ya
+   dejó aplicado data-tema si el navegador tenía guardado "claro"); acá
+   solo hace falta alternarlo y guardar el que quede. */
+function temaActual(){return document.documentElement.dataset.tema==="claro"?"claro":"oscuro"}
+function pintarBtnTema(){
+  const claro=temaActual()==="claro";
+  const etiqueta=claro?"Cambiar a modo oscuro":"Cambiar a modo claro";
+  $("#btnTema").textContent=claro?"☀":"🌙";
+  $("#btnTema").title=etiqueta;
+  $("#btnTema").setAttribute("aria-label",etiqueta);
+}
+$("#btnTema").onclick=()=>{
+  const nuevo=temaActual()==="claro"?"oscuro":"claro";
+  if(nuevo==="claro") document.documentElement.dataset.tema="claro";
+  else delete document.documentElement.dataset.tema;
+  try{localStorage.setItem("ea_tema",nuevo)}catch{}
+  pintarBtnTema();
+};
+pintarBtnTema();
+
 /* La primera vez que alguien abre el juego, las reglas se muestran solas.
    Después queda el "?" de la cabecera para volver a leerlas. */
 if(!store.get("ea_ayuda_vista",false)){
