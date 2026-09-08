@@ -709,7 +709,7 @@ async function grabarClipDeYt(yt,ini){
 }
 async function clipExiste(nombre){
   try{
-    const r=await fetch(`../../conversor/clips/${encodeURIComponent(nombre)}.webm`,{method:"HEAD",cache:"no-store"});
+    const r=await fetch(`../conversor/clips/${encodeURIComponent(nombre)}.webm`,{method:"HEAD",cache:"no-store"});
     return r.ok;
   }catch{return false}
 }
