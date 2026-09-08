@@ -243,6 +243,12 @@
     box-shadow:0 24px 60px rgba(20,15,53,.55);animation:subir .22s ease both;
     backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
   }
+  /* Normalmente .modal-caja vive adentro de .modal, que ya maneja el
+     hidden del wrapper. En admin/ va suelta (clave y panel, sin ventana
+     encima), así que necesita su propia regla: si no, el display:flex
+     de acá arriba le gana al atributo hidden y quedan las dos cajas
+     una debajo de la otra, visibles a la vez. */
+  .modal-caja[hidden]{display:none}
   @keyframes subir{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.modal,.modal-caja{animation:none}}
   .modal-caja p{font-size:14px;color:var(--crema);line-height:1.55}
