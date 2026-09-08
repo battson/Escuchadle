@@ -261,7 +261,7 @@
   .intento.mal{border-color:var(--rojo);color:var(--rojo)}
   .intento.artista{border-color:var(--sol);color:var(--sol)}
   .intento.bien{border-color:var(--verde);background:rgba(85,194,139,.12);color:var(--verde)}
-  .intento .ic{width:10px;height:10px;border-radius:50%;flex:none;background:var(--borde)}
+  .intento .ic{width:10px;height:10px;border-radius:50%;flex:none;}
   .mal .ic{background:var(--rojo)} .artista .ic{background:var(--sol)} .bien .ic{background:var(--verde)} .salto .ic{background:var(--gris)}
 
   /* ---------- buscador ---------- */
