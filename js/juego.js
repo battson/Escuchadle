@@ -789,10 +789,24 @@ const conNombre=r=>String(r.nombre||"").trim().length>0;
 /* ---------- traer los datos ----------
    Dos consultas: las últimas partidas para el histórico, y
    todo lo jugado desde el lunes para la semanal. La segunda va por
-   rango de fechas porque una semana movida puede pasarse del tope. */
+   rango de fechas porque una semana movida puede pasarse del tope.
+
+   Como el panel arranca abierto, esto se llama ya de entrada, apenas
+   carga la página -antes de que Firebase (que arranca como módulo,
+   aparte) haya tenido tiempo de conectar-. Si todavía no está lista
+   la nube, en vez de darse por vencido queda esperando un solo aviso
+   de "nube:estado" para reintentar, igual que pintarFinde(). */
+let rankingPedido=false;
 function traerRanking(forzar){
   if(filasRanking&&!forzar) return pintarRanking();
-  if(!hayNube()){latEstado.innerHTML=htmlError("Sin conexión con la nube.","no-signal.svg"); latTabla.innerHTML="";return}
+  if(!hayNube()){
+    latEstado.innerHTML=htmlError("Conectando con la nube…","no-signal.svg"); latTabla.innerHTML="";
+    if(!rankingPedido){
+      rankingPedido=true;
+      window.addEventListener("nube:estado",()=>{rankingPedido=false; traerRanking(forzar)},{once:true});
+    }
+    return;
+  }
   escribirTablas("Cargando…","");
   Promise.all([
     window.Nube.listarResultados(TOPE),
