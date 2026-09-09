@@ -77,11 +77,17 @@
     opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
   }
   header,main{position:relative;z-index:1}
-  /* 36: leyenda del ganador de la semana pasada */
+  /* 36: leyenda del ganador de la semana pasada.
+     Fija arriba y centrada, fuera del flujo de main: si contara como
+     alto normal, sería lo primero en cortarse cuando el contenido no
+     entra en pantallas bajas -es el primer elemento y ni siquiera
+     aparece siempre, así que no se la tuvo en cuenta al ajustar los
+     márgenes para que todo entre sin scroll-. */
   .ganador{
-    width:100%;max-width:560px;text-align:center;color:var(--sol);
+    position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:20;
+    width:100%;max-width:min(560px,calc(100% - 220px));text-align:center;color:var(--sol);
     font:500 13px/1.5 "Space Grotesk",sans-serif;letter-spacing:.02em;
-    padding:2px 0 14px
+    padding:2px 8px
   }
   .ganador[hidden]{display:none}
   .ganador b{font-weight:700}
