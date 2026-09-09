@@ -88,35 +88,13 @@ document.querySelectorAll(".modal").forEach(m=>{
 });
 $("#btnAyuda").onclick=()=>abrirModal("modalAyuda");
 
-/* ---------- modo claro/oscuro ----------
-   Oscuro es el predeterminado (ver el script inline del <head>, que ya
-   dejó aplicado data-tema si el navegador tenía guardado "claro"); acá
-   solo hace falta alternarlo y guardar el que quede. */
-function temaActual(){return document.documentElement.dataset.tema==="claro"?"claro":"oscuro"}
-$("#btnTema").onclick=()=>{
-  const nuevo=temaActual()==="claro"?"oscuro":"claro";
-  if(nuevo==="claro") document.documentElement.dataset.tema="claro";
-  else delete document.documentElement.dataset.tema;
-  try{localStorage.setItem("ea_tema",nuevo)}catch{}
-  pintarBtnTema();
-};
-
 /* ---------- vista clásica (1.0) / 2.0 ----------
    Alterna qué hoja de estilos carga la página entera: la 2.0
    (glassmorphism) o la 1.0 guardada tal cual en css/clasico.css. El
    script inline del <head> ya la eligió antes de pintar según lo
-   guardado; acá solo hace falta poder cambiarla. La clásica no tiene
-   modo claro/oscuro, así que ese botón se esconde mientras esté puesta. */
+   guardado; acá solo hace falta poder cambiarla. */
 const HOJA_20="css/estilos.css?v=25", HOJA_CLASICA="css/clasico.css?v=1";
 function vistaActual(){return document.documentElement.dataset.vista==="clasica"?"clasica":"2.0"}
-function pintarBtnTema(){
-  const claro=temaActual()==="claro", esClasica=vistaActual()==="clasica";
-  $("#btnTema").hidden=esClasica;
-  const etiqueta=claro?"Cambiar a modo oscuro":"Cambiar a modo claro";
-  $("#btnTema").textContent=claro?"☀":"🌙";
-  $("#btnTema").title=etiqueta;
-  $("#btnTema").setAttribute("aria-label",etiqueta);
-}
 $("#btnVista").onclick=()=>{
   const nuevo=vistaActual()==="clasica"?"2.0":"clasica";
   if(nuevo==="clasica") document.documentElement.dataset.vista="clasica";
@@ -124,10 +102,8 @@ $("#btnVista").onclick=()=>{
   $("#hojaEstilos").href=nuevo==="clasica"?HOJA_CLASICA:HOJA_20;
   try{localStorage.setItem("ea_vista",nuevo)}catch{}
   $("#btnVista").textContent=nuevo==="clasica"?"Vista 2.0":"Vista clásica";
-  pintarBtnTema();
 };
 $("#btnVista").textContent=vistaActual()==="clasica"?"Vista 2.0":"Vista clásica";
-pintarBtnTema();
 
 /* La primera vez que alguien abre el juego, las reglas se muestran solas.
    Después queda el "?" de la cabecera para volver a leerlas. */
@@ -604,7 +580,7 @@ function reproducir(){
      depende del streaming en vivo de YouTube. Al terminar (o si el
      clip no existe todavía) suena YouTube, como siempre. */
   modoAudio=(!terminado&&clipOk)?"clip":"yt";
-  vinilo.classList.add("gira"); btnPlay.textContent="■ Parar"; estado.textContent="Cargando…";
+  vinilo.classList.add("gira"); btnPlay.classList.add("gira"); btnPlay.textContent="■"; btnPlay.setAttribute("aria-label","Parar"); estado.textContent="Cargando…";
   if(modoAudio==="clip"){
     clipEl.currentTime=0;
     const p=clipEl.play();
@@ -627,7 +603,7 @@ function detener(){
   try{clipEl.pause()}catch{}
   if(yt&&yt.pauseVideo) yt.pauseVideo();
   fijarEstadoMediaSession("paused");
-  vinilo.classList.remove("gira"); btnPlay.textContent="▶ Escuchar";
+  vinilo.classList.remove("gira"); btnPlay.classList.remove("gira"); btnPlay.textContent="▶"; btnPlay.setAttribute("aria-label","Escuchar");
   progreso.style.width="0"; tActual.textContent=reloj(0);
 }
 
@@ -879,11 +855,10 @@ function pintarRanking(){
 }
 function verVista(v){vistaTabla=v; pintarRanking()}
 
-/* ---------- el ranking, plegado al costado ----------
-   Es la única tabla que hay: se encima sobre la página, no la
-   corre, y arranca cerrada en cada carga. Se abre con la lengüeta
-   del borde o con el trofeo de la cabecera, que hace de llave de
-   luz: si está abierta, la cierra. */
+/* ---------- el ranking, al costado ----------
+   Es la única tabla que hay: se encima sobre la página y arranca
+   abierta en cada carga. El link "Ranking" de la cabecera hace de
+   llave de luz: si está abierta, la cierra, y viceversa. */
 function verLateral(mostrar){
   const lat=$("#lateral");
   const plegar = mostrar===undefined ? !lat.classList.contains("plegado") : !mostrar;
@@ -1034,3 +1009,6 @@ $("#titulo").addEventListener("click",()=>{
 });
 
 nuevaPartida();
+/* El panel de ranking arranca visible (ver verLateral más arriba): trae
+   los datos ya de entrada, no recién cuando alguien lo abre. */
+traerRanking(false);

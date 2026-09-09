@@ -44,7 +44,7 @@ que además se abre sola la primera vez que alguien entra.
 
 ```
 index.html            marcado del juego
-css/estilos.css       estilos (rediseño glassmorphism)
+css/estilos.css       estilos (rediseño minimalista, 3.0)
 css/clasico.css       estilos originales de la 1.0, para el botón "Vista clásica"
 js/config.js          clave de la API de YouTube (no se versiona)
 js/config.example.js  plantilla de config.js
@@ -59,9 +59,8 @@ conversor/clips/       clips .webm que consume el juego durante la partida
 firestore.rules       reglas de Firestore (fuente de verdad; se pegan en la consola)
 ```
 
-Además, en el checkout local (no versionada: ver *La versión 1.0*) puede
-existir `archivo-1.0/`, una copia de respaldo del sitio anterior a este
-rediseño.
+Los diseños anteriores no están en esta rama: ver *Versiones anteriores*
+más abajo.
 
 ## Cómo correrlo
 
@@ -186,12 +185,11 @@ nombre directo en el formulario de Catálogo → Editar.
 Se puntúa por rapidez: **6 puntos** si la sacás al primer intento y uno menos
 por cada intento de más, hasta **1 punto** en el sexto. Sin acertar, cero.
 
-La tabla vive plegada contra el borde derecho de la pantalla. Se despliega con
-el botón *Ranking* de la cabecera —que hace de llave de luz: si está abierta,
-la cierra— o
-tocando la lengüeta vertical. **Arranca plegada en cada carga.** Va encimada
-sobre la página (`position:fixed`), así que abrirla no mueve nada del
-contenido. Tiene dos vistas:
+La tabla vive contra el borde derecho de la pantalla y **arranca visible en
+cada carga**. El link *Ranking* de la cabecera hace de llave de luz: si está
+abierta, la cierra, y viceversa (el color del link marca el estado). Va
+encimada sobre la página (`position:fixed`), así que abrirla no mueve nada
+del contenido. Tiene dos vistas:
 
 - **Semana** — acumulado de puntos de lunes a viernes. Arranca de cero cada
   lunes a las 00. Las partidas de fin de semana (las del interruptor de
@@ -248,18 +246,12 @@ nube*). Pegás el ID o la URL de YouTube, escuchás, guardás y publicás. El
 `yt` es lo que va después de `watch?v=` en la URL. Para que suene durante la
 partida también hace falta generarle el clip (ver *El conversor de clips*).
 
-## Modo claro/oscuro y vista clásica
-
-El botón de la luna/sol de la cabecera alterna entre modo claro y oscuro,
-tanto en el juego como en `admin/` (cada uno con su propio botón). Oscuro es
-el predeterminado; la elección queda en `localStorage` (`ea_tema`), compartida
-entre las dos páginas.
+## Vista clásica
 
 El botón **"Vista clásica"** de la cabecera del juego alterna entre el
-rediseño actual y `css/clasico.css` —el `css/estilos.css` original de antes
-del rediseño, sin tocar— usando `localStorage` (`ea_vista`). Esa hoja no
-tiene modo claro/oscuro propio, así que el botón de tema se esconde mientras
-está puesta. Por ahora solo existe en el juego, no en `admin/`.
+rediseño actual y `css/clasico.css` —el `css/estilos.css` de la 1.0, sin
+tocar— usando `localStorage` (`ea_vista`). Por ahora solo existe en el
+juego, no en `admin/`. No hay modo claro: el sitio es oscuro únicamente.
 
 ## La tarjeta para compartir
 
@@ -301,16 +293,19 @@ tienen su `yt` cargado. Si necesitás la búsqueda en producción, tendrás que
 versionar la clave y restringirla por dominio (HTTP referrers) desde Google
 Cloud.
 
-## La versión 1.0
+## Versiones anteriores
 
-El diseño anterior a este rediseño (streaming en vivo de YouTube durante toda
-la partida, panel de administración embebido en el propio juego) quedó
-etiquetado en git como `v1.0` — `git checkout v1.0` lo trae de vuelta entero.
-Además, en este checkout puede existir localmente una copia sin versionar en
-`archivo-1.0/` (`index.html`, `css/`, `js/`, `imgs/`, el README de esa época),
-pensada para volver a mirarla rápido sin tocar git; al estar en `.gitignore`
-no viaja al repositorio ni a GitHub Pages, así que si armás un clone nuevo no
-va a estar ahí salvo que la copies vos mismo.
+Los diseños previos a este quedan enteros en ramas de git, no en tags (el
+token con el que se sube a veces no tiene permiso para pushear tags, así
+que esta es la forma que efectivamente queda accesible en GitHub):
+
+- `historico/1.0` — el diseño original: streaming en vivo de YouTube durante
+  toda la partida, panel de administración embebido en el propio juego.
+- `historico/2.0-glassmorphism` — el rediseño con vidrio esmerilado, vinilo
+  girando y tarjeta central, previo al rediseño minimalista actual (3.0).
+
+`git checkout historico/1.0` (o el nombre que corresponda) los trae de
+vuelta enteros.
 
 ## Nota legal
 
