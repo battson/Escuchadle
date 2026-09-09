@@ -46,58 +46,47 @@
     if(clasica) document.documentElement.dataset.vista="clasica";
     document.write('<link rel="stylesheet" id="hojaEstilos" href="css/'+(clasica?"clasico.css?v=1":"estilos.css?v=25")+'">');
   </script>
-  <script>
-    /* Oscuro es el predeterminado; solo se pasa a claro si el navegador
-       ya lo tenía guardado. Va acá, antes de pintar, para no parpadear
-       en oscuro un instante y después saltar a claro. No aplica en la
-       vista clásica: esa hoja no tiene modo claro. */
-    try{ if(!clasica&&localStorage.getItem("ea_tema")==="claro") document.documentElement.dataset.tema="claro"; }catch{}
-  </script>
 </head>
-<body>
+<body class="pagina-juego">
 <!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
      tiene datos de la semana anterior; si no hubo ganador, no aparece. -->
 <div class="ganador" id="ganador" hidden></div>
+
 <header>
-  <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE<br>ARGENTO <span>2.0</span></h1>
+  <div class="titulo-tab">
+    <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE ARGENTO <span>2</span></h1>
+  </div>
   <div class="cabecera-der">
     <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
-    <button class="btn-pildora" id="btnTabla" title="Ranking"
-            aria-expanded="false" aria-controls="lateral">
-      <img src="imgs/ranking.svg" alt="" class="ico"> Ranking
-    </button>
-    <button class="btn-pildora" id="btnVista">Vista clásica</button>
-    <button class="ayuda-btn" id="btnTema" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">🌙</button>
-    <button class="ayuda-btn" id="btnAyuda" aria-label="Cómo se juega" title="Cómo se juega">?</button>
+    <button class="link-min" id="btnAyuda" title="Cómo se juega">Ayuda</button>
+    <button class="link-min" id="btnTabla" title="Ranking"
+            aria-expanded="true" aria-controls="lateral">Ranking</button>
+    <button class="btn-pildora" id="btnVista" hidden>Vista clásica</button>
   </div>
 </header>
 
 <main>
-  <section class="escenario">
-    <div class="tocadiscos">
-      <div id="ytplayer"></div>
-      <audio id="clipAudio" preload="none"></audio>
-      <img class="vinilo" id="vinilo" src="imgs/vinilo.svg" alt="" aria-hidden="true" draggable="false">
-    </div>
-    <div class="controles">
-      <div class="barra" id="barra" aria-hidden="true">
-        <div class="desbloq" id="desbloq"></div>
-        <div class="progreso" id="progreso"></div>
-      </div>
-      <div class="tiempos"><span id="tActual">0:00</span><span id="tTotal">0:16</span></div>
-      <div class="play">
-        <button class="btn btn-play" id="btnPlay">▶ Escuchar</button>
-        <span class="estado" id="estado">Cargando canción…</span>
-      </div>
-      <div class="pauta" id="pauta" aria-live="polite"></div>
-    </div>
-  </section>
+  <div id="ytplayer" class="oculto-audible"></div>
+  <audio id="clipAudio" preload="none"></audio>
+  <img class="vinilo oculto-audible" id="vinilo" src="imgs/vinilo.svg" alt="" aria-hidden="true" draggable="false">
 
-  <section class="pistas" id="pistas" aria-live="polite" hidden></section>
+  <section class="reproductor">
+    <div class="barra" id="barra" aria-hidden="true">
+      <div class="desbloq" id="desbloq"></div>
+      <div class="progreso" id="progreso"></div>
+    </div>
+    <div class="tiempos"><span id="tActual">0:00</span><span id="tTotal">0:16</span></div>
+
+    <button class="circulo circulo-play" id="btnPlay" aria-label="Escuchar">▶</button>
+    <span class="estado" id="estado">Cargando canción…</span>
+    <div class="pauta" id="pauta" aria-live="polite"></div>
+  </section>
 
   <section class="intentos" id="intentos" aria-live="polite"></section>
 
-  <section id="zonaJuego" style="display:flex;flex-direction:column;gap:10px">
+  <section class="pistas pistas-linea" id="pistas" aria-live="polite" hidden></section>
+
+  <section id="zonaJuego" class="zona-juego">
     <div class="buscador">
       <div class="lista" id="lista" role="listbox"></div>
       <input id="busqueda" type="text" placeholder="Buscá artista o canción…" autocomplete="off" aria-label="Tu intento">
@@ -248,7 +237,7 @@
 
 <!-- ---------- panel lateral de ranking (prueba, solo en este navegador) ----------
      Se enciende desde el panel de administración. No existe en celular. -->
-<aside class="lateral plegado" id="lateral">
+<aside class="lateral" id="lateral">
   <button class="lateral-lengueta" id="lateralLengueta" aria-expanded="false"
           aria-controls="lateralCuerpo" title="Plegar / desplegar">
     <span class="lateral-flecha" aria-hidden="true">›</span>
