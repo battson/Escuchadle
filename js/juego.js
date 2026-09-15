@@ -125,8 +125,22 @@ const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:PREDETERMINADO;
 
 const CLAVE_NUBE="ea_nube_dia";
 /* Espejo de lo último que llegó de la nube. Sirve para arrancar con la
-   canción correcta sin esperar a que Firebase termine de cargar. */
-let diaNube=store.get(CLAVE_NUBE,null);
+   canción correcta sin esperar a que Firebase termine de cargar.
+
+   Va con el día en que se guardó (diaHoy()), no el documento pelado:
+   sin eso, un "modo":"manual" o un "salto" que quedaron de una prueba
+   de un día anterior se colaban como si fueran de hoy en cualquier
+   navegador que ya lo tuviera cacheado, hasta que Firebase reconectara
+   y lo pisara -lo cual podía tardar, fallar, o directamente no pasar
+   si el navegador nunca reabre esa pestaña-. Guardado de un día que no
+   es hoy, se descarta: mejor arrancar en blanco (PREDETERMINADO/
+   js/dia.js) que confiar en una configuración vieja. */
+function leerDiaNube(){
+  const g=store.get(CLAVE_NUBE,null);
+  return g&&g.dia===diaHoy()?g.doc:null;
+}
+function guardarDiaNube(doc){store.set(CLAVE_NUBE,{dia:diaHoy(),doc})}
+let diaNube=leerDiaNube();
 let textoNube="Conectando con la nube…";
 
 /* Los ajustes locales de la versión anterior ya no corresponden: si
@@ -151,7 +165,7 @@ setTimeout(()=>{
    partida igual que cuando se cambiaba dia.js, pero al instante. */
 window.addEventListener("nube:dia",e=>{
   const antes=dia();
-  diaNube=e.detail; store.set(CLAVE_NUBE,diaNube);
+  diaNube=e.detail; guardarDiaNube(diaNube);
   const ahora=dia();
   const cambio=["modo","cancion","salto","reinicio"].some(k=>antes[k]!==ahora[k]);
   if(cambio&&modo==="diario") nuevaPartida();
