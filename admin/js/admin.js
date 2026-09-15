@@ -94,7 +94,17 @@ $("#panelVelo").onclick=()=>cajon(false);
 const PREDETERMINADO={modo:"auto",cancion:"",salto:0,reinicio:0};
 const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:PREDETERMINADO;
 const CLAVE_NUBE="ea_nube_dia";
-let diaNube=store.get(CLAVE_NUBE,null);
+/* Va con el día en que se guardó: mismo formato que usa el juego para
+   esta clave (comparten origen y localStorage), ver el comentario en
+   js/juego.js. Sin esto, un "modo":"manual" de una prueba de un día
+   anterior se mostraba acá como si fuera la configuración de hoy hasta
+   que Firebase reconectara. */
+function leerDiaNube(){
+  const g=store.get(CLAVE_NUBE,null);
+  return g&&g.dia===diaHoy()?g.doc:null;
+}
+function guardarDiaNube(doc){store.set(CLAVE_NUBE,{dia:diaHoy(),doc})}
+let diaNube=leerDiaNube();
 let textoNube="Conectando con la nube…";
 function dia(){
   const d=Object.assign({},PREDETERMINADO,DIA_BASE,diaNube||{});
@@ -102,7 +112,7 @@ function dia(){
   d.reinicio=Number(d.reinicio)||0;
   return d;
 }
-window.addEventListener("nube:dia",e=>{diaNube=e.detail; store.set(CLAVE_NUBE,diaNube); refrescarPanel()});
+window.addEventListener("nube:dia",e=>{diaNube=e.detail; guardarDiaNube(diaNube); refrescarPanel()});
 window.addEventListener("nube:estado",e=>{textoNube=e.detail.texto; refrescarPanel()});
 
 /* ---------- catálogo en la nube ----------
@@ -213,7 +223,7 @@ function ajustarDia(cambios){
              cancion:d.modo==="manual"?d.cancion:"",
              salto:d.modo==="manual"?0:d.salto,
              reinicio:d.reinicio};
-  diaNube=cfg; store.set(CLAVE_NUBE,cfg);
+  diaNube=cfg; guardarDiaNube(cfg);
   if(["modo","cancion","salto"].some(k=>k in cambios)){
     const objetivo=cfg.modo==="manual"?porLabel(cfg.cancion):sorteo(cfg.salto);
     if(objetivo) fijarHoyEnNube(objetivo.label,true);
