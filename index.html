@@ -36,6 +36,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
   <script>
+    /* Cache-buster único para esta carga de página: todo lo que pide
+       este archivo (la hoja de estilos acá abajo, y los scripts al
+       final del body) lo lleva pegado, así el navegador nunca sirve
+       una versión vieja cacheada de un cambio reciente -el motivo por
+       el que hubo que agregar esto: un "?v=25" fijo que nadie se
+       acordaba de subir en cada cambio, y algunos navegadores se
+       quedaban con JS de semanas atrás sin darse cuenta-. Es a
+       propósito más agresivo que un número de versión a mano: pisa
+       cualquier caché, siempre, en vez de depender de acordarse de
+       cambiarlo. */
+    window.EA_V=Date.now();
     /* Elige qué hoja de estilos pedir ANTES de que el navegador la
        pida, así no hay parpadeo: la 2.0 (glassmorphism) por defecto,
        o la 1.0 clásica si el navegador ya la tenía guardada. Por eso
@@ -44,7 +55,7 @@
     var clasica=false;
     try{ clasica=localStorage.getItem("ea_vista")==="clasica"; }catch(e){}
     if(clasica) document.documentElement.dataset.vista="clasica";
-    document.write('<link rel="stylesheet" id="hojaEstilos" href="css/'+(clasica?"clasico.css?v=1":"estilos.css?v=25")+'">');
+    document.write('<link rel="stylesheet" id="hojaEstilos" href="css/'+(clasica?"clasico.css":"estilos.css")+'?v='+window.EA_V+'">');
   </script>
 </head>
 <body class="pagina-juego">
@@ -258,14 +269,17 @@
   </div>
 </aside>
 
-<script src="js/nube-config.js?v=25"></script>
-<script src="js/config.js?v=25"></script>
-<script src="js/dia.js?v=25"></script>
-<script src="js/catalogo.js?v=25"></script>
-<script src="js/juego.js?v=25"></script>
-<!-- Módulo: corre después de los scripts de arriba. El juego arranca sin
-     esperarlo y se corrige solo cuando llega la configuración de la nube. -->
-<script type="module" src="js/nube.js?v=25"></script>
+<script>
+  /* Mismo cache-buster que eligió la hoja de estilos más arriba (ver
+     ese comentario): todos estos, con document.write para que carguen
+     en el mismo orden que si fueran tags fijos. El módulo (nube.js) va
+     en la misma tanda: los módulos siempre se ejecutan después de
+     parsear todo el documento, así que el orden de escritura no le
+     cambia nada. */
+  ["js/nube-config.js","js/config.js","js/dia.js","js/catalogo.js","js/juego.js"]
+    .forEach(s=>document.write('<script src="'+s+'?v='+window.EA_V+'"><\/script>'));
+  document.write('<script type="module" src="js/nube.js?v='+window.EA_V+'"><\/script>');
+</script>
 <script>
   /* Las instrucciones de la clave solo aparecen si falta. */
   if(typeof YT_API_KEY==="undefined"||!YT_API_KEY){const a=document.getElementById("ayudaClave"); if(a) a.hidden=false;}
