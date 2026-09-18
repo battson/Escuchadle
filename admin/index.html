@@ -9,7 +9,14 @@
 <link rel="alternate icon" href="../imgs/vinilo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/estilos.css">
+<script>
+  /* Mismo cache-buster que index.html (ver ese comentario): sin esto,
+     un navegador que ya había cacheado la hoja de estilos o los
+     scripts de acá abajo seguía viendo una versión vieja después de
+     publicar un cambio. */
+  window.EA_V=Date.now();
+  document.write('<link rel="stylesheet" href="../css/estilos.css?v='+window.EA_V+'">');
+</script>
 </head>
 <body>
 <main style="max-width:960px">
@@ -252,10 +259,10 @@
   </div>
 </main>
 
-<script src="../js/nube-config.js"></script>
-<script src="../js/dia.js"></script>
-<script src="../js/catalogo.js"></script>
-<script src="js/admin.js"></script>
-<script type="module" src="../js/nube.js"></script>
+<script>
+  ["../js/nube-config.js","../js/dia.js","../js/catalogo.js","js/admin.js"]
+    .forEach(s=>document.write('<script src="'+s+'?v='+window.EA_V+'"><\/script>'));
+  document.write('<script type="module" src="../js/nube.js?v='+window.EA_V+'"><\/script>');
+</script>
 </body>
 </html>
