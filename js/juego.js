@@ -783,6 +783,9 @@ $("#nombre").addEventListener("input",e=>{
 const TOPE=400;
 const latTabla=$("#latTabla"), latEstado=$("#latEstado");
 let vistaTabla="semana", filasRanking=null, filasSemana=null;
+/* Puntos sueltos del panel (premios, correcciones), aparte de lo que
+   dan las partidas. Mismas dos ventanas que filasRanking/filasSemana. */
+let ajustesTodo=null, ajustesSemana=null;
 
 const puntosDe=n=>n>0?(MAX+1-n):0;
 
@@ -824,23 +827,36 @@ function traerRanking(forzar){
   escribirTablas("Cargando…","");
   Promise.all([
     window.Nube.listarResultados(TOPE),
-    window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE)
-  ]).then(([todo,semana])=>{
-    filasRanking=todo; filasSemana=semana; pintarRanking();
+    window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE),
+    window.Nube.listarAjustes(TOPE),
+    window.Nube.listarAjustesDesde(lunesDeEstaSemana().toISOString(),TOPE)
+  ]).then(([todo,semana,ajTodo,ajSemana])=>{
+    filasRanking=todo; filasSemana=semana;
+    ajustesTodo=ajTodo; ajustesSemana=ajSemana;
+    pintarRanking();
   }).catch(e=>{latEstado.innerHTML=htmlError(e.message,"no-signal.svg"); latTabla.innerHTML=""});
 }
 function escribirTablas(txt,html){
   latEstado.textContent=txt; latTabla.innerHTML=html;
 }
 
-/* ---------- armar cada vista ---------- */
-function agrupar(filas){
+/* ---------- armar cada vista ----------
+   ajustes (opcional) son puntos sueltos del panel: suman o restan al
+   total de un jugador sin contar como partida jugada -no tocan
+   jugadas/ganadas/promedio, solo puntos-. Un jugador que solo tenga
+   ajustes (sin partidas) igual aparece en la tabla. */
+function agrupar(filas,ajustes){
   const por={};
   filas.filter(conNombre).forEach(r=>{
     const n=r.nombre.trim(), k=norm(n);
     const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,puntos:0,suma:0});
     p.jugadas++; p.puntos+=puntosDe(r.intentos);
     if(r.intentos>0){p.ganadas++; p.suma+=r.intentos}
+  });
+  (ajustes||[]).filter(conNombre).forEach(a=>{
+    const n=a.nombre.trim(), k=norm(n);
+    const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,puntos:0,suma:0});
+    p.puntos+=Math.trunc(+a.puntos)||0;
   });
   return Object.values(por).map(p=>Object.assign(p,{
     prom:p.ganadas?p.suma/p.ganadas:99,
@@ -852,13 +868,14 @@ const filaGente=(p,i)=>
   `<div class="quien"><div class="nom">${escapar(p.nombre)}</div>`+
   `<div class="detalle">${p.ganadas} de ${p.jugadas} · ${p.pct}%`+
   `${p.ganadas?` · promedio ${p.prom.toFixed(1)}`:""}</div></div>`+
-  `<span class="marca ok">${p.puntos} <small>pts</small></span></div>`;
+  `<span class="marca ${p.puntos<0?"no":"ok"}">${p.puntos} <small>pts</small></span></div>`;
 
 function armarTabla(v){
   if(v==="semana"){
     if(!filasSemana) return {txt:"Cargando…",html:""};
     const l=+lunesDeEstaSemana();
-    const g=agrupar(filasSemana.filter(r=>+new Date(r.fecha)>=l&&esHabil(r.fecha)));
+    const enSemana=r=>+new Date(r.fecha)>=l&&esHabil(r.fecha);
+    const g=agrupar(filasSemana.filter(enSemana),(ajustesSemana||[]).filter(enSemana));
     return {
       txt:g.length?`${rotuloSemana()} · ${plural(g.length,"jugador","jugadores")}.`
                   :`${rotuloSemana()} · todavía no jugó nadie.`,
@@ -866,7 +883,7 @@ function armarTabla(v){
     };
   }
   if(!filasRanking) return {txt:"Cargando…",html:""};
-  const g=agrupar(filasRanking);
+  const g=agrupar(filasRanking,ajustesTodo);
   return {
     txt:g.length?`${plural(g.length,"jugador","jugadores")} · últimas ${TOPE} partidas.`
                 :"Todavía no hay partidas en la tabla.",
@@ -914,8 +931,11 @@ function pintarFinde(){
     return;
   }
   est.textContent="Cargando…";
-  window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE).then(semana=>{
-    filasSemana=semana;
+  Promise.all([
+    window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE),
+    window.Nube.listarAjustesDesde(lunesDeEstaSemana().toISOString(),TOPE)
+  ]).then(([semana,ajSemana])=>{
+    filasSemana=semana; ajustesSemana=ajSemana;
     const {txt,html}=armarTabla("semana");
     est.textContent=txt; tab.innerHTML=html;
   }).catch(e=>{est.innerHTML=htmlError(e.message,"no-signal.svg"); tab.innerHTML=""});
@@ -937,11 +957,15 @@ function mostrarGanador(){
   }
   const esteLunes=lunesDeEstaSemana();
   const lunesPasado=new Date(esteLunes); lunesPasado.setDate(lunesPasado.getDate()-7);
-  window.Nube.listarDesde(lunesPasado.toISOString(),TOPE).then(filas=>{
-    const g=agrupar(filas.filter(r=>{
+  Promise.all([
+    window.Nube.listarDesde(lunesPasado.toISOString(),TOPE),
+    window.Nube.listarAjustesDesde(lunesPasado.toISOString(),TOPE)
+  ]).then(([filas,ajustes])=>{
+    const enSemanaPasada=r=>{
       const f=+new Date(r.fecha);
       return f>=+lunesPasado&&f<+esteLunes&&esHabil(r.fecha);
-    }));
+    };
+    const g=agrupar(filas.filter(enSemanaPasada),ajustes.filter(enSemanaPasada));
     if(g.length&&g[0].puntos>0){
       /* Redacción neutra: gane quien gane, "por ganar la semana". El
          rango va del lunes al viernes de la semana que cerró, en dd-mm. */

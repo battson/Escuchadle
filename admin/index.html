@@ -196,6 +196,24 @@
           <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el botón Ranking de la cabecera del juego. La ✕ borra una fila suelta.</p>
           <div id="rankLista"></div>
         </div>
+
+        <div class="panel-bloque">
+          <div class="panel-titulo">Ajustes de puntaje</div>
+          <div class="banco-fila">
+            <input id="ajusteNombre" class="banco-campo" type="text" placeholder="Nombre (igual que en el ranking)" autocomplete="off" style="flex:1;min-width:180px">
+            <input id="ajustePuntos" class="banco-campo" type="number" placeholder="Puntos (+/-)" step="1" style="width:120px">
+          </div>
+          <div class="banco-fila">
+            <input id="ajusteMotivo" class="banco-campo" type="text" placeholder="Motivo (opcional)" autocomplete="off" style="flex:1;min-width:180px">
+            <button class="btn btn-ok" id="btnAjusteAgregar" style="padding:9px 14px;font-size:13px">Sumar/restar</button>
+          </div>
+          <p class="panel-ayuda">Suma o resta puntos sueltos a un jugador -premios, correcciones- sin que cuente como partida jugada. El nombre tiene que escribirse igual que en el ranking (mismo criterio que usa el juego para agrupar). Se suma tanto a la tabla semanal como a la histórica; con fecha de un día hábil de esta semana, también a la semanal. Un número negativo resta.</p>
+          <div class="verif-cab">
+            <span id="estadoAjustes"></span>
+            <button class="btn btn-sec" id="btnAjustesActualizar">Actualizar</button>
+          </div>
+          <div id="ajustesLista"></div>
+        </div>
       </section>
 
       <section class="panel-sec" data-sec="vista" hidden>

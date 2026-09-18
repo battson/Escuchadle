@@ -198,6 +198,15 @@ del contenido. Tiene dos vistas:
 
 **Sin nombre no se puntúa.** Las filas anónimas no entran en ninguna vista.
 
+Aparte de lo que dan las partidas, desde el panel (sección *Ranking* →
+*Ajustes de puntaje*) se le pueden sumar o restar puntos sueltos a un
+jugador —premios, correcciones—, con un motivo opcional. Un ajuste no
+cuenta como partida jugada (no toca jugadas/ganadas/promedio, solo el
+total de puntos) y entra tanto a la semanal como a la histórica, la
+primera si su fecha cae en un día hábil de la semana en curso. El
+nombre tiene que escribirse igual que en el ranking: agrupa con el
+mismo criterio que usa el juego.
+
 Arriba de todo, en color `--sol`, va la leyenda de quien ganó la semana
 anterior: *"Felicitaciones a X por ganar la semana del dd-mm al dd-mm"*, con el
 lunes y el viernes de esa semana. Se completa sola con los datos de la nube;

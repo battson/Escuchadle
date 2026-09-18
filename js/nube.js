@@ -5,7 +5,9 @@
      - escucha en vivo el documento con la configuración del día y
        avisa al juego cada vez que cambia, sin recargar la página;
      - publica esa configuración cuando el panel la toca;
-     - archiva los resultados de las partidas y deja borrarlos.
+     - archiva los resultados de las partidas y deja borrarlos;
+     - guarda ajustes de puntaje sueltos (premios, correcciones) que
+       el panel suma a mano, aparte de las partidas.
 
    Cómo habla con el resto del juego: por eventos en window, así
    juego.js no depende de que este archivo haya cargado.
@@ -29,7 +31,8 @@ import {
 const CFG = window.NUBE_CONFIG || null;
 const RUTAS = Object.assign({
   coleccionConfig: "escuchadle", documentoDia: "dia", documentoCatalogo: "catalogo",
-  coleccionResultados: "resultados", coleccionSugerencias: "sugerencias"
+  coleccionResultados: "resultados", coleccionSugerencias: "sugerencias",
+  coleccionAjustes: "ajustes"
 }, window.NUBE_RUTAS || {});
 
 function avisar(tipo, detalle){
@@ -123,7 +126,11 @@ const Nube = {
   guardarResultado(){ return Promise.reject(new Error("La nube no está lista.")); },
   listarResultados(){ return Promise.reject(new Error("La nube no está lista.")); },
   borrarResultado(){ return Promise.reject(new Error("La nube no está lista.")); },
-  vaciarResultados(){ return Promise.reject(new Error("La nube no está lista.")); }
+  vaciarResultados(){ return Promise.reject(new Error("La nube no está lista.")); },
+  guardarAjuste(){ return Promise.reject(new Error("La nube no está lista.")); },
+  listarAjustes(){ return Promise.reject(new Error("La nube no está lista.")); },
+  listarAjustesDesde(){ return Promise.reject(new Error("La nube no está lista.")); },
+  borrarAjuste(){ return Promise.reject(new Error("La nube no está lista.")); }
 };
 window.Nube = Nube;
 
@@ -150,6 +157,7 @@ if(!CFG || !CFG.projectId){
     const refCatalogo = doc(db, RUTAS.coleccionConfig, RUTAS.documentoCatalogo);
     const refResultados = collection(db, RUTAS.coleccionResultados);
     const refSugerencias = collection(db, RUTAS.coleccionSugerencias);
+    const refAjustes = collection(db, RUTAS.coleccionAjustes);
 
     Nube.disponible = true;
 
@@ -271,6 +279,39 @@ if(!CFG || !CFG.projectId){
 
     Nube.borrarResultado = (id) =>
       deleteDoc(doc(db, RUTAS.coleccionResultados, id))
+        .catch(e => { throw new Error(motivo(e)); });
+
+    /* ---------- ajustes de puntaje ----------
+       Puntos sueltos a mano, aparte de las partidas (premios,
+       correcciones). Mismo patrón que resultados: se crean y se
+       borran, nunca se modifican. "puntos" puede ser negativo. */
+    Nube.guardarAjuste = (a) => {
+      const nombre = String(a.nombre || "").trim().slice(0,39);
+      if(!nombre) return Promise.reject(new Error("Falta el nombre."));
+      const fila = {
+        fecha: String(a.fecha || new Date().toISOString()),
+        nombre,
+        puntos: Math.max(-999, Math.min(999, Math.trunc(+a.puntos || 0))),
+        motivo: String(a.motivo || "").slice(0,120)
+      };
+      return addDoc(refAjustes, fila)
+        .then(ref => ref.id)
+        .catch(e => { throw new Error(motivo(e)); });
+    };
+
+    Nube.listarAjustes = (n = 60) =>
+      getDocs(query(refAjustes, orderBy("fecha","desc"), limit(n)))
+        .then(qs => qs.docs.map(d => Object.assign({id: d.id}, d.data())))
+        .catch(e => { throw new Error(motivo(e)); });
+
+    Nube.listarAjustesDesde = (desdeISO, n = 500) =>
+      getDocs(query(refAjustes, where("fecha", ">=", String(desdeISO)),
+                    orderBy("fecha","desc"), limit(n)))
+        .then(qs => qs.docs.map(d => Object.assign({id: d.id}, d.data())))
+        .catch(e => { throw new Error(motivo(e)); });
+
+    Nube.borrarAjuste = (id) =>
+      deleteDoc(doc(db, RUTAS.coleccionAjustes, id))
         .catch(e => { throw new Error(motivo(e)); });
 
     /* ---------- sugerencias ----------
