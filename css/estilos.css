@@ -424,7 +424,7 @@
   .tabla .quien{min-width:0}
   .tabla .nom{font-size:14px;color:var(--crema);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tabla .tira{font-size:11px;letter-spacing:1px;line-height:1.6}
-  .tabla .detalle{font-size:11px;color:var(--gris)}
+  .tabla .detalle{font-size:11px;color:var(--gris);display:none}
   .tabla .marca{font-size:13px;font-variant-numeric:tabular-nums;color:var(--gris)}
   .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
   .resultado .nota-manana{font-size:12px;color:var(--gris)}
