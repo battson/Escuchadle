@@ -58,6 +58,28 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if true;
     }
+    /* ---------- ajustes de puntaje ----------
+       Puntos sueltos que el panel suma o resta a mano a un jugador
+       (premios, correcciones), aparte de lo que ya dan las partidas.
+       Se crean y se borran, nunca se modifican -igual que resultados-.
+       "puntos" puede ser negativo: para restar. */
+    match /ajustes/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['fecha','nombre','puntos','motivo'])
+                    && request.resource.data.fecha is string
+                    && request.resource.data.fecha.size() <= 40
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() > 0
+                    && request.resource.data.nombre.size() <= 40
+                    && request.resource.data.puntos is number
+                    && request.resource.data.puntos >= -999
+                    && request.resource.data.puntos <= 999
+                    && request.resource.data.motivo is string
+                    && request.resource.data.motivo.size() <= 120;
+      allow update: if false;
+      allow delete: if true;
+    }
     /* ---------- comentarios y sugerencias ----------
        El nombre vacío se lee como anónimo, así que se permite;
        el mensaje, en cambio, no puede venir vacío. */

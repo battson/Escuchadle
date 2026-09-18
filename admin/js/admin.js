@@ -73,7 +73,7 @@ function irASeccion(id){
   document.querySelectorAll("#panelCont .panel-sec").forEach(x=>{x.hidden=x.dataset.sec!==id});
   $("#panelCont").scrollTop=0;
   cajon(false);
-  if(id==="ranking") cargarRanking();
+  if(id==="ranking"){cargarRanking(); cargarAjustes()}
   if(id==="catalogo") rellenarBancoSel(true); else bancoParar();
   if(id==="fusionar") fusRefrescarLista();
 }
@@ -303,6 +303,49 @@ $("#btnVaciarRanking").onclick=()=>{
     estadoRanking.textContent=`Tabla vaciada (${n} fila(s)).`;
   }).catch(e=>{estadoRanking.textContent=e.message});
 };
+
+/* ---------- ajustes de puntaje ----------
+   Puntos sueltos aparte de las partidas: van a la misma colección que
+   lee el juego para sumarlos tanto en la tabla semanal como en la
+   histórica (ver agrupar() en js/juego.js). */
+const ajustesLista=$("#ajustesLista"), estadoAjustes=$("#estadoAjustes");
+function cargarAjustes(){
+  if(!hayNube()){estadoAjustes.textContent="Sin conexión con la nube.";return}
+  estadoAjustes.textContent="Cargando…";
+  window.Nube.listarAjustes(60).then(as=>{
+    estadoAjustes.textContent=as.length?`${as.length} ajuste(s) en la nube.`:"Todavía no hay ajustes.";
+    ajustesLista.innerHTML=as.map(a=>{
+      const puntos=(a.puntos>0?"+":"")+a.puntos;
+      return `<div class="vf"><span class="id">${escapar((a.fecha||"").slice(0,10))}</span>`+
+             `<div><div class="pedido">${escapar(a.nombre)} · ${escapar(puntos)} pts</div>`+
+             `<div class="hallado">${escapar(a.motivo)||"(sin motivo)"}</div></div>`+
+             `<button data-borrar-ajuste="${escapar(a.id)}" title="Borrar este ajuste">✕</button></div>`;
+    }).join("");
+  }).catch(e=>{estadoAjustes.textContent=e.message});
+}
+$("#btnAjustesActualizar").onclick=cargarAjustes;
+$("#btnAjusteAgregar").onclick=()=>{
+  const nombre=$("#ajusteNombre").value.trim();
+  const puntos=Math.trunc(+$("#ajustePuntos").value);
+  const motivo=$("#ajusteMotivo").value.trim();
+  if(!nombre){estadoAjustes.textContent="Falta el nombre.";return}
+  if(!Number.isFinite(puntos)||!puntos){estadoAjustes.textContent="Los puntos tienen que ser un número distinto de cero.";return}
+  if(!hayNube()){estadoAjustes.textContent="Sin conexión con la nube.";return}
+  $("#btnAjusteAgregar").disabled=true;
+  estadoAjustes.textContent="Guardando…";
+  window.Nube.guardarAjuste({nombre,puntos,motivo}).then(()=>{
+    $("#ajusteNombre").value=""; $("#ajustePuntos").value=""; $("#ajusteMotivo").value="";
+    $("#btnAjusteAgregar").disabled=false;
+    cargarAjustes();
+  }).catch(e=>{$("#btnAjusteAgregar").disabled=false; estadoAjustes.textContent=e.message});
+};
+ajustesLista.addEventListener("click",e=>{
+  const b=e.target.closest("[data-borrar-ajuste]"); if(!b) return;
+  b.disabled=true;
+  window.Nube.borrarAjuste(b.dataset.borrarAjuste)
+    .then(()=>{b.closest(".vf").remove(); estadoAjustes.textContent="Ajuste borrado."})
+    .catch(err=>{b.disabled=false; estadoAjustes.textContent=err.message});
+});
 async function subirPendientes(){
   const btn=$("#btnSubirPendientes");
   if(!hayNube()) return avisar(btn,"Sin nube","Subir pendientes");
