@@ -43,11 +43,15 @@ const local=Object.assign({saltearFinde:false},store.get("ea_local",{}));
 const guardarLocal=()=>store.set("ea_local",local);
 
 /* ---------- fin de semana ----------
-   Sábados y domingos el juego cierra. Manda el reloj de la máquina del
-   jugador, que es lo que corresponde a un juego entre conocidos. El
-   panel de administración, en cambio, abre los siete días. */
+   Sábados y domingos el modo diario cierra: no hay canción del día que
+   gastar ni sentido en fijarla en la nube. El modo libre, en cambio,
+   sigue andando -es una canción al azar, no cuenta para el ranking, no
+   hace falta "el día"-, así que el cierre no lo alcanza. Manda el
+   reloj de la máquina del jugador, que es lo que corresponde a un
+   juego entre conocidos. El panel de administración, en cambio, abre
+   los siete días. */
 const esFinde=()=>[0,6].includes(new Date().getDay());
-const cerradoHoy=()=>esFinde()&&!local.saltearFinde;
+const cerradoHoy=()=>esFinde()&&!local.saltearFinde&&modo==="diario";
 
 /* ---------- ventanas ---------- */
 let capa=20;
@@ -1036,12 +1040,22 @@ input.addEventListener("keydown",e=>{
 /* ---------- eventos ---------- */
 btnPlay.onclick=reproducir; btnSaltar.onclick=saltar; btnEnviar.onclick=enviar;
 $("#btnOtra").onclick=()=>nuevaPartida();
+function pintarBtnModoLibre(){
+  const libre=modo==="libre";
+  $("#badgeLibre").hidden=!libre;
+  $("#btnModoLibre").textContent=libre?"Volver al día":"Modo libre";
+  $("#btnModoLibre").title=libre
+    ?"Volver a la canción del día"
+    :"Jugar una canción al azar, sin que cuente para el ranking";
+}
 function setModo(m){
   modo=m;
-  $("#badgeLibre").hidden=m!=="libre";
+  pintarBtnModoLibre();
   nuevaPartida();
 }
-$("#badgeLibre").hidden=modo!=="libre";
+pintarBtnModoLibre();
+$("#btnModoLibre").onclick=()=>setModo(modo==="libre"?"diario":"libre");
+$("#btnJugarLibre").onclick=()=>setModo("libre");
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){const m=modalAbierto(); if(m) cerrarModal(m.id); return}
   const escribiendo=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
