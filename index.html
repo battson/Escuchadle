@@ -69,6 +69,7 @@
   </div>
   <div class="cabecera-der">
     <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
+    <button class="link-min" id="btnModoLibre" title="Jugar una canción al azar, sin que cuente para el ranking">Modo libre</button>
     <button class="link-min" id="btnAyuda" title="Cómo se juega">Ayuda</button>
     <button class="link-min" id="btnTabla" title="Ranking"
             aria-expanded="true" aria-controls="lateral">Ranking</button>
@@ -118,6 +119,9 @@
   <section class="finde" id="finde" hidden>
     <img class="finde-cartel" src="imgs/cartel.svg"
          alt="Cerrado. Volvé el lunes para seguir jugando. ¡Muchas gracias!">
+    <div class="finde-acciones">
+      <button class="btn btn-ok" id="btnJugarLibre">Jugar en modo libre</button>
+    </div>
     <div class="finde-ranking">
       <div class="finde-leyenda">Te dejamos el ranking de esta semana</div>
       <div class="tabla-estado" id="findeEstado"></div>
@@ -203,9 +207,11 @@
     <details class="ayuda-bloque" name="ayuda">
       <summary class="ayuda-titulo">Días de juego</summary>
       <div class="ayuda-cuerpo">
-      <p>De lunes a viernes, una canción por día. Los fines de semana el juego
-      cierra. Y si dejás una partida a medio jugar y se te pasa el día, la perdés:
-      no se puede retomar al otro día.</p>
+      <p>De lunes a viernes, una canción por día. Los fines de semana el modo
+      diario cierra, pero el <b>modo libre</b> sigue andando -canciones al azar,
+      sin límite- por si tenés ganas de jugar igual: no suma al ranking. Y si
+      dejás una partida a medio jugar y se te pasa el día, la perdés: no se
+      puede retomar al otro día.</p>
       </div>
     </details>
 
