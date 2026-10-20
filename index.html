@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Escuchadle Argento — adiviná la canción</title>
-<meta name="description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta name="description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Canciones al azar, sin ranking ni puntos.">
 <meta name="theme-color" content="#0E1524">
 <link rel="icon" href="imgs/vinilo.svg" type="image/svg+xml">
 <link rel="alternate icon" href="imgs/vinilo.png" type="image/png">
@@ -21,7 +21,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Escuchadle Argento">
 <meta property="og:title" content="Escuchadle Argento — adiviná la canción">
-<meta property="og:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta property="og:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Canciones al azar, sin ranking ni puntos.">
 <meta property="og:url" content="https://battson.github.io/Escuchadle/">
 <meta property="og:image" content="https://battson.github.io/Escuchadle/imgs/OpenGraph.jpg?v=1">
 <meta property="og:image:width" content="1200">
@@ -30,7 +30,7 @@
 <meta property="og:locale" content="es_AR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Escuchadle Argento — adiviná la canción">
-<meta name="twitter:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Una por día, de lunes a viernes.">
+<meta name="twitter:description" content="Un pedacito de una canción argentina y seis intentos para adivinarla. Canciones al azar, sin ranking ni puntos.">
 <meta name="twitter:image" content="https://battson.github.io/Escuchadle/imgs/OpenGraph.jpg?v=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -59,20 +59,12 @@
   </script>
 </head>
 <body class="pagina-juego">
-<!-- 36: ganador de la semana pasada. Se completa solo cuando la nube
-     tiene datos de la semana anterior; si no hubo ganador, no aparece. -->
-<div class="ganador" id="ganador" hidden></div>
-
 <header>
   <div class="titulo-tab">
     <h1 id="titulo" title="Escuchadle Argento">ESCUCHADLE ARGENTO <span>2</span></h1>
   </div>
   <div class="cabecera-der">
-    <span class="badge-libre" id="badgeLibre" hidden>Modo libre</span>
-    <button class="link-min" id="btnModoLibre" title="Jugar una canción al azar, sin que cuente para el ranking">Modo libre</button>
     <button class="link-min" id="btnAyuda" title="Cómo se juega">Ayuda</button>
-    <button class="link-min" id="btnTabla" title="Ranking"
-            aria-expanded="true" aria-controls="lateral">Ranking</button>
     <button class="btn-pildora" id="btnVista" hidden>Vista clásica</button>
   </div>
 </header>
@@ -113,21 +105,7 @@
     <button class="btn btn-ok" id="btnVerResultado">Ver resultado</button>
   </section>
 
-  <!-- Fin de semana: reemplaza a todo el juego. El cartel es una
-       ilustración; debajo va la tabla de la semana que acaba de cerrar,
-       en solo lectura. -->
-  <section class="finde" id="finde" hidden>
-    <img class="finde-cartel" src="imgs/cartel.svg"
-         alt="Cerrado. Volvé el lunes para seguir jugando. ¡Muchas gracias!">
-    <div class="finde-acciones">
-      <button class="btn btn-ok" id="btnJugarLibre">Jugar en modo libre</button>
-    </div>
-    <div class="finde-ranking">
-      <div class="finde-leyenda">Te dejamos el ranking de esta semana</div>
-      <div class="tabla-estado" id="findeEstado"></div>
-      <div class="tabla" id="findeTabla"></div>
-    </div>
-  </section>
+
 </main>
 
 <!-- Marca de agua fija, decorativa: no captura clics. -->
@@ -143,7 +121,7 @@
     </div>
 
     <p>Suena un pedacito de una canción argentina y tenés <b>seis intentos</b> para
-    decir cuál es. Hay una sola por día y es la misma para todo el mundo.</p>
+    decir cuál es. Es un juego libre: una canción al azar por partida, sin ranking ni puntos y sin límite de partidas.</p>
 
     <ol class="ayuda-pasos">
       <li><b>Escuchá.</b> Tocá <i>▶ Escuchar</i> (o apretá la barra espaciadora).
@@ -182,42 +160,9 @@
       </div>
     </details>
 
-    <details class="ayuda-bloque" name="ayuda">
-      <summary class="ayuda-titulo">El ranking</summary>
-      <div class="ayuda-cuerpo">
-      <p>Cuanto antes la saques, más puntos:</p>
-      <ul class="leyenda puntos">
-        <li><b>6 pts</b> al 1.er intento</li>
-        <li><b>5 pts</b> al 2.º</li>
-        <li><b>4 pts</b> al 3.º</li>
-        <li><b>3 pts</b> al 4.º</li>
-        <li><b>2 pts</b> al 5.º</li>
-        <li><b>1 pt</b> al 6.º</li>
-      </ul>
-      <p>Si no la sacás, cero. La tabla es <b>semanal, de lunes a viernes</b>, y
-      arranca de nuevo cada lunes; el histórico, en cambio, no se borra nunca.</p>
-      <p><b>Ojo:</b> para figurar tenés que escribir tu nombre <b>y</b> tocar
-      <i>Enviar al ranking</i> al terminar. Sin eso tu partida queda guardada
-      pero no suma puntos.</p>
-      <p>La tabla vive plegada en el borde derecho: se abre con el botón <i>Ranking</i> de arriba
-      o tocando la lengüeta, y se cierra igual.</p>
-      </div>
-    </details>
-
-    <details class="ayuda-bloque" name="ayuda">
-      <summary class="ayuda-titulo">Días de juego</summary>
-      <div class="ayuda-cuerpo">
-      <p>De lunes a viernes, una canción por día. Los fines de semana el modo
-      diario cierra, pero el <b>modo libre</b> sigue andando -canciones al azar,
-      sin límite- por si tenés ganas de jugar igual: no suma al ranking. Y si
-      dejás una partida a medio jugar y se te pasa el día, la perdés: no se
-      puede retomar al otro día.</p>
-      </div>
-    </details>
-
     <p class="modal-nota">Mientras jugás, el fragmento sale de un clip corto guardado acá mismo;
     al terminar la partida, la canción entera se escucha con el reproductor oficial de YouTube.
-    Si cerrás la página, la partida del día te queda donde la dejaste.</p>
+    Cuando terminás, tocá <i>Otra canción</i> para seguir jugando.</p>
   </div>
 </div>
 
@@ -236,44 +181,13 @@
       <div><b id="stGanadas">0</b>ganadas</div>
       <div><b id="stRacha">0</b>racha</div>
     </div>
-    <div class="firma">
-      <label for="nombre">Tu nombre para el ranking</label>
-      <input id="nombre" type="text" maxlength="24" placeholder="Cómo querés figurar" autocomplete="nickname">
-      <span class="firma-aviso" id="firmaAviso"></span>
-      <span class="firma-regla">Sin nombre no suma puntos: hay que escribirlo <b>y</b> tocar Enviar para entrar en la tabla.</span>
-    </div>
     <div class="acciones">
       <button class="btn btn-sec" id="btnCopiar">Copiar resultado</button>
-      <button class="btn btn-ok" id="btnEnviarRanking">Enviar al ranking</button>
+      <button class="btn btn-ok" id="btnOtra">Otra canción</button>
     </div>
-    <button class="btn btn-sec" id="btnVerTabla">Ver la tabla</button>
-    <button class="btn btn-sec" id="btnOtra" hidden>Otra canción</button>
-    <div class="nota-manana" id="notaManana" hidden>La del día ya está jugada. Volvé mañana por otra.</div>
   </div>
 </div>
 
-<!-- ---------- panel lateral de ranking (prueba, solo en este navegador) ----------
-     Se enciende desde el panel de administración. No existe en celular. -->
-<aside class="lateral" id="lateral">
-  <button class="lateral-lengueta" id="lateralLengueta" aria-expanded="false"
-          aria-controls="lateralCuerpo" title="Plegar / desplegar">
-    <span class="lateral-flecha" aria-hidden="true">›</span>
-    <span class="lateral-vertical">RANKING</span>
-  </button>
-  <div class="lateral-cuerpo" id="lateralCuerpo">
-    <div class="lateral-cab">
-      <strong><img src="imgs/ranking.svg" alt="" class="ico"> Ranking</strong>
-      <span id="lateralSemana"></span>
-    </div>
-    <div class="solapas chicas" role="tablist">
-      <button id="latSemana" class="activo" role="tab">Semana</button>
-      <button id="latTodo" role="tab">Histórico</button>
-    </div>
-    <div class="tabla-estado" id="latEstado"></div>
-    <div class="tabla" id="latTabla"></div>
-    <button class="btn btn-sec" id="latActualizar">Actualizar</button>
-  </div>
-</aside>
 
 <script>
   /* Mismo cache-buster que eligió la hoja de estilos más arriba (ver

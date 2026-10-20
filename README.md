@@ -4,11 +4,16 @@ Juego tipo *Heardle* con música argentina. Escuchás un fragmento cada vez más
 largo (1 · 2 · 4 · 7 · 11 · 16 segundos) y tenés seis intentos para adivinar
 la canción. Si acertás el artista pero no el tema, el intento queda en amarillo.
 
-Se juega **de lunes a viernes**: sábados y domingos el juego muestra un cartel
-de cerrado en lugar del tablero. Manda el reloj de la máquina del jugador. Una
-partida sin terminar que cruza la medianoche se da por perdida. El panel de
-administración abre los siete días, y tiene un interruptor local para poder
-jugar igual el fin de semana mientras se prueba.
+**Solo modo libre.** El modo competitivo (canción del día, ranking semanal e
+histórico, puntos, cierre de fin de semana) se dio de baja: cada partida sale
+con una canción al azar del catálogo, se puede jugar a cualquier hora y todos
+los días, y no hay tabla ni puntos. Al terminar, *Otra canción* arranca una
+nueva. Las estadísticas (jugadas, ganadas, racha) quedan solo en el navegador.
+
+La nube (Firestore) se sigue usando únicamente para el catálogo de canciones.
+Las colecciones `dia`, `resultados`, `ajustes` y los métodos de ranking de
+`js/nube.js` quedaron sin uso, y las reglas de `firestore.rules` no hace
+falta tocarlas.
 
 Sitio estático, sin dependencias ni build: se abre con doble clic o se sube
 tal cual a GitHub Pages.
@@ -81,25 +86,7 @@ canciones tienen su ID cargado, la clave deja de hacer falta.
 La cuota gratuita alcanza para unas 100 búsquedas por día: suficiente para
 verificar el catálogo entero de una sentada.
 
-## La configuración del día
-
-La canción del día vive en Firestore, en el documento `escuchadle/dia`. El
-panel la publica y el cambio le llega en el acto a cualquiera que tenga el
-juego abierto: no hay que subir nada al repositorio ni esperar a que caduque
-un caché.
-
-```
-modo       "auto" (sale de la fecha) o "manual" (una elegida a mano)
-cancion    el label exacto del catálogo, solo en modo manual
-salto      corrimiento del sorteo automático
-reinicio   contador; al subir, todos pierden la partida guardada de hoy
-```
-
-`js/dia.js` quedó como red de seguridad: se usa solo si Firebase no llegó a
-cargar. El botón *Copiar respaldo* del panel arma ese bloque con lo que esté
-publicado; conviene pegarlo cada tanto para que no envejezca.
-
-### Reglas de Firestore
+## Reglas de Firestore
 
 La configuración de Firebase es pública por diseño: viaja en el navegador de
 cualquiera que abra el juego. Lo que protege la base son las reglas, que
@@ -180,59 +167,6 @@ cruza cada `.webm` contra el catálogo por nombre de archivo; para los que no
 coinciden con ninguna canción ofrece cargar el artista/título adivinado del
 nombre directo en el formulario de Catálogo → Editar.
 
-## El ranking
-
-Se puntúa por rapidez: **6 puntos** si la sacás al primer intento y uno menos
-por cada intento de más, hasta **1 punto** en el sexto. Sin acertar, cero.
-
-La tabla vive contra el borde derecho de la pantalla y **arranca visible en
-cada carga**. El link *Ranking* de la cabecera hace de llave de luz: si está
-abierta, la cierra, y viceversa (el color del link marca el estado). Va
-encimada sobre la página (`position:fixed`), así que abrirla no mueve nada
-del contenido. Tiene dos vistas:
-
-- **Semana** — acumulado de puntos de lunes a viernes. Arranca de cero cada
-  lunes a las 00. Las partidas de fin de semana (las del interruptor de
-  administración) no cuentan.
-- **Histórico** — acumulado de siempre, sin reinicio.
-
-**Sin nombre no se puntúa.** Las filas anónimas no entran en ninguna vista.
-
-Aparte de lo que dan las partidas, desde el panel (sección *Ranking* →
-*Ajustes de puntaje*) se le pueden sumar o restar puntos sueltos a un
-jugador —premios, correcciones—, con un motivo opcional. Un ajuste no
-cuenta como partida jugada (no toca jugadas/ganadas/promedio, solo el
-total de puntos) y entra tanto a la semanal como a la histórica, la
-primera si su fecha cae en un día hábil de la semana en curso. El
-nombre tiene que escribirse igual que en el ranking: agrupa con el
-mismo criterio que usa el juego.
-
-Arriba de todo, en color `--sol`, va la leyenda de quien ganó la semana
-anterior: *"Felicitaciones a X por ganar la semana del dd-mm al dd-mm"*, con el
-lunes y el viernes de esa semana. Se completa sola con los datos de la nube;
-si nadie sumó puntos, no aparece.
-
-El título de la canción **nunca** se muestra en estas tablas: sería regalarle
-la respuesta a quien todavía está jugando. Para verlo está el bloque *Ranking*
-del panel, que sigue siendo la vista cruda para corregir.
-
-## Los resultados y el envío
-
-Cada partida terminada se archiva en el navegador (`ea_resultados`), pero **no
-sube sola**: viaja a la colección `resultados` cuando el jugador escribe su
-nombre y toca *Enviar al ranking* en la ventana de resultado. Sin nombre el
-botón está apagado, y una vez enviada la fila el botón y el campo se bloquean
-para que nadie se anote dos veces por la misma partida. Si en ese momento no
-hay señal, el resultado queda pendiente y *Subir pendientes*, en el panel, lo
-reintenta.
-
-Los nombres se agrupan sin distinguir mayúsculas ni tildes: "Jony" y "jony" son
-la misma persona.
-
-Como no hay login, el nombre es a puro honor: nada impide que alguien se anote
-con el nombre de otro. Para un juego entre conocidos alcanza; si algún día hace
-falta, el camino es Firebase Auth.
-
 ## El panel de administración
 
 Vive aparte, en `admin/` (mismo sitio, misma contraseña; hoy es `159357`,
@@ -243,8 +177,7 @@ Firestore.
 
 Cinco toques en el título del juego abren `admin/` en una pestaña nueva. La
 sesión queda abierta mientras dure esa pestaña. El panel está dividido en
-secciones —Canción del día, Catálogo, Modo de juego, Ranking, Vista y
-pruebas, Partida y resultados— con la lista a la izquierda y el contenido a
+secciones —Catálogo y Fusionar clips— con la lista a la izquierda y el contenido a
 la derecha. En pantallas angostas esa lista se convierte en un cajón que se
 abre con el botón ☰.
 

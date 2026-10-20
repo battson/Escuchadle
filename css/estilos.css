@@ -77,21 +77,6 @@
     opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
   }
   header,main{position:relative;z-index:1}
-  /* 36: leyenda del ganador de la semana pasada.
-     Fija arriba y centrada, fuera del flujo de main: si contara como
-     alto normal, sería lo primero en cortarse cuando el contenido no
-     entra en pantallas bajas -es el primer elemento y ni siquiera
-     aparece siempre, así que no se la tuvo en cuenta al ajustar los
-     márgenes para que todo entre sin scroll-. */
-  .ganador{
-    position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:20;
-    width:100%;max-width:min(560px,calc(100% - 220px));text-align:center;color:var(--sol);
-    font:500 13px/1.5 "Space Grotesk",sans-serif;letter-spacing:.02em;
-    padding:2px 8px
-  }
-  .ganador[hidden]{display:none}
-  .ganador b{font-weight:700}
-
   /* ---------- elemento visible solo para el audio, no a la vista ----------
      #ytplayer y el vinilo siguen en el DOM (YouTube y la animación de giro
      los necesitan), pero ya no son parte del diseño: minúsculos y fuera
@@ -362,17 +347,6 @@
   .resultado .cancion{font-size:16px;color:var(--celeste)}
   .resultado .emojis{font-size:22px;letter-spacing:4px}
   .resultado .stats{display:flex;justify-content:center;gap:24px;font-size:13px;color:var(--gris)}
-  .resultado .firma{display:flex;flex-direction:column;gap:6px;text-align:left;
-    border-top:1px solid var(--borde);padding-top:14px}
-  .resultado .firma label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris)}
-  .resultado .firma input{
-    width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--borde);
-    background:var(--vidrio-input);color:var(--crema);font:500 15px "Space Grotesk",sans-serif;outline:none
-  }
-  .resultado .firma input:focus{border-color:var(--celeste)}
-  .resultado .firma input::placeholder{color:var(--gris)}
-  .firma-aviso{font-size:11px;color:var(--gris)}
-  .resultado .firma[hidden]{display:none}
 
   /* ---------- banco de pruebas del panel ---------- */
   .banco-fila{display:flex;gap:8px;flex-wrap:wrap}
@@ -427,7 +401,6 @@
   .tabla .detalle{font-size:11px;color:var(--gris);display:none}
   .tabla .marca{font-size:13px;font-variant-numeric:tabular-nums;color:var(--gris)}
   .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
-  .resultado .nota-manana{font-size:12px;color:var(--gris)}
   .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
   /* ---------- panel reservado ----------
      Secciones a la izquierda, contenido a la derecha. En pantallas
@@ -537,24 +510,6 @@
   .btn-pildora:hover{color:var(--celeste);border-color:var(--celeste)}
   .btn-pildora:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
 
-  /* ---------- fin de semana ---------- */
-  body.cerrado .reproductor,body.cerrado .pistas,body.cerrado .intentos,
-  body.cerrado #zonaJuego,body.cerrado .zona-cerrada{display:none!important}
-  .finde{
-    display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
-    background:var(--pista);border:1px solid var(--borde);border-radius:var(--radio);padding:32px 22px;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
-  }
-  .finde[hidden]{display:none}
-  .finde-cartel{width:min(100%,400px);height:auto;display:block}
-  .finde-ranking{
-    width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;text-align:left;
-    border-top:1px solid var(--borde);padding-top:16px;margin-top:6px
-  }
-  .finde-leyenda{font-family:"Bebas Neue",Impact,sans-serif;font-size:22px;letter-spacing:.05em;color:var(--celeste);text-align:center}
-  .finde .tabla{max-height:none}
-  .finde-acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
-
   /* ---------- pie ---------- */
   .pie{width:100%;max-width:560px;margin-top:22px;display:flex;justify-content:center}
   .enlace{
@@ -576,48 +531,7 @@
   .campo input::placeholder,.campo textarea::placeholder{color:var(--gris)}
   .opciones.fila{gap:18px}
   .modal-caja.angosta{max-width:340px}
-  .firma-regla{font-size:11px;color:var(--sol);line-height:1.5}
   .tabla .marca small{display:block;font-size:10px;color:var(--gris);font-weight:400}
-
-  /* ---------- panel lateral de ranking ---------- */
-  /* Va encimada sobre la página: como es position:fixed, no ocupa
-     lugar en el flujo y nada del contenido se mueve al abrirla.
-     Plegada deja a la vista solo la lengüeta. */
-  .lateral{
-    position:fixed;top:0;right:0;height:100vh;height:100dvh;z-index:15;
-    display:flex;align-items:stretch;transition:transform .25s ease;
-    filter:drop-shadow(-14px 0 34px rgba(0,0,0,.55))
-  }
-  .lateral.plegado{transform:translateX(100%)}
-  /* La lengüeta lateral queda del diseño anterior: ahora se abre y cierra
-     con el link "Ranking" de arriba a la derecha, así que se oculta para
-     no duplicar el control. */
-  .lateral-lengueta{
-    display:none!important;
-    width:34px;flex:none;background:var(--pista);border:1px solid var(--borde);border-right:0;
-    border-radius:14px 0 0 14px;color:var(--gris);cursor:pointer;
-    flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0;
-    backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))
-  }
-  .lateral-lengueta:hover{color:var(--sol)}
-  .lateral-flecha{font-size:17px;line-height:1;transition:transform .25s ease}
-  .lateral.plegado .lateral-flecha{transform:rotate(180deg)}
-  .lateral-vertical{
-    writing-mode:vertical-rl;font:500 10px "Space Grotesk",sans-serif;
-    letter-spacing:.22em;text-transform:uppercase
-  }
-  .lateral-cuerpo{
-    width:min(300px,82vw);
-    /* Espacio arriba para que las solapas Semana/Histórico no queden
-       debajo de Ayuda/Ranking, que son position:fixed y quedan encima. */
-    padding:64px 14px 16px;display:flex;flex-direction:column;gap:10px;overflow:auto
-  }
-  .lateral-cab{display:none}
-  .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste);display:flex;align-items:center;gap:8px}
-  .lateral-cab .ico{width:18px;height:18px;object-fit:contain;display:block}
-  .lateral-cab span{display:none}
-  .lateral .tabla{max-height:none}
-  .solapas.chicas button{padding:7px 6px;font-size:10px;letter-spacing:.04em}
 
   /* ---------- pantallas angostas ---------- */
   @media (max-width:900px){
@@ -630,7 +544,7 @@
     }
     .panel-nav.abierto{transform:none}
   }
-  @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
+  @media (prefers-reduced-motion:reduce){.panel-nav{transition:none}}
   /* Con la cabecera-der fija en la esquina, en pantallas angostas no
      queda margen: se devuelve al flujo normal, debajo del título. */
   @media (max-width:600px){
