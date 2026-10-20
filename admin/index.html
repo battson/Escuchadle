@@ -44,42 +44,11 @@
     <div class="panel-cuerpo">
       <div class="panel-velo" id="panelVelo" hidden></div>
       <nav class="panel-nav" id="panelNav" aria-label="Secciones del panel">
-        <button data-ir="dia" class="activo">Canción del día</button>
-        <button data-ir="catalogo">Catálogo</button>
+        <button data-ir="catalogo" class="activo">Catálogo</button>
         <button data-ir="fusionar">Fusionar clips</button>
-        <button data-ir="juego">Modo de juego</button>
-        <button data-ir="ranking">Ranking</button>
-        <button data-ir="vista">Vista y pruebas</button>
-        <button data-ir="datos">Partida y resultados</button>
       </nav>
 
       <div class="panel-cont" id="panelCont">
-
-      <section class="panel-sec" data-sec="dia" hidden>
-        <h3 class="panel-sec-titulo">Canción del día</h3>
-        <div class="panel-bloque">
-          <div class="panel-titulo">Canción del día</div>
-          <div class="opciones">
-            <label><input type="radio" name="modoDia" id="diaAuto" value="auto"> Automática, por fecha</label>
-            <label><input type="radio" name="modoDia" id="diaManual" value="manual"> A elección</label>
-          </div>
-          <select id="selCancion" aria-label="Canción del día"></select>
-          <div id="estadoNube" class="nube-estado">Conectando con la nube…</div>
-          <div class="verif-cab">
-            <span id="estadoDia"></span>
-            <button class="btn btn-sec" id="btnSortear">Sortear otra</button>
-            <button class="btn btn-sec" id="btnReiniciar">Reiniciar para todos</button>
-          </div>
-          <div class="publicar">
-            <div class="panel-titulo">Respaldo para <code>js/dia.js</code> — solo por si algún día la nube no carga</div>
-            <pre class="codigo" id="vistaDia"></pre>
-            <button class="btn btn-sec" id="btnCopiarDia">Copiar respaldo</button>
-          </div>
-          <p class="panel-ayuda"><b>Sortear otra</b> deja el modo automático como está pero corre el sorteo: hoy cae otra canción al azar y la secuencia sigue desde ahí. <b>A elección</b> es para fijar una canción puntual a mano.<br><br>
-          Lo que tocás acá se publica solo: le llega a cualquiera que tenga el juego abierto en el momento, sin que recargue nada.<br><br>
-          <b>Reiniciar para todos</b> sube el contador de reinicio: cuando ese número cambia, cualquiera que ya haya jugado hoy pierde su partida guardada y vuelve a empezar con la canción que esté configurada.</p>
-        </div>
-      </section>
 
       <section class="panel-sec" data-sec="catalogo" hidden>
         <h3 class="panel-sec-titulo">Catálogo</h3>
@@ -179,88 +148,13 @@
         </div>
       </section>
 
-      <section class="panel-sec" data-sec="juego" hidden>
-        <h3 class="panel-sec-titulo">Modo de juego</h3>
-        <div class="panel-bloque">
-          <div class="panel-titulo">Probar el modo libre</div>
-          <div class="acciones">
-            <a class="btn btn-sec" href="../" target="_blank" rel="noopener">Abrir del día</a>
-            <a class="btn btn-sec" href="../?modo=libre" target="_blank" rel="noopener">Abrir en modo libre</a>
-          </div>
-          <p class="panel-ayuda">El modo libre saca una canción al azar, no guarda la partida y no cuenta para las estadísticas. Como el panel vive en otra página, entrar en modo libre abre el juego en una pestaña nueva con <code>?modo=libre</code> en la URL.</p>
-        </div>
-      </section>
-
-      <section class="panel-sec" data-sec="ranking" hidden>
-        <h3 class="panel-sec-titulo">Ranking</h3>
-        <div class="panel-bloque">
-          <div class="panel-titulo">Ranking en la nube</div>
-          <div class="verif-cab">
-            <span id="estadoRanking"></span>
-            <button class="btn btn-sec" id="btnRanking">Actualizar</button>
-            <button class="btn btn-sec" id="btnVaciarRanking">Vaciar tabla</button>
-          </div>
-          <p class="panel-ayuda">Las partidas de todos los jugadores, las últimas 60 primero. Esto es la vista cruda para corregir: la tabla que ve el jugador está en el botón Ranking de la cabecera del juego. La ✕ borra una fila suelta.</p>
-          <div id="rankLista"></div>
-        </div>
-
-        <div class="panel-bloque">
-          <div class="panel-titulo">Ajustes de puntaje</div>
-          <div class="banco-fila">
-            <input id="ajusteNombre" class="banco-campo" type="text" placeholder="Nombre (igual que en el ranking)" autocomplete="off" style="flex:1;min-width:180px">
-            <input id="ajustePuntos" class="banco-campo" type="number" placeholder="Puntos (+/-)" step="1" style="width:120px">
-          </div>
-          <div class="banco-fila">
-            <input id="ajusteMotivo" class="banco-campo" type="text" placeholder="Motivo (opcional)" autocomplete="off" style="flex:1;min-width:180px">
-            <button class="btn btn-ok" id="btnAjusteAgregar" style="padding:9px 14px;font-size:13px">Sumar/restar</button>
-          </div>
-          <p class="panel-ayuda">Suma o resta puntos sueltos a un jugador -premios, correcciones- sin que cuente como partida jugada. El nombre tiene que escribirse igual que en el ranking (mismo criterio que usa el juego para agrupar). Se suma tanto a la tabla semanal como a la histórica; con fecha de un día hábil de esta semana, también a la semanal. Un número negativo resta.</p>
-          <div class="verif-cab">
-            <span id="estadoAjustes"></span>
-            <button class="btn btn-sec" id="btnAjustesActualizar">Actualizar</button>
-          </div>
-          <div id="ajustesLista"></div>
-        </div>
-      </section>
-
-      <section class="panel-sec" data-sec="vista" hidden>
-        <h3 class="panel-sec-titulo">Vista y pruebas</h3>
-        <div class="panel-bloque">
-          <div class="panel-titulo">Fin de semana</div>
-          <label class="interruptor"><input type="checkbox" id="swFinde"> Dejar jugar igual los sábados y domingos</label>
-          <p class="panel-ayuda">El juego cierra los fines de semana para todo el mundo. Esto saltea el cartel <b>solo en el navegador donde se toque</b>, para poder probar — se aplica la próxima vez que se cargue el juego en ese mismo navegador. El panel, en cambio, abre los siete días sin necesidad de tocar nada.</p>
-        </div>
-      </section>
-
-      <section class="panel-sec" data-sec="datos" hidden>
-        <h3 class="panel-sec-titulo">Partida y resultados</h3>
-        <div class="panel-bloque">
-          <div class="panel-titulo">Partida guardada (en este navegador)</div>
-          <div class="verif-cab">
-            <span id="estadoPartida"></span>
-            <button class="btn btn-sec" id="btnBorrarPartida">Borrar partida de hoy</button>
-          </div>
-          <p class="panel-ayuda">Borra la partida guardada en este navegador, sin tocar las estadísticas ni a los demás jugadores.</p>
-        </div>
-
-        <div class="panel-bloque">
-          <div class="panel-titulo">Resultados guardados en este navegador</div>
-          <div class="verif-cab">
-            <span id="estadoResultados"></span>
-            <button class="btn btn-sec" id="btnSubirPendientes">Subir pendientes</button>
-            <button class="btn btn-sec" id="btnCopiarResultados">Copiar como JSON</button>
-          </div>
-          <p class="panel-ayuda">Cada partida terminada se anota en el navegador de quien jugó, pero ya no viaja sola: sube cuando el jugador toca <b>Enviar al ranking</b> en la ventana de resultado. <b>Subir pendientes</b> fuerza la subida de todo lo que haya quedado sin mandar en <i>este</i> navegador.</p>
-        </div>
-      </section>
-
       </div>
     </div>
   </div>
 </main>
 
 <script>
-  ["../js/nube-config.js","../js/dia.js","../js/catalogo.js","js/admin.js"]
+  ["../js/nube-config.js","../js/catalogo.js","js/admin.js"]
     .forEach(s=>document.write('<script src="'+s+'?v='+window.EA_V+'"><\/script>'));
   document.write('<script type="module" src="../js/nube.js?v='+window.EA_V+'"><\/script>');
 </script>

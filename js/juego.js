@@ -1,22 +1,16 @@
 /* Escuchadle Argento - logica del juego.
-   Depende de: config.js (YT_API_KEY), dia.js (DIA) y catalogo.js (CANCIONES).
-   Tanto DIA como CANCIONES son respaldos: si la nube carga, lo que manda
-   es lo publicado en Firestore (escuchadle/dia y escuchadle/catalogo).
-   Se apoya, si cargó, en nube.js (window.Nube + eventos "nube:dia" y
-   "nube:estado"). Todo lo que toca la nube va con guarda: si Firebase
-   no está, el juego funciona igual con lo que dice js/dia.js. */
+   Solo modo libre: una canción al azar por partida, sin ranking ni puntos.
+   Depende de: config.js (YT_API_KEY) y catalogo.js (CANCIONES, que es un
+   respaldo: si la nube carga, manda lo publicado en escuchadle/catalogo
+   vía nube.js, evento "nube:catalogo"). Si Firebase no está, el juego
+   funciona igual con js/catalogo.js. */
 
 /* ---------- estado ---------- */
 const SEG=[1,2,4,7,11,16], MAX=6;
 /* Dirección pública del juego: va en el texto que se copia para compartir.
    Si algún día cambia el dominio, se toca solo acá. */
 const SITIO="https://battson.github.io/Escuchadle/";
-/* ?modo=libre en la URL sirve para entrar directo en modo libre desde
-   un link del panel de administración, que ya no comparte JS con esta
-   página. */
-let modo=new URLSearchParams(location.search).get("modo")==="libre"?"libre":"diario";
 let actual=null, intentos=[], paso=0, terminado=false, audio=null, timer=null, raf=null;
-let diaPartida=0;   /* el día que corresponde a la partida en pantalla */
 
 const $=s=>document.querySelector(s);
 const vinilo=$("#vinilo"), barra=$("#barra"), desbloq=$("#desbloq"), progreso=$("#progreso"),
@@ -37,21 +31,6 @@ const store={
 let stats=store.get("ea_stats",{jugadas:0,ganadas:0,racha:0});
 let nombre=store.get("ea_nombre","");
 
-/* Preferencias de prueba: valen solo en este navegador y no se publican
-   a nadie. Se encienden desde el panel de administración. */
-const local=Object.assign({saltearFinde:false},store.get("ea_local",{}));
-const guardarLocal=()=>store.set("ea_local",local);
-
-/* ---------- fin de semana ----------
-   Sábados y domingos el modo diario cierra: no hay canción del día que
-   gastar ni sentido en fijarla en la nube. El modo libre, en cambio,
-   sigue andando -es una canción al azar, no cuenta para el ranking, no
-   hace falta "el día"-, así que el cierre no lo alcanza. Manda el
-   reloj de la máquina del jugador, que es lo que corresponde a un
-   juego entre conocidos. El panel de administración, en cambio, abre
-   los siete días. */
-const esFinde=()=>[0,6].includes(new Date().getDay());
-const cerradoHoy=()=>esFinde()&&!local.saltearFinde&&modo==="diario";
 
 /* ---------- ventanas ---------- */
 let capa=20;
@@ -116,88 +95,16 @@ if(!store.get("ea_ayuda_vista",false)){
   store.set("ea_ayuda_vista",true);
 }
 
-/* ---------- configuración del día ----------
-   La fuente de verdad ahora es Firestore: lo que se toca en el panel se
-   publica y le llega a todo el mundo en el acto, sin recargar y sin
-   subir nada al repositorio. js/dia.js quedó como respaldo para el caso
-   de que la nube no cargue.
-
-   Precedencia, de menor a mayor:
-     PREDETERMINADO  <  js/dia.js  <  lo último que dijo la nube        */
-const PREDETERMINADO={modo:"auto",cancion:"",salto:0,reinicio:0};
-const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:PREDETERMINADO;
-
-const CLAVE_NUBE="ea_nube_dia";
-/* Espejo de lo último que llegó de la nube. Sirve para arrancar con la
-   canción correcta sin esperar a que Firebase termine de cargar.
-
-   Va con el día en que se guardó (diaHoy()), no el documento pelado:
-   sin eso, un "modo":"manual" o un "salto" que quedaron de una prueba
-   de un día anterior se colaban como si fueran de hoy en cualquier
-   navegador que ya lo tuviera cacheado, hasta que Firebase reconectara
-   y lo pisara -lo cual podía tardar, fallar, o directamente no pasar
-   si el navegador nunca reabre esa pestaña-. Guardado de un día que no
-   es hoy, se descarta: mejor arrancar en blanco (PREDETERMINADO/
-   js/dia.js) que confiar en una configuración vieja. */
-function leerDiaNube(){
-  const g=store.get(CLAVE_NUBE,null);
-  return g&&g.dia===diaHoy()?g.doc:null;
-}
-function guardarDiaNube(doc){store.set(CLAVE_NUBE,{dia:diaHoy(),doc})}
-let diaNube=leerDiaNube();
-let textoNube="Conectando con la nube…";
-
-/* Los ajustes locales de la versión anterior ya no corresponden: si
-   quedaran, le taparían a este navegador lo que se publica para todos. */
-store.del("ea_dia");
-
-function dia(){
-  const d=Object.assign({},PREDETERMINADO,DIA_BASE,diaNube||{});
-  d.salto=Number(d.salto)||0;
-  d.reinicio=Number(d.reinicio)||0;
-  return d;
-}
-
-/* Si a los ocho segundos el módulo no apareció, es que no cargó. */
-setTimeout(()=>{
-  if(!window.Nube||!window.Nube.disponible){
-    textoNube="No cargó Firebase. El juego anda con el respaldo de js/dia.js.";
-  }
-},8000);
-
-/* La nube manda: cuando llega una configuración distinta, se rehace la
-   partida igual que cuando se cambiaba dia.js, pero al instante. */
-window.addEventListener("nube:dia",e=>{
-  const antes=dia();
-  diaNube=e.detail; guardarDiaNube(diaNube);
-  const ahora=dia();
-  const cambio=["modo","cancion","salto","reinicio"].some(k=>antes[k]!==ahora[k]);
-  if(cambio&&modo==="diario") nuevaPartida();
-});
-window.addEventListener("nube:estado",e=>{textoNube=e.detail.texto});
 
 /* ---------- catálogo en la nube ----------
    CANCIONES arranca con lo que trae js/catalogo.js (respaldo). Si hay un
    espejo guardado de la última vez que llegó la nube, se aplica ya; y
    cuando Firestore avisa, se reemplaza el array en el lugar, así todo lo
-   que apunta a CANCIONES sigue valiendo.
-
-   Cada canción lleva:
-     activa   false = fuera del sorteo (a mano, o porque ya sonó)
-     sonada   día (número, como diaHoy()) en que fue canción del día
-   El buscador y el modo libre usan el catálogo entero: desactivar una
-   canción la saca del sorteo, no de las respuestas posibles.
-
-   catNube.hoy = {dia, cancion} es el pin del día: la canción fijada para
-   todos. La fija el primero que entra en el día (ver nuevaPartida) y a la
-   vez se desactiva, así no se repite hasta que se la reactive desde el
-   panel. Como el pin manda, publicar cambios de catálogo en medio del
-   día no le cambia la canción a nadie. */
+   que apunta a CANCIONES sigue valiendo. El sorteo y el buscador usan el
+   catálogo entero. */
 const CLAVE_CAT="ea_nube_catalogo";
-let catNube=store.get(CLAVE_CAT,null);   /* {canciones, hoy, actualizado} */
-let catEnNube=false;                     /* la nube confirmó que el documento existe */
+let catNube=store.get(CLAVE_CAT,null);   /* {canciones, actualizado} */
 let catSucio=false;                      /* hay cambios del panel sin publicar */
-let textoCat="Esperando a la nube…";     /* estado para el panel */
 
 function normalizarCatalogo(){
   CANCIONES.forEach((c,i)=>{
@@ -210,32 +117,6 @@ function aplicarCatalogo(cat){
   CANCIONES.length=0;
   cat.canciones.forEach(c=>CANCIONES.push(Object.assign({},c)));
   normalizarCatalogo();
-}
-/* El espejo local se arma desde CANCIONES: es lo que hay que recordar. */
-function guardarEspejoCatalogo(){
-  const c={canciones:CANCIONES.map(x=>{
-            const o={a:x.a,t:x.t,yt:x.yt||"",activa:x.activa!==false};
-            if(x.g) o.g=x.g; if(x.ini) o.ini=x.ini; if(x.sonada) o.sonada=x.sonada;
-            return o;}),
-           hoy:(catNube&&catNube.hoy)||null,
-           actualizado:(catNube&&catNube.actualizado)||null,
-           sucio:true};   /* al recargar, los cambios siguen sin publicar */
-  catNube=c; store.set(CLAVE_CAT,c);
-}
-const porLabel=l=>CANCIONES.find(x=>x.label===l);
-/* Marca la canción del día como sonada y la saca del sorteo. Si ya
-   tenía la fecha anotada, no se la vuelve a apagar: puede ser que el
-   panel la haya reactivado a propósito. */
-function marcarSonada(label,d){
-  const c=porLabel(label); if(!c||c.sonada===d) return;
-  c.activa=false; c.sonada=d;
-}
-function tomarHoy(cat){   /* copia el pin de la nube y su marca en el catálogo local */
-  if(!cat) return;
-  catNube=catNube||{canciones:[],hoy:null,actualizado:null};
-  catNube.hoy=cat.hoy||null; catNube.actualizado=cat.actualizado||null;
-  if(cat.hoy&&cat.hoy.dia===diaHoy()) marcarSonada(cat.hoy.cancion,cat.hoy.dia);
-  store.set(CLAVE_CAT,catNube);
 }
 
 /* Migración del banco viejo (localStorage): las canciones nuevas que
@@ -262,84 +143,20 @@ function tomarHoy(cat){   /* copia el pin de la nube y su marca en el catálogo 
   });
   normalizarCatalogo();
 })();
-const olvidarBancoViejo=()=>{store.del("ea_banco"); store.del("ea_banco_nuevas")};
 
+/* La partida en curso no se toca cuando llega el catálogo: la canción ya
+   elegida sigue siendo la misma aunque el array se haya reemplazado. */
 window.addEventListener("nube:catalogo",e=>{
   const cat=e.detail;
-  if(!cat||cat.existe===false){
-    catEnNube=false;
-    textoCat="El catálogo todavía no está en la nube: el juego usa js/catalogo.js.";
-    return;
-  }
-  catEnNube=true;
-  if(catSucio){
-    /* No se pisan los cambios sin publicar; solo se toma el pin del día. */
-    tomarHoy(cat);
-    textoCat="La nube cambió mientras tanto: se tomó la canción del día.";
-    if(modo==="diario"&&actual&&cancionDelDia().label!==actual.label){nuevaPartida();return}
-  }else{
-    const antes=actual?actual.label:null;
-    aplicarCatalogo(cat);
-    catNube={canciones:cat.canciones,hoy:cat.hoy,actualizado:cat.actualizado};
-    store.set(CLAVE_CAT,catNube);
-    textoCat="Catálogo publicado en la nube.";
-    if(modo==="diario"&&antes&&cancionDelDia().label!==antes){nuevaPartida();return}
-  }
-  /* Recién ahora se sabe que el catálogo está en la nube: si hoy todavía
-     no tiene canción fijada, se fija la que está sonando. */
-  if(modo==="diario"&&actual) fijarHoyEnNube(actual.label,false);
+  if(!cat||cat.existe===false||catSucio) return;   /* no se pisan cambios sin publicar */
+  aplicarCatalogo(cat);
+  catNube={canciones:cat.canciones,actualizado:cat.actualizado};
+  store.set(CLAVE_CAT,catNube);
 });
 
-/* ---------- elección de canción ---------- */
-function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
-function diaHoy(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)}
-/* Las que entran al sorteo. Si no queda ninguna activa, se sortea
-   entre todas antes que dejar el juego sin canción. */
-function bolsa(){const a=CANCIONES.filter(c=>c.activa!==false); return a.length?a:CANCIONES}
-function ordenDiario(){const r=rng(20260101),a=bolsa().map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function sorteo(salto){const o=ordenDiario(), n=o.length; return CANCIONES[o[(((diaHoy()+salto)%n)+n)%n]]}   /* módulo siempre positivo */
-function pinHoy(){const h=catNube&&catNube.hoy; return (h&&h.dia===diaHoy()&&h.cancion)?h:null}
-function cancionDelDia(){
-  const d=dia();
-  if(d.modo==="manual"&&d.cancion){
-    const c=porLabel(d.cancion);
-    if(c) return c;      /* si el label ya no existe, se cae al automático */
-  }
-  const p=pinHoy();
-  if(p){const c=porLabel(p.cancion); if(c) return c}
-  return sorteo(d.salto);
-}
-function elegir(){
-  return modo==="diario"?cancionDelDia():CANCIONES[Math.floor(Math.random()*CANCIONES.length)];
-}
-/* Deja fijada en la nube la canción de hoy. Sin forzar, es lo que hace
-   cada jugador al entrar: si ya hay pin, no pasa nada. Con forzar es el
-   panel cambiando la canción del día a propósito. Los fines de semana
-   no se fija nada: no hay canción del día que gastar. */
-function fijarHoyEnNube(label,forzar){
-  if(!hayNube()||!catEnNube||esFinde()||!label) return;
-  if(!forzar&&pinHoy()) return;
-  const d=diaHoy();
-  if(catNube){catNube.hoy={dia:d,cancion:label}; store.set(CLAVE_CAT,catNube)}   /* optimista */
-  window.Nube.fijarHoy({dia:d,cancion:label,forzar:!!forzar}).catch(()=>{});
-}
-
-/* ---------- partida guardada ----------
-   Solo se guarda el modo diario: si refrescás la página, la partida vuelve
-   donde estaba, ganada o a medio jugar. Se archivan el label de la canción
-   y el contador de reinicio; si cualquiera de los dos cambió, el guardado
-   se descarta y se arranca de nuevo. */
-const CLAVE_PARTIDA="ea_partida";
-function guardarPartida(){
-  if(modo!=="diario"||!actual) return;
-  store.set(CLAVE_PARTIDA,{dia:diaHoy(),cancion:actual.label,reinicio:dia().reinicio,intentos,paso,terminado});
-}
-function partidaGuardada(){
-  const g=store.get(CLAVE_PARTIDA,null);
-  return g&&g.dia===diaHoy()&&Array.isArray(g.intentos)?g:null;
-}
-function sirve(g){return g&&g.cancion===actual.label&&(g.reinicio||0)===dia().reinicio}
-function borrarPartida(){store.del(CLAVE_PARTIDA)}
+/* ---------- elección de canción ----------
+   Siempre al azar y entre todo el catálogo. */
+function elegir(){return CANCIONES[Math.floor(Math.random()*CANCIONES.length)]}
 
 /* ---------- pistas ----------
    Son tres y llegan sobre el final: una por intento durante los últimos
@@ -462,50 +279,19 @@ async function resolver(c){
   }
 }
 
-/* Muestra el cartel de cerrado y esconde el juego, o al revés. */
-function aplicarCierre(){
-  const cerrado=cerradoHoy();
-  document.body.classList.toggle("cerrado",cerrado);
-  $("#finde").hidden=!cerrado;
-  if(cerrado){detener(); cerrarModal("modalResultado"); pintarFinde()}
-  return cerrado;
-}
-
 async function nuevaPartida(){
   detener(); cerrarModal("modalResultado");
-  if(aplicarCierre()){estado.textContent="";return}
-
-  /* Una partida sin terminar de un día anterior se da por perdida:
-     cuenta como jugada, corta la racha y no se puede retomar. */
-  const dejada=store.get(CLAVE_PARTIDA,null);
-  if(dejada&&dejada.dia!==diaHoy()&&!dejada.terminado){
-    stats.jugadas++; stats.racha=0; store.set("ea_stats",stats);
-    borrarPartida();
-  }
-
-  actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null; diaPartida=diaHoy();
-  if(modo==="diario") fijarHoyEnNube(actual.label,false);
+  actual=elegir(); intentos=[]; paso=0; terminado=false; audio=null;
   zonaJuego.style.display="flex"; zonaCerrada.hidden=true;
   input.value=""; btnEnviar.disabled=true; btnPlay.disabled=true; btnSaltar.disabled=false;
   estado.textContent="Cargando canción…";
-
-  /* ¿Hay algo guardado de hoy que siga valiendo? */
-  const g=modo==="diario"?partidaGuardada():null;
-  if(sirve(g)){
-    intentos=g.intentos; paso=g.paso||0; terminado=!!g.terminado; diaPartida=g.dia;
-  }else if(g){
-    borrarPartida();   /* cambió la canción o hubo un reinicio: no aplica más */
-  }
-
   pintar();
-  if(terminado) mostrarResultado(intentos.some(i=>i.tipo==="bien"),true);
 
   try{
     const [r]=await Promise.all([resolver(actual),prepararClip(actual)]);
     await ytListo; yt.cueVideoById(r.yt); audio=r.yt;
     btnPlay.disabled=false;
-    estado.textContent=terminado?"Ahora podés escuchar la canción completa."
-      :(modo==="diario"?"Canción del día. ¡Suerte!":"Modo libre.");
+    estado.textContent="¡Suerte!";
   }catch(e){
     estado.innerHTML=e.message.startsWith("Falta")?e.message:htmlError("No encontré el video de esta canción. Probá otra.","alert.svg","inline");
     btnSaltar.disabled=true;
@@ -649,7 +435,7 @@ function registrar(tipo,texto){
   if(tipo==="bien") return finalizar(true);
   paso++;
   if(paso>=MAX) return finalizar(false);
-  pintar(); detener(); guardarPartida();
+  pintar(); detener();
 }
 function enviar(){
   const c=CANCIONES.find(x=>x.label===input.value.trim()); if(!c) return;
@@ -660,33 +446,24 @@ function enviar(){
 }
 function saltar(){registrar("salto","Salteado")}
 
-/* Cierra la partida: estadísticas, guardado, archivo y ventana de resultado.
-   Las estadísticas y el archivo cuentan solo el modo diario. */
+/* Cierra la partida: estadísticas (solo se guardan en este navegador) y
+   ventana de resultado. No hay ranking ni puntos. */
 function finalizar(gano){
   terminado=true;
-  if(modo==="diario"){
-    stats.jugadas++; if(gano){stats.ganadas++;stats.racha++}else{stats.racha=0}
-    store.set("ea_stats",stats);
-    archivar(gano);
-  }
-  guardarPartida();
+  stats.jugadas++; if(gano){stats.ganadas++;stats.racha++}else{stats.racha=0}
+  store.set("ea_stats",stats);
   mostrarResultado(gano,true);
 }
 
-/* Solo dibuja: no toca estadísticas. Se usa también al restaurar una partida. */
+/* Solo dibuja: no toca estadísticas. */
 function mostrarResultado(gano,abrir){
   detener(); pintar();
   zonaJuego.style.display="none"; zonaCerrada.hidden=false;
-  const esDiario=modo==="diario";
   const elogios=["¡A la primera!","¡Bien ahí!","¡Buena oreja!","¡Zafaste!","¡Justito!","¡De pedo!"];
   $("#resTitulo").textContent=gano?elogios[Math.min(intentos.length,6)-1]:"Te faltó...";
   $("#resCancion").textContent=actual.label;
   $("#resEmojis").textContent=emojis();
   $("#stJugadas").textContent=stats.jugadas; $("#stGanadas").textContent=stats.ganadas; $("#stRacha").textContent=stats.racha;
-  $("#btnOtra").hidden=esDiario;         /* en modo diario hay una sola por día */
-  $("#notaManana").hidden=!esDiario;
-  $("#nombre").value=nombre;
-  estadoEnvio();
   estado.textContent="Ahora podés escuchar la canción completa.";
   btnPlay.disabled=!audio;
   if(abrir) abrirModal("modalResultado");
@@ -702,306 +479,15 @@ function emojis(){
   return c.slice(0,MAX).join("");
 }
 
-/* ---------- nombre y resultados archivados ----------
-   Cada partida terminada se archiva en el navegador y, si hay nube, se
-   copia a Firestore para el ranking. El archivo local sigue existiendo:
-   es lo que permite reintentar la subida si en el momento no había
-   señal. Cada fila lleva "subido" para no mandarla dos veces. */
+/* ---------- utilidades ---------- */
 const escapar=t=>String(t==null?"":t)
   .replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-/* Los cinco campos que aceptan las reglas de Firestore, ni uno más.
-   Una derrota viaja como intentos 0: en la tabla se lee X/6. */
-const aFila=r=>({fecha:r.fecha,nombre:r.nombre||"",cancion:r.cancion,
-                 intentos:r.gano?(r.intentos||0):0,marcas:r.marcas||[]});
-const hayNube=()=>!!(window.Nube&&window.Nube.disponible);
-
-function archivar(gano){
-  const h=store.get("ea_resultados",[]);
-  h.push({dia:diaPartida,fecha:new Date().toISOString(),nombre,
-          cancion:actual.label,gano,intentos:gano?intentos.length:null,
-          marcas:intentos.map(i=>i.tipo),subido:false});
-  store.set("ea_resultados",h.slice(-200));
-}
-
-/* ---------- envío al ranking ----------
-   Ya no sale nada solo: la partida se archiva acá y viaja recién cuando
-   el jugador toca Enviar, con un nombre puesto. Si en ese momento no hay
-   señal, queda pendiente y se puede reintentar. */
-function ultimoResultado(){
-  const h=store.get("ea_resultados",[]), u=h[h.length-1];
-  return (u&&u.dia===diaPartida)?u:null;
-}
-function estadoEnvio(){
-  const btn=$("#btnEnviarRanking"), aviso=$("#firmaAviso"),
-        campo=$("#nombre"), firma=$("#nombre").closest(".firma");
-  const u=modo==="diario"?ultimoResultado():null;
-  btn.hidden=!u; firma.hidden=!u;
-  if(!u){aviso.textContent="";return}
-  if(u.subido){
-    btn.disabled=true; btn.textContent="Enviado ✓"; campo.disabled=true;
-    aviso.textContent=`Ya figurás en la tabla como "${u.nombre||"(sin nombre)"}".`;
-    return;
-  }
-  campo.disabled=false;
-  btn.disabled=!nombre; btn.textContent="Enviar al ranking";
-  aviso.textContent=nombre?"Tocá Enviar para que tu resultado aparezca en la tabla."
-                          :"Poné un nombre para poder enviar tu resultado.";
-}
-function enviarAlRanking(){
-  const btn=$("#btnEnviarRanking"), aviso=$("#firmaAviso");
-  const h=store.get("ea_resultados",[]), u=h[h.length-1];
-  if(!u||u.dia!==diaPartida||u.subido||!nombre) return;
-  u.nombre=nombre; store.set("ea_resultados",h);
-  if(!hayNube()){
-    aviso.innerHTML=htmlError("Sin conexión con la nube. Tu resultado quedó guardado: probá de nuevo en un rato.","no-signal.svg");
-    return;
-  }
-  btn.disabled=true; btn.textContent="Enviando…";
-  window.Nube.guardarResultado(aFila(u)).then(id=>{
-    const h2=store.get("ea_resultados",[]);
-    if(h2.length){h2[h2.length-1].subido=true; h2[h2.length-1].idNube=id; store.set("ea_resultados",h2)}
-    filasRanking=null;               /* la tabla que teníamos quedó vieja */
-    estadoEnvio();
-  }).catch(e=>{
-    btn.disabled=false; btn.textContent="Enviar al ranking";
-    aviso.textContent="No se pudo enviar: "+e.message;
-  });
-}
-$("#btnEnviarRanking").onclick=enviarAlRanking;
-$("#nombre").addEventListener("input",e=>{
-  nombre=e.target.value.trim();
-  store.set("ea_nombre",nombre);
-  estadoEnvio();
-});
-
-/* ---------- tabla de ranking ----------
-   Dos vistas: la semana en curso y el acumulado de siempre.
-
-   Puntaje: 6 puntos si la sacó al primer intento y uno menos por cada
-   intento de más, hasta 1 punto en el sexto. Si no la sacó, cero.
-
-   Sin nombre no se puntúa. No debería haber filas anónimas nuevas
-   (el botón Enviar está apagado hasta que se escriba uno), pero si
-   quedara alguna vieja, no entra en ninguna tabla. */
-const TOPE=400;
-const latTabla=$("#latTabla"), latEstado=$("#latEstado");
-let vistaTabla="semana", filasRanking=null, filasSemana=null;
-/* Puntos sueltos del panel (premios, correcciones), aparte de lo que
-   dan las partidas. Mismas dos ventanas que filasRanking/filasSemana. */
-let ajustesTodo=null, ajustesSemana=null;
-
-const puntosDe=n=>n>0?(MAX+1-n):0;
-
-/* Lunes de esta semana, a las 00:00. La tabla semanal arranca ahí. */
-function lunesDeEstaSemana(){
-  const x=new Date(); x.setHours(0,0,0,0);
-  x.setDate(x.getDate()-((x.getDay()+6)%7));   /* getDay: 0=domingo */
-  return x;
-}
-function rotuloSemana(){
-  const l=lunesDeEstaSemana(), v=new Date(l); v.setDate(v.getDate()+4);
-  const d=x=>`${x.getDate()}/${x.getMonth()+1}`;
-  return `Del ${d(l)} al ${d(v)}`;
-}
-const esHabil=iso=>{const d=new Date(iso).getDay(); return d>=1&&d<=5};
-const conNombre=r=>String(r.nombre||"").trim().length>0;
-
-/* ---------- traer los datos ----------
-   Dos consultas: las últimas partidas para el histórico, y
-   todo lo jugado desde el lunes para la semanal. La segunda va por
-   rango de fechas porque una semana movida puede pasarse del tope.
-
-   Como el panel arranca abierto, esto se llama ya de entrada, apenas
-   carga la página -antes de que Firebase (que arranca como módulo,
-   aparte) haya tenido tiempo de conectar-. Si todavía no está lista
-   la nube, en vez de darse por vencido queda esperando un solo aviso
-   de "nube:estado" para reintentar, igual que pintarFinde(). */
-let rankingPedido=false;
-function traerRanking(forzar){
-  if(filasRanking&&!forzar) return pintarRanking();
-  if(!hayNube()){
-    latEstado.innerHTML=htmlError("Conectando con la nube…","no-signal.svg"); latTabla.innerHTML="";
-    if(!rankingPedido){
-      rankingPedido=true;
-      window.addEventListener("nube:estado",()=>{rankingPedido=false; traerRanking(forzar)},{once:true});
-    }
-    return;
-  }
-  escribirTablas("Cargando…","");
-  Promise.all([
-    window.Nube.listarResultados(TOPE),
-    window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE),
-    window.Nube.listarAjustes(TOPE),
-    window.Nube.listarAjustesDesde(lunesDeEstaSemana().toISOString(),TOPE)
-  ]).then(([todo,semana,ajTodo,ajSemana])=>{
-    filasRanking=todo; filasSemana=semana;
-    ajustesTodo=ajTodo; ajustesSemana=ajSemana;
-    pintarRanking();
-  }).catch(e=>{latEstado.innerHTML=htmlError(e.message,"no-signal.svg"); latTabla.innerHTML=""});
-}
-function escribirTablas(txt,html){
-  latEstado.textContent=txt; latTabla.innerHTML=html;
-}
-
-/* ---------- armar cada vista ----------
-   ajustes (opcional) son puntos sueltos del panel: suman o restan al
-   total de un jugador sin contar como partida jugada -no tocan
-   jugadas/ganadas/promedio, solo puntos-. Un jugador que solo tenga
-   ajustes (sin partidas) igual aparece en la tabla. */
-function agrupar(filas,ajustes){
-  const por={};
-  filas.filter(conNombre).forEach(r=>{
-    const n=r.nombre.trim(), k=norm(n);
-    const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,puntos:0,suma:0});
-    p.jugadas++; p.puntos+=puntosDe(r.intentos);
-    if(r.intentos>0){p.ganadas++; p.suma+=r.intentos}
-  });
-  (ajustes||[]).filter(conNombre).forEach(a=>{
-    const n=a.nombre.trim(), k=norm(n);
-    const p=por[k]||(por[k]={nombre:n,jugadas:0,ganadas:0,puntos:0,suma:0});
-    p.puntos+=Math.trunc(+a.puntos)||0;
-  });
-  return Object.values(por).map(p=>Object.assign(p,{
-    prom:p.ganadas?p.suma/p.ganadas:99,
-    pct:p.jugadas?Math.round(p.ganadas/p.jugadas*100):0
-  })).sort((a,b)=>b.puntos-a.puntos||b.ganadas-a.ganadas||a.prom-b.prom);
-}
-const filaGente=(p,i)=>
-  `<div class="fila"><span class="pos">${i+1}</span>`+
-  `<div class="quien"><div class="nom">${escapar(p.nombre)}</div>`+
-  `<div class="detalle">${p.ganadas} de ${p.jugadas} · ${p.pct}%`+
-  `${p.ganadas?` · promedio ${p.prom.toFixed(1)}`:""}</div></div>`+
-  `<span class="marca ${p.puntos<0?"no":"ok"}">${p.puntos} <small>pts</small></span></div>`;
-
-function armarTabla(v){
-  if(v==="semana"){
-    if(!filasSemana) return {txt:"Cargando…",html:""};
-    const l=+lunesDeEstaSemana();
-    const enSemana=r=>+new Date(r.fecha)>=l&&esHabil(r.fecha);
-    const g=agrupar(filasSemana.filter(enSemana),(ajustesSemana||[]).filter(enSemana));
-    return {
-      txt:g.length?`${rotuloSemana()} · ${plural(g.length,"jugador","jugadores")}.`
-                  :`${rotuloSemana()} · todavía no jugó nadie.`,
-      html:g.map(filaGente).join("")
-    };
-  }
-  if(!filasRanking) return {txt:"Cargando…",html:""};
-  const g=agrupar(filasRanking,ajustesTodo);
-  return {
-    txt:g.length?`${plural(g.length,"jugador","jugadores")} · últimas ${TOPE} partidas.`
-                :"Todavía no hay partidas en la tabla.",
-    html:g.map(filaGente).join("")
-  };
-}
-
-function pintarRanking(){
-  const {txt,html}=armarTabla(vistaTabla);
-  escribirTablas(txt,html);
-  [["#latSemana","semana"],["#latTodo","todo"]]
-    .forEach(([b,v])=>$(b).classList.toggle("activo",vistaTabla===v));
-  $("#lateralSemana").textContent=rotuloSemana();
-}
-function verVista(v){vistaTabla=v; pintarRanking()}
-
-/* ---------- el ranking, al costado ----------
-   Es la única tabla que hay: se encima sobre la página y arranca
-   abierta en cada carga. El link "Ranking" de la cabecera hace de
-   llave de luz: si está abierta, la cierra, y viceversa. */
-function verLateral(mostrar){
-  const lat=$("#lateral");
-  const plegar = mostrar===undefined ? !lat.classList.contains("plegado") : !mostrar;
-  lat.classList.toggle("plegado",plegar);
-  $("#lateralLengueta").setAttribute("aria-expanded",String(!plegar));
-  $("#btnTabla").setAttribute("aria-expanded",String(!plegar));
-  if(!plegar) traerRanking(false);
-}
-/* Desde el resultado: la ventana estorba, se cierra. */
-function mostrarLateral(){cerrarModal("modalResultado"); verLateral(true)}
-
-/* ---------- la tabla del fin de semana ----------
-   Debajo del cartel de cerrado va la semana que acaba de terminar,
-   en solo lectura. El sábado y el domingo lunesDeEstaSemana() sigue
-   apuntando al lunes de esa misma semana, así que se reutiliza la
-   consulta y el armado de la vista semanal tal cual. Si la nube
-   todavía no cargó, se vuelve a intentar cuando avise. */
-let findePedido=false;
-function pintarFinde(){
-  const est=$("#findeEstado"), tab=$("#findeTabla");
-  if(!est||!tab) return;
-  if(!hayNube()){
-    est.innerHTML=htmlError("Conectando con la nube…","no-signal.svg"); tab.innerHTML="";
-    if(!findePedido){findePedido=true; window.addEventListener("nube:estado",()=>{if(cerradoHoy()) pintarFinde()},{once:true})}
-    return;
-  }
-  est.textContent="Cargando…";
-  Promise.all([
-    window.Nube.listarDesde(lunesDeEstaSemana().toISOString(),TOPE),
-    window.Nube.listarAjustesDesde(lunesDeEstaSemana().toISOString(),TOPE)
-  ]).then(([semana,ajSemana])=>{
-    filasSemana=semana; ajustesSemana=ajSemana;
-    const {txt,html}=armarTabla("semana");
-    est.textContent=txt; tab.innerHTML=html;
-  }).catch(e=>{est.innerHTML=htmlError(e.message,"no-signal.svg"); tab.innerHTML=""});
-}
-
-/* ---------- 36: ganador de la semana pasada ----------
-   Trae lo jugado desde el lunes anterior, se queda con lo que cayó
-   dentro de esa semana (hábil), agrupa igual que la tabla y corona
-   al primero. Si no hay datos o nadie sumó puntos, la leyenda no
-   aparece. Espera a la nube si todavía no conectó. */
-let ganadorPedido=false;
-function mostrarGanador(){
-  const el=$("#ganador");
-  if(!el||el.textContent) return;
-  if(!hayNube()){
-    if(!ganadorPedido){ganadorPedido=true;
-      window.addEventListener("nube:estado",e=>{if(e.detail.ok) mostrarGanador()},{once:true});}
-    return;
-  }
-  const esteLunes=lunesDeEstaSemana();
-  const lunesPasado=new Date(esteLunes); lunesPasado.setDate(lunesPasado.getDate()-7);
-  Promise.all([
-    window.Nube.listarDesde(lunesPasado.toISOString(),TOPE),
-    window.Nube.listarAjustesDesde(lunesPasado.toISOString(),TOPE)
-  ]).then(([filas,ajustes])=>{
-    const enSemanaPasada=r=>{
-      const f=+new Date(r.fecha);
-      return f>=+lunesPasado&&f<+esteLunes&&esHabil(r.fecha);
-    };
-    const g=agrupar(filas.filter(enSemanaPasada),ajustes.filter(enSemanaPasada));
-    if(g.length&&g[0].puntos>0){
-      /* Redacción neutra: gane quien gane, "por ganar la semana". El
-         rango va del lunes al viernes de la semana que cerró, en dd-mm. */
-      const viernesPasado=new Date(lunesPasado); viernesPasado.setDate(viernesPasado.getDate()+4);
-      const ddmm=x=>`${String(x.getDate()).padStart(2,"0")}-${String(x.getMonth()+1).padStart(2,"0")}`;
-      el.innerHTML=`Felicitaciones a <b>${escapar(g[0].nombre)}</b> por ganar la semana del ${ddmm(lunesPasado)} al ${ddmm(viernesPasado)}`;
-      el.hidden=false;
-    }
-  }).catch(()=>{});
-}
-mostrarGanador();
-
-$("#btnTabla").onclick=()=>verLateral();
-$("#lateralLengueta").onclick=()=>verLateral();
-$("#btnVerTabla").onclick=mostrarLateral;
-$("#latActualizar").onclick=()=>traerRanking(true);
-$("#latSemana").onclick=()=>verVista("semana");
-$("#latTodo").onclick=()=>verVista("todo");
 
 /* ---------- copiar y compartir ---------- */
-/* La fecha sale del día de la partida, no del reloj del momento: si
-   alguien copia su resultado pasada la medianoche, tiene que seguir
-   diciendo el día que jugó. */
-function fechaDeDia(n){
-  const d=new Date(n*864e5);
-  return [d.getUTCDate(),d.getUTCMonth()+1,d.getUTCFullYear()%100]
-         .map(x=>String(x).padStart(2,"0")).join("/");
-}
 function textoResultado(){
   const gano=intentos.some(i=>i.tipo==="bien");
-  const cuando=modo==="diario"?fechaDeDia(diaPartida):"(libre)";
-  return `Escuchadle Argento ${cuando}\n🔉${emojis()} ${gano?intentos.length:"X"}/6\n${SITIO}`;
+  return `Escuchadle Argento (libre)\n🔉${emojis()} ${gano?intentos.length:"X"}/6\n${SITIO}`;
 }
 function avisar(btn,texto,original){
   btn.textContent=texto; setTimeout(()=>btn.textContent=original,1500);
@@ -1040,22 +526,6 @@ input.addEventListener("keydown",e=>{
 /* ---------- eventos ---------- */
 btnPlay.onclick=reproducir; btnSaltar.onclick=saltar; btnEnviar.onclick=enviar;
 $("#btnOtra").onclick=()=>nuevaPartida();
-function pintarBtnModoLibre(){
-  const libre=modo==="libre";
-  $("#badgeLibre").hidden=!libre;
-  $("#btnModoLibre").textContent=libre?"Volver al día":"Modo libre";
-  $("#btnModoLibre").title=libre
-    ?"Volver a la canción del día"
-    :"Jugar una canción al azar, sin que cuente para el ranking";
-}
-function setModo(m){
-  modo=m;
-  pintarBtnModoLibre();
-  nuevaPartida();
-}
-pintarBtnModoLibre();
-$("#btnModoLibre").onclick=()=>setModo(modo==="libre"?"diario":"libre");
-$("#btnJugarLibre").onclick=()=>setModo("libre");
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){const m=modalAbierto(); if(m) cerrarModal(m.id); return}
   const escribiendo=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
@@ -1075,6 +545,3 @@ $("#titulo").addEventListener("click",()=>{
 });
 
 nuevaPartida();
-/* El panel de ranking arranca visible (ver verLateral más arriba): trae
-   los datos ya de entrada, no recién cuando alguien lo abre. */
-traerRanking(false);

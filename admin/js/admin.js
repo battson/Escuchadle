@@ -1,10 +1,9 @@
 /* Escuchadle Argento — panel de administración (2.0)
    Página aparte de la del juego, mismo origen y misma contraseña.
    Depende de los mismos respaldos y el mismo módulo de nube que el
-   juego: ../js/dia.js (DIA), ../js/catalogo.js (CANCIONES) y
-   ../js/nube.js (window.Nube + eventos "nube:dia"/"nube:catalogo"/
-   "nube:estado"). No hay tablero acá: este archivo no sabe nada de
-   partidas en curso, solo de configuración y datos. */
+   juego: ../js/catalogo.js (CANCIONES) y ../js/nube.js (window.Nube +
+   eventos "nube:catalogo"/"nube:estado"). El juego es solo modo libre,
+   sin ranking: el panel administra el catálogo y los clips. */
 
 const $=s=>document.querySelector(s);
 const bancoEl=id=>document.getElementById(id);
@@ -17,19 +16,15 @@ const escapar=t=>String(t==null?"":t)
   .replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const plural=(n,s,p)=>`${n} ${n===1?s:p}`;
 const hayNube=()=>!!(window.Nube&&window.Nube.disponible);
-const esFinde=()=>[0,6].includes(new Date().getDay());
 
-const aFila=r=>({fecha:r.fecha,nombre:r.nombre||"",cancion:r.cancion,
-                 intentos:r.gano?(r.intentos||0):0,marcas:r.marcas||[]});
-
-const local=Object.assign({saltearFinde:false},store.get("ea_local",{}));
-const guardarLocal=()=>store.set("ea_local",local);
 
 function avisar(btn,texto,original){btn.textContent=texto; setTimeout(()=>btn.textContent=original,1500)}
 function alPortapapeles(txt,btn,original){
   if(!navigator.clipboard) return avisar(btn,"No se pudo",original);
   navigator.clipboard.writeText(txt).then(()=>avisar(btn,"¡Copiado!",original),()=>avisar(btn,"No se pudo",original));
 }
+
+let seccionActual="catalogo";
 
 /* ---------- clave ----------
    Una tranquera, no una cerradura: viaja en el JavaScript y cualquiera
@@ -55,25 +50,17 @@ function mostrarPanel(){
   irASeccion(seccionActual);
   refrescarPanel();
 }
-(function(){
-  let ok=false;
-  try{ok=sessionStorage.getItem("ea_admin")==="1"}catch{}
-  if(ok) mostrarPanel();
-  else setTimeout(()=>$("#claveEntrada").focus(),60);
-})();
 
 /* ---------- navegación por secciones ----------
    Columna de secciones a la izquierda, contenido a la derecha. En
    pantallas angostas la columna sale de la fila y se convierte en un
    cajón que se abre con el botón de las tres rayas. */
-let seccionActual="dia";
 function irASeccion(id){
   seccionActual=id;
   document.querySelectorAll("#panelNav [data-ir]").forEach(b=>b.classList.toggle("activo",b.dataset.ir===id));
   document.querySelectorAll("#panelCont .panel-sec").forEach(x=>{x.hidden=x.dataset.sec!==id});
   $("#panelCont").scrollTop=0;
   cajon(false);
-  if(id==="ranking"){cargarRanking(); cargarAjustes()}
   if(id==="catalogo") rellenarBancoSel(true); else bancoParar();
   if(id==="fusionar") fusRefrescarLista();
 }
@@ -88,32 +75,7 @@ $("#panelNav").addEventListener("click",e=>{
 $("#panelMenu").onclick=()=>cajon($("#panelVelo").hidden);
 $("#panelVelo").onclick=()=>cajon(false);
 
-/* ---------- configuración del día ----------
-   Igual precedencia que en el juego: PREDETERMINADO < js/dia.js <
-   lo último que dijo la nube. */
-const PREDETERMINADO={modo:"auto",cancion:"",salto:0,reinicio:0};
-const DIA_BASE=(typeof DIA==="object"&&DIA)?DIA:PREDETERMINADO;
-const CLAVE_NUBE="ea_nube_dia";
-/* Va con el día en que se guardó: mismo formato que usa el juego para
-   esta clave (comparten origen y localStorage), ver el comentario en
-   js/juego.js. Sin esto, un "modo":"manual" de una prueba de un día
-   anterior se mostraba acá como si fuera la configuración de hoy hasta
-   que Firebase reconectara. */
-function leerDiaNube(){
-  const g=store.get(CLAVE_NUBE,null);
-  return g&&g.dia===diaHoy()?g.doc:null;
-}
-function guardarDiaNube(doc){store.set(CLAVE_NUBE,{dia:diaHoy(),doc})}
-let diaNube=leerDiaNube();
-let textoNube="Conectando con la nube…";
-function dia(){
-  const d=Object.assign({},PREDETERMINADO,DIA_BASE,diaNube||{});
-  d.salto=Number(d.salto)||0;
-  d.reinicio=Number(d.reinicio)||0;
-  return d;
-}
-window.addEventListener("nube:dia",e=>{diaNube=e.detail; guardarDiaNube(diaNube); refrescarPanel()});
-window.addEventListener("nube:estado",e=>{textoNube=e.detail.texto; refrescarPanel()});
+window.addEventListener("nube:estado",()=>refrescarPanel());
 
 /* ---------- catálogo en la nube ----------
    Misma lógica que en el juego: CANCIONES arranca con js/catalogo.js
@@ -175,227 +137,16 @@ window.addEventListener("nube:catalogo",e=>{
     store.set(CLAVE_CAT,catNube);
     textoCat="Catálogo publicado en la nube.";
   }
-  rellenarSelCancion(); rellenarBancoSel(true); pintarSonadas(); refrescarPanel();
+  rellenarBancoSel(true); pintarSonadas(); refrescarPanel();
 });
 
-/* ---------- elección de canción (para "hoy" y el sorteo) ---------- */
-function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+/* ---------- elección de canción ---------- */
 function diaHoy(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)}
 function bolsa(){const a=CANCIONES.filter(c=>c.activa!==false); return a.length?a:CANCIONES}
-function ordenDiario(){const r=rng(20260101),a=bolsa().map(c=>c.id);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function sorteo(salto){const o=ordenDiario(), n=o.length; return CANCIONES[o[(((diaHoy()+salto)%n)+n)%n]]}
-function pinHoy(){const h=catNube&&catNube.hoy; return (h&&h.dia===diaHoy()&&h.cancion)?h:null}
-function cancionDelDia(){
-  const d=dia();
-  if(d.modo==="manual"&&d.cancion){const c=porLabel(d.cancion); if(c) return c}
-  const p=pinHoy();
-  if(p){const c=porLabel(p.cancion); if(c) return c}
-  return sorteo(d.salto);
-}
-function fijarHoyEnNube(label,forzar){
-  if(!hayNube()||!catEnNube||esFinde()||!label) return;
-  if(!forzar&&pinHoy()) return;
-  const d=diaHoy();
-  if(catNube){catNube.hoy={dia:d,cancion:label}; store.set(CLAVE_CAT,catNube)}
-  window.Nube.fijarHoy({dia:d,cancion:label,forzar:!!forzar}).catch(()=>{});
-}
-
-/* ---------- partida guardada (solo lectura/borrado, sin tablero) ---------- */
-const CLAVE_PARTIDA="ea_partida";
-function partidaGuardada(){
-  const g=store.get(CLAVE_PARTIDA,null);
-  return g&&g.dia===diaHoy()&&Array.isArray(g.intentos)?g:null;
-}
-function borrarPartida(){store.del(CLAVE_PARTIDA)}
-
-/* ---------- canción del día ---------- */
-const selCancion=$("#selCancion");
-function rellenarSelCancion(){
-  const v=selCancion.value;
-  selCancion.innerHTML=CANCIONES.map(c=>`<option value="${c.label.replace(/"/g,"&quot;")}">${c.label}${c.activa===false?" (desactivada)":""}</option>`).join("");
-  if(v&&porLabel(v)) selCancion.value=v;
-}
-rellenarSelCancion();
-
-function ajustarDia(cambios){
-  const d=Object.assign({},dia(),cambios);
-  const cfg={modo:d.modo,
-             cancion:d.modo==="manual"?d.cancion:"",
-             salto:d.modo==="manual"?0:d.salto,
-             reinicio:d.reinicio};
-  diaNube=cfg; guardarDiaNube(cfg);
-  if(["modo","cancion","salto"].some(k=>k in cambios)){
-    const objetivo=cfg.modo==="manual"?porLabel(cfg.cancion):sorteo(cfg.salto);
-    if(objetivo) fijarHoyEnNube(objetivo.label,true);
-  }
-  if(hayNube()){
-    textoNube="Publicando…";
-    window.Nube.publicarDia(cfg)
-      .then(()=>{textoNube="Publicado para todos.";refrescarPanel()})
-      .catch(err=>{textoNube="No se pudo publicar: "+err.message;refrescarPanel()});
-  }else{
-    textoNube="Sin nube: el cambio quedó solo en esta computadora.";
-  }
-  refrescarPanel();
-}
-$("#diaAuto").onclick=()=>ajustarDia({modo:"auto"});
-$("#btnSortear").onclick=()=>{
-  const n=bolsa().length;
-  if(n<2) return;
-  const actualLabel=cancionDelDia().label;
-  const base=dia().salto;
-  let salto=base;
-  for(let i=0;i<40&&(salto===base||sorteo(salto).label===actualLabel);i++)
-    salto=Math.floor(Math.random()*n);
-  ajustarDia({modo:"auto",salto});
-};
-$("#diaManual").onclick=()=>ajustarDia({modo:"manual",cancion:selCancion.value||CANCIONES[0].label});
-selCancion.onchange=()=>ajustarDia({modo:"manual",cancion:selCancion.value});
-$("#btnReiniciar").onclick=()=>{
-  borrarPartida();
-  ajustarDia({reinicio:dia().reinicio+1});
-};
-function textoDia(){
-  const d=dia();
-  return "const DIA = {\n"+
-    `  modo: ${JSON.stringify(d.modo)},\n`+
-    `  cancion: ${JSON.stringify(d.modo==="manual"?d.cancion:"")},\n`+
-    `  salto: ${d.modo==="manual"?0:d.salto},\n`+
-    `  reinicio: ${d.reinicio}\n};`;
-}
-$("#btnCopiarDia").onclick=()=>alPortapapeles(textoDia(),$("#btnCopiarDia"),"Copiar respaldo");
-
-/* ---------- partida y resultados ---------- */
-$("#btnBorrarPartida").onclick=()=>{borrarPartida(); refrescarPanel()};
-$("#btnCopiarResultados").onclick=()=>
-  alPortapapeles(JSON.stringify(store.get("ea_resultados",[]),null,2),$("#btnCopiarResultados"),"Copiar como JSON");
-
-/* ---------- ranking en la nube ---------- */
-const rankLista=$("#rankLista"), estadoRanking=$("#estadoRanking");
-function cargarRanking(){
-  if(!hayNube()){estadoRanking.textContent="Sin conexión con la nube.";return}
-  estadoRanking.textContent="Cargando…";
-  window.Nube.listarResultados(60).then(rs=>{
-    estadoRanking.textContent=rs.length?`${rs.length} partida(s) en la nube.`:"La tabla está vacía.";
-    rankLista.innerHTML=rs.map(r=>{
-      const marca=r.intentos?`${r.intentos}/6`:"X/6";
-      return `<div class="vf"><span class="id">${escapar((r.fecha||"").slice(0,10))}</span>`+
-             `<div><div class="pedido">${escapar(r.nombre)||"(sin nombre)"} · ${marca}</div>`+
-             `<div class="hallado">${escapar(r.cancion)}</div></div>`+
-             `<button data-borrar="${escapar(r.id)}" title="Borrar esta fila">✕</button></div>`;
-    }).join("");
-  }).catch(e=>{estadoRanking.textContent=e.message});
-}
-$("#btnRanking").onclick=cargarRanking;
-rankLista.addEventListener("click",e=>{
-  const b=e.target.closest("[data-borrar]"); if(!b) return;
-  b.disabled=true;
-  window.Nube.borrarResultado(b.dataset.borrar)
-    .then(()=>{b.closest(".vf").remove(); estadoRanking.textContent="Fila borrada."})
-    .catch(err=>{b.disabled=false; estadoRanking.textContent=err.message});
-});
-$("#btnVaciarRanking").onclick=()=>{
-  if(!hayNube()) return;
-  if(!confirm("¿Borrar todos los resultados de la nube? No se pueden recuperar.")) return;
-  estadoRanking.textContent="Borrando…";
-  window.Nube.vaciarResultados().then(n=>{
-    rankLista.innerHTML="";
-    estadoRanking.textContent=`Tabla vaciada (${n} fila(s)).`;
-  }).catch(e=>{estadoRanking.textContent=e.message});
-};
-
-/* ---------- ajustes de puntaje ----------
-   Puntos sueltos aparte de las partidas: van a la misma colección que
-   lee el juego para sumarlos tanto en la tabla semanal como en la
-   histórica (ver agrupar() en js/juego.js). */
-const ajustesLista=$("#ajustesLista"), estadoAjustes=$("#estadoAjustes");
-function cargarAjustes(){
-  if(!hayNube()){estadoAjustes.textContent="Sin conexión con la nube.";return}
-  estadoAjustes.textContent="Cargando…";
-  window.Nube.listarAjustes(60).then(as=>{
-    estadoAjustes.textContent=as.length?`${as.length} ajuste(s) en la nube.`:"Todavía no hay ajustes.";
-    ajustesLista.innerHTML=as.map(a=>{
-      const puntos=(a.puntos>0?"+":"")+a.puntos;
-      return `<div class="vf"><span class="id">${escapar((a.fecha||"").slice(0,10))}</span>`+
-             `<div><div class="pedido">${escapar(a.nombre)} · ${escapar(puntos)} pts</div>`+
-             `<div class="hallado">${escapar(a.motivo)||"(sin motivo)"}</div></div>`+
-             `<button data-borrar-ajuste="${escapar(a.id)}" title="Borrar este ajuste">✕</button></div>`;
-    }).join("");
-  }).catch(e=>{estadoAjustes.textContent=e.message});
-}
-$("#btnAjustesActualizar").onclick=cargarAjustes;
-$("#btnAjusteAgregar").onclick=()=>{
-  const nombre=$("#ajusteNombre").value.trim();
-  const puntos=Math.trunc(+$("#ajustePuntos").value);
-  const motivo=$("#ajusteMotivo").value.trim();
-  if(!nombre){estadoAjustes.textContent="Falta el nombre.";return}
-  if(!Number.isFinite(puntos)||!puntos){estadoAjustes.textContent="Los puntos tienen que ser un número distinto de cero.";return}
-  if(!hayNube()){estadoAjustes.textContent="Sin conexión con la nube.";return}
-  $("#btnAjusteAgregar").disabled=true;
-  estadoAjustes.textContent="Guardando…";
-  window.Nube.guardarAjuste({nombre,puntos,motivo}).then(()=>{
-    $("#ajusteNombre").value=""; $("#ajustePuntos").value=""; $("#ajusteMotivo").value="";
-    $("#btnAjusteAgregar").disabled=false;
-    cargarAjustes();
-  }).catch(e=>{$("#btnAjusteAgregar").disabled=false; estadoAjustes.textContent=e.message});
-};
-ajustesLista.addEventListener("click",e=>{
-  const b=e.target.closest("[data-borrar-ajuste]"); if(!b) return;
-  b.disabled=true;
-  window.Nube.borrarAjuste(b.dataset.borrarAjuste)
-    .then(()=>{b.closest(".vf").remove(); estadoAjustes.textContent="Ajuste borrado."})
-    .catch(err=>{b.disabled=false; estadoAjustes.textContent=err.message});
-});
-async function subirPendientes(){
-  const btn=$("#btnSubirPendientes");
-  if(!hayNube()) return avisar(btn,"Sin nube","Subir pendientes");
-  const h=store.get("ea_resultados",[]);
-  if(!h.some(r=>!r.subido)) return avisar(btn,"No hay","Subir pendientes");
-  btn.disabled=true; btn.textContent="Subiendo…";
-  let n=0, error="";
-  for(const r of h){
-    if(r.subido) continue;
-    try{r.idNube=await window.Nube.guardarResultado(aFila(r)); r.subido=true; n++}
-    catch(e){error=e.message; break}
-  }
-  store.set("ea_resultados",h);
-  btn.disabled=false; btn.textContent="Subir pendientes";
-  estadoRanking.textContent=error?`Subí ${n} y se cortó: ${error}`:`${n} partida(s) subida(s).`;
-  refrescarPanel(); cargarRanking();
-}
-$("#btnSubirPendientes").onclick=subirPendientes;
-
-/* ---------- vista y pruebas ---------- */
-$("#swFinde").onchange=e=>{local.saltearFinde=e.target.checked; guardarLocal(); refrescarPanel()};
 
 /* Deja el panel al día con el estado real. */
 function refrescarPanel(){
-  const d=dia();
-  $("#swFinde").checked=!!local.saltearFinde;
-  $("#diaAuto").checked=d.modo==="auto";
-  $("#diaManual").checked=d.modo==="manual";
-  selCancion.disabled=d.modo!=="manual";
-  $("#btnSortear").disabled=d.modo!=="auto";
-  if(d.modo==="manual"&&d.cancion) selCancion.value=d.cancion;
-  $("#estadoNube").textContent=textoNube;
-  $("#estadoNube").className="nube-estado"+(hayNube()?" ok":"");
-  const pin=pinHoy();
-  $("#estadoDia").textContent=
-    `salto ${d.salto} · reinicio ${d.reinicio} · hoy: ${cancionDelDia().label}`+
-    (pin?" (fijada para todos)":"")+` · catálogo: ${catEnNube?"nube":"respaldo"}`;
   refrescarCatalogoPanel();
-  $("#vistaDia").textContent=textoDia();
-
-  const g=partidaGuardada();
-  $("#estadoPartida").textContent=!g?"No hay partida guardada de hoy en este navegador."
-    :g.terminado?`Ya se jugó: ${g.intentos.some(i=>i.tipo==="bien")?g.intentos.length+"/6":"X/6"}.`
-    :`Partida en curso: intento ${g.paso} de 6.`;
-
-  const h=store.get("ea_resultados",[]);
-  const pend=h.filter(r=>!r.subido).length;
-  $("#estadoResultados").textContent=h.length
-    ? `${h.length} partida(s) archivada(s)`+(pend?` · ${pend} sin subir a la nube.`:" · todas subidas.")
-    : "Todavía no hay partidas archivadas en este navegador.";
 }
 
 /* ---------- catálogo: probar, corregir, agregar y dar de baja ----------
@@ -538,23 +289,19 @@ function bancoGuardar(){
   rellenarBancoSel(false);
   sel.value=String(quedarEn); bancoSelCambiar();
   aviso.textContent=msg;
-  rellenarSelCancion();
 }
 function bancoActivar(){
   const c=bancoSeleccionada(); if(!c) return;
   c.activa=c.activa===false;
   marcarSucio(); rellenarBancoSel(true);
   bancoEl("bancoAviso").textContent=c.activa?`✓ ${c.label} vuelve al sorteo al publicar.`:`✓ ${c.label} queda fuera del sorteo al publicar.`;
-  rellenarSelCancion();
 }
 function bancoBorrar(){
   const c=bancoSeleccionada(); if(!c) return;
   if(!confirm(`¿Borrar "${c.label}" del catálogo? Se publica al tocar Publicar.`)) return;
-  const p=pinHoy(), esLaDeHoy=p&&p.cancion===c.label;
   CANCIONES.splice(c.id,1); normalizarCatalogo();
   marcarSucio(); rellenarBancoSel(false);
-  bancoEl("bancoAviso").textContent=`✓ Borrada: ${c.label}.`+(esLaDeHoy?" Era la canción fijada para hoy: los que ya la jugaron conservan su partida, los demás reciben otra.":"");
-  rellenarSelCancion();
+  bancoEl("bancoAviso").textContent=`✓ Borrada: ${c.label}.`;
 }
 /* ---------- pestaña "Ya sonaron" ---------- */
 let catSolapa="editar";
@@ -596,21 +343,18 @@ function reactivarSonadas(){
   CANCIONES.forEach(c=>{if(c.activa===false&&c.sonada) c.activa=true});
   marcarSucio(); rellenarBancoSel(true); pintarSonadas();
   bancoEl("bancoAviso").textContent=`✓ ${plural(n,"canción reactivada","canciones reactivadas")}. Se publica con el botón Publicar.`;
-  rellenarSelCancion();
 }
 function publicarCatalogo(){
   const btn=bancoEl("btnPublicarCat");
   if(!hayNube()){textoCat="Sin conexión con la nube: no se puede publicar.";refrescarCatalogoPanel();return}
   bancoParar();
-  const hoy=esFinde()?null:{dia:diaHoy(),cancion:cancionDelDia().label};
-  if(hoy) marcarSonada(hoy.cancion,hoy.dia);
   btn.disabled=true; textoCat="Publicando…"; refrescarCatalogoPanel();
-  window.Nube.publicarCatalogo(CANCIONES,hoy).then(cat=>{
+  window.Nube.publicarCatalogo(CANCIONES,null).then(cat=>{
     catSucio=false; catEnNube=true;
     catNube={canciones:cat.canciones,hoy:cat.hoy,actualizado:cat.actualizado};
     store.set(CLAVE_CAT,catNube);
     textoCat="Catálogo publicado para todos.";
-    rellenarBancoSel(true); rellenarSelCancion(); pintarSonadas(); refrescarPanel();
+    rellenarBancoSel(true); pintarSonadas(); refrescarPanel();
   }).catch(e=>{
     textoCat="No se pudo publicar: "+e.message;
     refrescarCatalogoPanel();
@@ -842,3 +586,12 @@ $("#fusCarpeta").addEventListener("click",async()=>{
   }catch(e){fusEstado.textContent="Error: "+e.message}
 });
 $("#fusActualizar").onclick=()=>fusRefrescarLista();
+
+/* Si ya había una sesión abierta, entra directo: va al final para que
+   todo lo que usa el panel ya esté definido. */
+(function(){
+  let ok=false;
+  try{ok=sessionStorage.getItem("ea_admin")==="1"}catch{}
+  if(ok) mostrarPanel();
+  else setTimeout(()=>$("#claveEntrada").focus(),60);
+})();
