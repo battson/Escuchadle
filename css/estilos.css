@@ -51,9 +51,8 @@
      entre en vez de dejarlo generar una barra. Los clamp() de más abajo
      (cabecera, gaps) están para que en los hechos nunca haga falta
      recortar nada; esto es el cinturón de seguridad. Abajo de 901px
-     queda afuera a propósito -el panel de ranking, fijo y abierto por
-     defecto, todavía tapa el juego en mobile- así que ahí se deja
-     scrollear en vez de recortar contenido. */
+     queda afuera a propósito: ahí se deja scrollear en vez de recortar
+     contenido. */
   @media (min-width:901px){
     html,body{height:100vh;overflow:hidden}
   }
@@ -71,7 +70,7 @@
       linear-gradient(135deg,var(--fondo-a) 0%,var(--fondo-b) 55%,var(--fondo-c) 100%)
   }
   /* Malvinas: marca de agua fija abajo a la izquierda, debajo de todo
-     lo que se toca (panel lateral, ventanas). */
+     lo que se toca (ventanas). */
   .malvinas{
     position:fixed;left:22px;bottom:18px;width:150px;height:auto;
     opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
@@ -121,8 +120,7 @@
     gap:10px;margin-bottom:clamp(10px,3.5vh,38px);
     /* z-index:20 en .cabecera-der no alcanza si header (su ancestro,
        contexto de apilamiento propio por position:relative) sigue con
-       el z-index:1 genérico: todo ese contexto quedaría por debajo del
-       panel de ranking (.lateral, z-index:15) pase lo que pase adentro. */
+       el z-index:1 genérico. */
     position:relative;z-index:20
   }
   .pagina-juego .titulo-tab{padding:14px 34px 12px}
@@ -189,12 +187,9 @@
     backdrop-filter:blur(var(--blur-chico));-webkit-backdrop-filter:blur(var(--blur-chico))
   }
   .btn:disabled{opacity:.4;cursor:not-allowed}
-  #latActualizar{background:none;border:0;border-bottom:1px solid var(--borde);border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none}
 
   /* ---------- pistas ----------
-     Iban ancladas fijas en la esquina inferior derecha, pero ahí se
-     pisaban con la tabla de ranking (que puede crecer bastante de alto).
-     Pasan al flujo normal, arriba del buscador, y en una sola línea:
+     Van en el flujo normal, arriba del buscador, y en una sola línea:
      la cabecera ("Pistas 0 de 3...") y los chips van todos en fila,
      con wrap solo como salvavidas en pantallas muy angostas. */
   .pistas{display:flex;flex-direction:column;gap:8px}
@@ -329,8 +324,6 @@
   .leyenda .pt{width:11px;height:11px;border-radius:50%;flex:none}
   .leyenda .verde{background:var(--verde)} .leyenda .sol{background:var(--sol)}
   .leyenda .rojo{background:var(--rojo)}  .leyenda .gris{background:var(--gris)}
-  .leyenda.puntos{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
-  .leyenda.puntos b{color:var(--sol)}
   .modal-nota{color:var(--gris)!important;font-size:13px!important}
   .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
@@ -375,7 +368,7 @@
   }
   .estado-error .est-txt{font-size:12px;color:var(--gris)}
 
-  /* ---------- tabla de ranking ---------- */
+  /* ---------- solapas ---------- */
   .solapas{display:flex;gap:6px}
   .solapas button{
     flex:1;background:var(--vidrio);border:1px solid var(--borde);color:var(--gris);
@@ -386,21 +379,6 @@
   .solapas button.activo{border-color:var(--celeste);color:var(--celeste)}
   .solapas button:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .tabla-estado{font-size:12px;color:var(--gris)}
-  .tabla{display:flex;flex-direction:column;max-height:46vh;overflow:auto}
-  .tabla .fila{
-    display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;
-    padding:9px 0;border-top:1px solid var(--borde)
-  }
-  .tabla .fila:first-child{border-top:0}
-  .tabla .pos{font-family:"Bebas Neue",Impact,sans-serif;font-size:19px;color:var(--gris);text-align:center}
-  .tabla .fila:nth-child(1) .pos{color:var(--sol)}
-  .tabla .fila:nth-child(1) .nom{color:var(--sol)}
-  .tabla .quien{min-width:0}
-  .tabla .nom{font-size:14px;color:var(--crema);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tabla .tira{font-size:11px;letter-spacing:1px;line-height:1.6}
-  .tabla .detalle{font-size:11px;color:var(--gris);display:none}
-  .tabla .marca{font-size:13px;font-variant-numeric:tabular-nums;color:var(--gris)}
-  .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
   .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
   /* ---------- panel reservado ----------
      Secciones a la izquierda, contenido a la derecha. En pantallas
@@ -531,7 +509,6 @@
   .campo input::placeholder,.campo textarea::placeholder{color:var(--gris)}
   .opciones.fila{gap:18px}
   .modal-caja.angosta{max-width:340px}
-  .tabla .marca small{display:block;font-size:10px;color:var(--gris);font-weight:400}
 
   /* ---------- pantallas angostas ---------- */
   @media (max-width:900px){

@@ -43,20 +43,12 @@
     background:linear-gradient(135deg,#0E1524 0%,#182136 100%)
   }
   /* Malvinas: marca de agua fija abajo a la izquierda, debajo de todo
-     lo que se toca (panel lateral, ventanas). */
+     lo que se toca (ventanas). */
   .malvinas{
     position:fixed;left:22px;bottom:18px;width:150px;height:auto;
     opacity:.55;pointer-events:none;-webkit-user-select:none;user-select:none;z-index:0
   }
   header,main{position:relative;z-index:1}
-  /* 36: leyenda del ganador de la semana pasada */
-  .ganador{
-    width:100%;max-width:560px;text-align:center;color:var(--sol);
-    font:500 13px/1.5 "Space Grotesk",sans-serif;letter-spacing:.02em;
-    padding:2px 0 14px
-  }
-  .ganador[hidden]{display:none}
-  .ganador b{font-weight:700}
   header{width:100%;max-width:560px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--borde);padding-bottom:12px}
   h1{font-family:"Bebas Neue",Impact,sans-serif;font-size:44px;letter-spacing:.04em;line-height:.9;color:var(--crema);
      cursor:default;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -226,8 +218,6 @@
   .leyenda .pt{width:11px;height:11px;border-radius:50%;flex:none}
   .leyenda .verde{background:var(--verde)} .leyenda .sol{background:var(--sol)}
   .leyenda .rojo{background:var(--rojo)}  .leyenda .gris{background:var(--gris)}
-  .leyenda.puntos{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
-  .leyenda.puntos b{color:var(--sol)}
   .modal-nota{color:var(--gris)!important;font-size:13px!important}
   .modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .modal-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:24px;letter-spacing:.06em;color:var(--celeste)}
@@ -283,7 +273,7 @@
   }
   .estado-error .est-txt{font-size:12px;color:var(--gris)}
 
-  /* ---------- tabla de ranking ---------- */
+  /* ---------- solapas ---------- */
   .solapas{display:flex;gap:6px}
   .solapas button{
     flex:1;background:transparent;border:1px solid var(--borde);color:var(--gris);
@@ -293,22 +283,6 @@
   .solapas button.activo{border-color:var(--celeste);color:var(--celeste)}
   .solapas button:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
   .tabla-estado{font-size:12px;color:var(--gris)}
-  .tabla{display:flex;flex-direction:column;max-height:46vh;overflow:auto}
-  .tabla .fila{
-    display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;
-    padding:9px 0;border-top:1px solid var(--borde)
-  }
-  .tabla .fila:first-child{border-top:0}
-  .tabla .pos{font-family:"Bebas Neue",Impact,sans-serif;font-size:19px;color:var(--gris);text-align:center}
-  .tabla .fila:nth-child(1) .pos{color:var(--sol)}
-  .tabla .fila:nth-child(1) .nom{color:var(--sol)}
-  .tabla .quien{min-width:0}
-  .tabla .nom{font-size:14px;color:var(--crema);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tabla .tira{font-size:11px;letter-spacing:1px;line-height:1.6}
-  .tabla .detalle{font-size:11px;color:var(--gris)}
-  .tabla .marca{font-size:13px;font-variant-numeric:tabular-nums;color:var(--gris)}
-  .tabla .marca.ok{color:var(--verde)} .tabla .marca.no{color:var(--rojo)}
-  .resultado .nota-manana{font-size:12px;color:var(--gris)}
   .resultado .stats b{display:block;font-size:22px;color:var(--crema);font-family:"Bebas Neue",Impact,sans-serif;letter-spacing:.05em}
   /* ---------- panel reservado ----------
      Secciones a la izquierda, contenido a la derecha. En pantallas
@@ -415,21 +389,6 @@
   .btn-pildora:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
 
   /* ---------- fin de semana ---------- */
-  body.cerrado .escenario,body.cerrado .pistas,body.cerrado .intentos,
-  body.cerrado #zonaJuego,body.cerrado .zona-cerrada{display:none!important}
-  .finde{
-    display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
-    background:var(--pista);border:1px solid var(--borde);border-radius:var(--radio);padding:32px 22px
-  }
-  .finde[hidden]{display:none}
-  .finde-cartel{width:min(100%,400px);height:auto;display:block}
-  .finde-ranking{
-    width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;text-align:left;
-    border-top:1px solid var(--borde);padding-top:16px;margin-top:6px
-  }
-  .finde-leyenda{font-family:"Bebas Neue",Impact,sans-serif;font-size:22px;letter-spacing:.05em;color:var(--celeste);text-align:center}
-  .finde .tabla{max-height:none}
-  .finde-acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 
   /* ---------- pie ---------- */
   .pie{width:100%;max-width:560px;margin-top:22px;display:flex;justify-content:center}
@@ -453,39 +412,11 @@
   .opciones.fila{gap:18px}
   .modal-caja.angosta{max-width:340px}
   .firma-regla{font-size:11px;color:var(--sol);line-height:1.5}
-  .tabla .marca small{display:block;font-size:10px;color:var(--gris);font-weight:400}
 
   /* ---------- panel lateral de ranking ---------- */
   /* Va encimada sobre la página: como es position:fixed, no ocupa
      lugar en el flujo y nada del contenido se mueve al abrirla.
      Plegada deja a la vista solo la lengüeta. */
-  .lateral{
-    position:fixed;top:0;right:0;height:100vh;height:100dvh;z-index:15;
-    display:flex;align-items:stretch;transition:transform .25s ease;
-    filter:drop-shadow(-14px 0 34px rgba(0,0,0,.55))
-  }
-  .lateral.plegado{transform:translateX(calc(100% - 34px))}
-  .lateral-lengueta{
-    width:34px;flex:none;background:var(--pista);border:1px solid var(--borde);border-right:0;
-    border-radius:14px 0 0 14px;color:var(--gris);cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0
-  }
-  .lateral-lengueta:hover{color:var(--sol)}
-  .lateral-flecha{font-size:17px;line-height:1;transition:transform .25s ease}
-  .lateral.plegado .lateral-flecha{transform:rotate(180deg)}
-  .lateral-vertical{
-    writing-mode:vertical-rl;font:500 10px "Space Grotesk",sans-serif;
-    letter-spacing:.22em;text-transform:uppercase
-  }
-  .lateral-cuerpo{
-    width:min(300px,82vw);background:var(--pista);border-left:1px solid var(--borde);
-    padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto
-  }
-  .lateral-cab{display:flex;flex-direction:column;gap:2px}
-  .lateral-cab strong{font-family:"Bebas Neue",Impact,sans-serif;font-size:21px;letter-spacing:.06em;color:var(--celeste);display:flex;align-items:center;gap:8px}
-  .lateral-cab .ico{width:18px;height:18px;object-fit:contain;display:block}
-  .lateral-cab span{font-size:11px;color:var(--gris)}
-  .lateral .tabla{max-height:none}
   .solapas.chicas button{padding:7px 6px;font-size:10px;letter-spacing:.04em}
 
   /* ---------- pantallas angostas ---------- */
@@ -499,7 +430,7 @@
     }
     .panel-nav.abierto{transform:none}
   }
-  @media (prefers-reduced-motion:reduce){.lateral,.panel-nav,.lateral-flecha{transition:none}}
+  @media (prefers-reduced-motion:reduce){.panel-nav{transition:none}}
   @media (max-width:420px){
     .btn-pildora{padding:7px 9px;font-size:10px;gap:5px}
     .btn-pildora .ico{width:14px;height:14px}

@@ -14,9 +14,10 @@
 
    Campos opcionales:
      ini      segundos de silencio inicial a saltar
-     activa   false = fuera del sorteo del día (a mano o porque ya
-              sonó). Sigue en el buscador. Si falta, es true.
-     sonada   número de día en que fue canción del día (informativo)
+     activa   false = apartada desde el panel. Sigue en el buscador. Si
+              falta, es true. El juego sortea entre todas igual.
+     sonada   número de día en que fue canción del día en el modo
+              anterior (informativo)
 
    El campo g es el género: es la primera de las tres pistas, la
    que se destapa al cuarto intento. Si lo omitís, esa pista sale
