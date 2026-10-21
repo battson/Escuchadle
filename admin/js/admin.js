@@ -100,23 +100,11 @@ function guardarEspejoCatalogo(){
             const o={a:x.a,t:x.t,yt:x.yt||"",activa:x.activa!==false};
             if(x.g) o.g=x.g; if(x.ini) o.ini=x.ini; if(x.sonada) o.sonada=x.sonada;
             return o;}),
-           hoy:(catNube&&catNube.hoy)||null,
            actualizado:(catNube&&catNube.actualizado)||null,
            sucio:true};
   catNube=c; store.set(CLAVE_CAT,c);
 }
 const porLabel=l=>CANCIONES.find(x=>x.label===l);
-function marcarSonada(label,d){
-  const c=porLabel(label); if(!c||c.sonada===d) return;
-  c.activa=false; c.sonada=d;
-}
-function tomarHoy(cat){
-  if(!cat) return;
-  catNube=catNube||{canciones:[],hoy:null,actualizado:null};
-  catNube.hoy=cat.hoy||null; catNube.actualizado=cat.actualizado||null;
-  if(cat.hoy&&cat.hoy.dia===diaHoy()) marcarSonada(cat.hoy.cancion,cat.hoy.dia);
-  store.set(CLAVE_CAT,catNube);
-}
 if(catNube){aplicarCatalogo(catNube); catSucio=!!catNube.sucio}
 else normalizarCatalogo();
 
@@ -129,11 +117,10 @@ window.addEventListener("nube:catalogo",e=>{
   }
   catEnNube=true;
   if(catSucio){
-    tomarHoy(cat);
-    textoCat="La nube cambió mientras tanto: se tomó la canción del día.";
+    textoCat="La nube cambió mientras tanto: se conservan tus cambios sin publicar.";
   }else{
     aplicarCatalogo(cat);
-    catNube={canciones:cat.canciones,hoy:cat.hoy,actualizado:cat.actualizado};
+    catNube={canciones:cat.canciones,actualizado:cat.actualizado};
     store.set(CLAVE_CAT,catNube);
     textoCat="Catálogo publicado en la nube.";
   }
@@ -141,7 +128,6 @@ window.addEventListener("nube:catalogo",e=>{
 });
 
 /* ---------- elección de canción ---------- */
-function diaHoy(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)}
 function bolsa(){const a=CANCIONES.filter(c=>c.activa!==false); return a.length?a:CANCIONES}
 
 /* Deja el panel al día con el estado real. */
@@ -282,7 +268,6 @@ function bancoGuardar(){
     const labelViejo=c.label;
     c.a=a; c.t=t; c.yt=id; if(g) c.g=g; else delete c.g; if(ini) c.ini=ini; else delete c.ini;
     normalizarCatalogo();
-    if(labelViejo!==c.label&&catNube&&catNube.hoy&&catNube.hoy.cancion===labelViejo) catNube.hoy.cancion=c.label;
     msg=`✓ Guardado: ${c.label}. Se publica con el botón Publicar.`;
   }
   marcarSucio();
@@ -349,9 +334,9 @@ function publicarCatalogo(){
   if(!hayNube()){textoCat="Sin conexión con la nube: no se puede publicar.";refrescarCatalogoPanel();return}
   bancoParar();
   btn.disabled=true; textoCat="Publicando…"; refrescarCatalogoPanel();
-  window.Nube.publicarCatalogo(CANCIONES,null).then(cat=>{
+  window.Nube.publicarCatalogo(CANCIONES).then(cat=>{
     catSucio=false; catEnNube=true;
-    catNube={canciones:cat.canciones,hoy:cat.hoy,actualizado:cat.actualizado};
+    catNube={canciones:cat.canciones,actualizado:cat.actualizado};
     store.set(CLAVE_CAT,catNube);
     textoCat="Catálogo publicado para todos.";
     rellenarBancoSel(true); pintarSonadas(); refrescarPanel();

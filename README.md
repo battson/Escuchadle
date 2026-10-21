@@ -11,9 +11,10 @@ los días, y no hay tabla ni puntos. Al terminar, *Otra canción* arranca una
 nueva. Las estadísticas (jugadas, ganadas, racha) quedan solo en el navegador.
 
 La nube (Firestore) se sigue usando únicamente para el catálogo de canciones.
-Las colecciones `dia`, `resultados`, `ajustes` y los métodos de ranking de
-`js/nube.js` quedaron sin uso, y las reglas de `firestore.rules` no hace
-falta tocarlas.
+Las colecciones `dia`, `resultados` y `ajustes` quedaron sin uso, y las
+reglas de `firestore.rules` no hace falta tocarlas. Lo que quedó del modo
+competitivo (`dia.js`, íconos) está aislado en `archivo/modo-competitivo/`
+y no se carga desde el sitio; el resto se recupera del historial de git.
 
 Sitio estático, sin dependencias ni build: se abre con doble clic o se sube
 tal cual a GitHub Pages.
@@ -54,8 +55,8 @@ css/clasico.css       estilos originales de la 1.0, para el botón "Vista clási
 js/config.js          clave de la API de YouTube (no se versiona)
 js/config.example.js  plantilla de config.js
 js/nube-config.js     datos del proyecto de Firebase (públicos, sí se versionan)
-js/nube.js            conexión con Firestore (módulo)
-js/dia.js             respaldo de la configuración del día
+js/nube.js            conexión con Firestore, solo catálogo y sugerencias (módulo)
+archivo/             código archivado del modo competitivo (no se carga)
 js/catalogo.js        respaldo del catálogo de canciones
 js/juego.js           lógica del juego
 admin/                panel de administración, página aparte (ver más abajo)
@@ -125,27 +126,19 @@ t        título
 yt       ID de YouTube
 g        género (primera pista)
 ini      segundos de silencio inicial a saltar (opcional)
-activa   false = fuera del sorteo del día; sigue en el buscador
-sonada   número de día en que fue canción del día (informativo)
+activa   false = apartada desde el panel; sigue en el buscador
+sonada   número de día en que sonó en el modo anterior (informativo)
 ```
 
-Y además `hoy: {dia, cancion}`, el **pin del día**: la canción fijada para
-todos. La fija el primer jugador que entra cada día hábil, en una transacción
-(si dos entran a la vez, gana el primero y el segundo recibe la misma). Al
-fijarla, esa canción queda `activa:false` con su `sonada`: **las canciones que
-ya sonaron se desactivan solas** y no vuelven al sorteo hasta que se las
-reactive desde el panel. Los fines de semana no se fija nada.
-
-Como el pin manda, publicar cambios de catálogo en medio del día no le cambia
-la canción a nadie: lo nuevo entra al sorteo desde el día siguiente. El sorteo
-automático se hace entre las activas; si no quedara ninguna, se sortea entre
-todas antes que dejar el juego sin canción.
+El sorteo de cada partida es al azar entre todas las canciones del
+catálogo; `activa` y `sonada` solo se usan en el panel (por ejemplo, para
+reactivar las que quedaron apartadas por el modo anterior).
 
 El panel, sección **Catálogo**, permite probar (un segundo o la canción
 completa), corregir, agregar, desactivar/activar y borrar canciones. Nada
 llega a los jugadores hasta tocar **Publicar**, que sube el documento entero.
-*Reactivar las que sonaron* devuelve al sorteo todo lo que ya salió, para
-cuando la bolsa se achica. *Copiar respaldo* arma el bloque para
+*Reactivar las que sonaron* devuelve a activas las que había apartado el modo
+anterior. *Copiar respaldo* arma el bloque para
 `js/catalogo.js`, que se usa solo si la nube no carga.
 
 La primera vez, el documento no existe: el botón dice *Publicar por primera
@@ -218,8 +211,6 @@ Y ojo con el nombre del archivo: GitHub Pages distingue mayúsculas, así que
 ```
 imgs/vinilo.svg      el disco del reproductor (gira con CSS) y el favicon
 imgs/vinilo.png      respaldo del favicon para navegadores sin favicon SVG
-imgs/ranking.svg     ícono del botón Ranking y de la cabecera del panel lateral
-imgs/cartel.svg      cartel de "cerrado" de la pantalla de fin de semana
 imgs/malvinas.svg    marca de agua fija abajo a la derecha
 imgs/OpenGraph.jpg   tarjeta para compartir, 1200×630, menos de 300 KB
 ```
